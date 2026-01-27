@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "name": "GANITA PRAKASH",
+    "slug": "ganita-prakash",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1A1A2E"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.cbseai.ganitaprakash"
+    },
+        "android": {
+          "adaptiveIcon": {
+            "foregroundImage": "./assets/icon.png",
+            "backgroundColor": "#1A1A2E"
+          },
+          "package": "com.cbseai.ganitaprakash",
+          "edgeToEdgeEnabled": true,
+          "googleServicesFile": "./google-services.json"
+        },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+        "plugins": [
+          "expo-web-browser",
+          "expo-asset",
+          "@react-native-firebase/app",
+          "@react-native-firebase/auth",
+          "@react-native-google-signin/google-signin"
+        ],
+        "assetBundlePatterns": [
+          "**/*",
+          "assets/ppts/*"
+        ]
+  }
+}
