@@ -7,6 +7,11 @@
 // Note: API calls are made through the backend, not directly from frontend
 const CLAUDE_API_KEY = '';
 
+function sanitizeHTML(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+}
+
 // Indian Festival Calendar 2026
 const indianFestivals2026 = [
     { date: "01-01", name: "New Year's Day", wish: "Happy New Year 2026! Wishing you success in your studies!", emoji: "🎉", color: "#FFD700" },
@@ -145,16 +150,16 @@ function showLanguageSelector() {
 
 // Chapter Media (Videos, PPTs, and PDFs from NotebookLM)
 const chapterMedia = {
-    1: { title: "Patterns in numbers", videoUrl: "https://drive.google.com/file/d/1G-gWjUd8hrmxyV-meLn6igquy5zTqx-i/preview", videoSummary: "Learn about number patterns and sequences.", pptUrl: "https://drive.google.com/file/d/1WbHMprNLt5JMQo0vVaC7_P7sTrR9Sxcd/preview", pptTitle: "The Hidden Architecture of Patterns", tbUrl: "https://drive.google.com/file/d/1fvKOqgxNrZFeqn5330REbgZoIcTgdyGi/preview", tbTitle: "Chapter 1 - Maths T.B." },
-    2: { title: "Lines and Angles", videoUrl: "https://drive.google.com/file/d/10NfjD3znlbJbcKo50R9AD5vLNuLCOB5H/preview", videoSummary: "Understanding lines, rays, and angles.", pptUrl: "https://drive.google.com/file/d/1fCIki-yVVW33e5_yQabafq8Sn7-Ue5Eu/preview", pptTitle: "From Point to Degree", tbUrl: "https://drive.google.com/file/d/1fvKOqgxNrZFeqn5330REbgZoIcTgdyGi/preview", tbTitle: "Chapter 2 - Maths T.B." },
-    3: { title: "Number Play", videoUrl: "https://drive.google.com/file/d/1voVejm6eO6BtXm9AMIfLCPikVwGnHU8i/preview", videoSummary: "Explore number puzzles and patterns.", pptUrl: "https://drive.google.com/file/d/1KgJx2nQdc9t-xHsBjYzt11JgFzyeGQmm/preview", pptTitle: "The Secret Life of Numbers", tbUrl: "https://drive.google.com/file/d/1fvKOqgxNrZFeqn5330REbgZoIcTgdyGi/preview", tbTitle: "Chapter 3 - Maths T.B." },
-    4: { title: "Data Handling", videoUrl: "https://drive.google.com/file/d/1uWy_U2NrHjx1Riv0Z2NIANPj5XkMxmYD/preview", videoSummary: "Learn to collect and present data.", pptUrl: "https://drive.google.com/file/d/1vAHyCGcFtcdjTIzvasaCvOGYMblfujGg/preview", pptTitle: "Data Structure Visualize Integrity", tbUrl: "https://drive.google.com/file/d/1fvKOqgxNrZFeqn5330REbgZoIcTgdyGi/preview", tbTitle: "Chapter 4 - Maths T.B." },
-    5: { title: "Prime Time", videoUrl: "https://drive.google.com/file/d/1CJTbvE5vTVPJiFvt-_l1cv5mHr5g7JD2/preview", videoSummary: "Discover prime numbers and factors.", pptUrl: "https://drive.google.com/file/d/1-94wWynj-KJN4uU-1DzjSGtLPKO3Y32m/preview", pptTitle: "Prime Time A Game of Numbers", tbUrl: "https://drive.google.com/file/d/1fvKOqgxNrZFeqn5330REbgZoIcTgdyGi/preview", tbTitle: "Chapter 5 - Maths T.B." },
-    6: { title: "Perimeter and Area", videoUrl: "https://drive.google.com/file/d/1rAjBngeOMaEiZ_tE4OM8Okviyqhbxkpo/preview", videoSummary: "Calculate perimeter and area.", pptUrl: "https://drive.google.com/file/d/11z7anMHhrCoG2309wuKuYhMXADdKlxbj/preview", pptTitle: "The Architect's Toolkit Mastering Space", tbUrl: "https://drive.google.com/file/d/1fvKOqgxNrZFeqn5330REbgZoIcTgdyGi/preview", tbTitle: "Chapter 6 - Maths T.B." },
-    7: { title: "Fractions", videoUrl: "https://drive.google.com/file/d/1HLz1i1ZzddZdnpsoyv7Zhoot_P80oaYm/preview", videoSummary: "Understanding fractions.", pptUrl: "https://drive.google.com/file/d/1ll8jPIypxn1Z_ISDHHSNxoMFQ0BqBodA/preview", pptTitle: "The Language of Parts", tbUrl: "https://drive.google.com/file/d/1fvKOqgxNrZFeqn5330REbgZoIcTgdyGi/preview", tbTitle: "Chapter 7 - Maths T.B." },
-    8: { title: "Playing with Constructions", videoUrl: "https://drive.google.com/file/d/1YuU0Cmx4CoeL2IgM6dsjS1zBCXoNG8cQ/preview", videoSummary: "Geometric constructions.", pptUrl: "https://drive.google.com/file/d/18oH6_9fkoIS2yCZ28qBTyGSW4-TkJlL_/preview", pptTitle: "The Geometer's Quest Precision and Art", tbUrl: "https://drive.google.com/file/d/1fvKOqgxNrZFeqn5330REbgZoIcTgdyGi/preview", tbTitle: "Chapter 8 - Maths T.B." },
-    9: { title: "Symmetry", videoUrl: "https://drive.google.com/file/d/14X50UAcCKYxgTmTxFxXtwUI74lK1YLOh/preview", videoSummary: "Line and rotational symmetry.", pptUrl: "https://drive.google.com/file/d/1YDvhdUNJ3nmUJilCex2uqIcsQ3-I0cnT/preview", pptTitle: "The Universal Blueprint of Symmetry", tbUrl: "https://drive.google.com/file/d/1fvKOqgxNrZFeqn5330REbgZoIcTgdyGi/preview", tbTitle: "Chapter 9 - Maths T.B." },
-    10: { title: "The Other Side of Zero", videoUrl: "https://drive.google.com/file/d/1FN9nkTnWCOTYF6El54AEtWtd-NKsUiBD/preview", videoSummary: "Introduction to integers.", pptUrl: "https://drive.google.com/file/d/18dQvLG_a1EOM5uz3JZKehQ-yOgtkzsJD/preview", pptTitle: "The Other Side of Zero", tbUrl: "https://drive.google.com/file/d/1fvKOqgxNrZFeqn5330REbgZoIcTgdyGi/preview", tbTitle: "Chapter 10 - Maths T.B." },
+    1: { title: "Patterns in numbers", videoUrl: "https://drive.google.com/file/d/1G-gWjUd8hrmxyV-meLn6igquy5zTqx-i/preview", videoSummary: "Learn about number patterns and sequences.", pptUrl: "https://drive.google.com/file/d/1WbHMprNLt5JMQo0vVaC7_P7sTrR9Sxcd/preview", pptTitle: "The Hidden Architecture of Patterns", tbUrl: "https://drive.google.com/file/d/1MdSzsXsFNUjYw8cxTiBFd7-T6qvH40Sp/preview", tbTitle: "Chapter 1 - Maths T.B." },
+    2: { title: "Lines and Angles", videoUrl: "https://drive.google.com/file/d/10NfjD3znlbJbcKo50R9AD5vLNuLCOB5H/preview", videoSummary: "Understanding lines, rays, and angles.", pptUrl: "https://drive.google.com/file/d/1fCIki-yVVW33e5_yQabafq8Sn7-Ue5Eu/preview", pptTitle: "From Point to Degree", tbUrl: "https://drive.google.com/file/d/1P7GyBa-N0d5fXL0iMaWZriEVxsHf4ISG/preview", tbTitle: "Chapter 2 - Maths T.B." },
+    3: { title: "Number Play", videoUrl: "https://drive.google.com/file/d/1voVejm6eO6BtXm9AMIfLCPikVwGnHU8i/preview", videoSummary: "Explore number puzzles and patterns.", pptUrl: "https://drive.google.com/file/d/1KgJx2nQdc9t-xHsBjYzt11JgFzyeGQmm/preview", pptTitle: "The Secret Life of Numbers", tbUrl: "https://drive.google.com/file/d/145VeF9E3B3XbiAS5XGwNoGRNiCY1Kkxn/preview", tbTitle: "Chapter 3 - Maths T.B." },
+    4: { title: "Data Handling", videoUrl: "https://drive.google.com/file/d/1uWy_U2NrHjx1Riv0Z2NIANPj5XkMxmYD/preview", videoSummary: "Learn to collect and present data.", pptUrl: "https://drive.google.com/file/d/1vAHyCGcFtcdjTIzvasaCvOGYMblfujGg/preview", pptTitle: "Data Structure Visualize Integrity", tbUrl: "https://drive.google.com/file/d/1h9k3rGFz8sXidIitfspCmQ6g0pCzZKCY/preview", tbTitle: "Chapter 4 - Maths T.B." },
+    5: { title: "Prime Time", videoUrl: "https://drive.google.com/file/d/1CJTbvE5vTVPJiFvt-_l1cv5mHr5g7JD2/preview", videoSummary: "Discover prime numbers and factors.", pptUrl: "https://drive.google.com/file/d/1-94wWynj-KJN4uU-1DzjSGtLPKO3Y32m/preview", pptTitle: "Prime Time A Game of Numbers", tbUrl: "https://drive.google.com/file/d/1OHpaiu9dF71fK4bRp0BO7ok8_QKIq2MJ/preview", tbTitle: "Chapter 5 - Maths T.B." },
+    6: { title: "Perimeter and Area", videoUrl: "https://drive.google.com/file/d/1rAjBngeOMaEiZ_tE4OM8Okviyqhbxkpo/preview", videoSummary: "Calculate perimeter and area.", pptUrl: "https://drive.google.com/file/d/11z7anMHhrCoG2309wuKuYhMXADdKlxbj/preview", pptTitle: "The Architect's Toolkit Mastering Space", tbUrl: "https://drive.google.com/file/d/1-XCGMLfG-e05qa2Pfvd8q-WxRUxtgIRG/preview", tbTitle: "Chapter 6 - Maths T.B." },
+    7: { title: "Fractions", videoUrl: "https://drive.google.com/file/d/1HLz1i1ZzddZdnpsoyv7Zhoot_P80oaYm/preview", videoSummary: "Understanding fractions.", pptUrl: "https://drive.google.com/file/d/1ll8jPIypxn1Z_ISDHHSNxoMFQ0BqBodA/preview", pptTitle: "The Language of Parts", tbUrl: "https://drive.google.com/file/d/13kc5mx6p3jWThUIHKEoRYoYRkNkvnHCV/preview", tbTitle: "Chapter 7 - Maths T.B." },
+    8: { title: "Playing with Constructions", videoUrl: "https://drive.google.com/file/d/1YuU0Cmx4CoeL2IgM6dsjS1zBCXoNG8cQ/preview", videoSummary: "Geometric constructions.", pptUrl: "https://drive.google.com/file/d/18oH6_9fkoIS2yCZ28qBTyGSW4-TkJlL_/preview", pptTitle: "The Geometer's Quest Precision and Art", tbUrl: "https://drive.google.com/file/d/1agsSZgajY4NPMyaWcFnYZ9slQpvfhb5Z/preview", tbTitle: "Chapter 8 - Maths T.B." },
+    9: { title: "Symmetry", videoUrl: "https://drive.google.com/file/d/14X50UAcCKYxgTmTxFxXtwUI74lK1YLOh/preview", videoSummary: "Line and rotational symmetry.", pptUrl: "https://drive.google.com/file/d/1YDvhdUNJ3nmUJilCex2uqIcsQ3-I0cnT/preview", pptTitle: "The Universal Blueprint of Symmetry", tbUrl: "https://drive.google.com/file/d/1-PWg2U1ZOkU-jXUIQ3W5f0ClNtYGWWTU/preview", tbTitle: "Chapter 9 - Maths T.B." },
+    10: { title: "The Other Side of Zero", videoUrl: "https://drive.google.com/file/d/1FN9nkTnWCOTYF6El54AEtWtd-NKsUiBD/preview", videoSummary: "Introduction to integers.", pptUrl: "https://drive.google.com/file/d/18dQvLG_a1EOM5uz3JZKehQ-yOgtkzsJD/preview", pptTitle: "The Other Side of Zero", tbUrl: "https://drive.google.com/file/d/1pJf73SW7rhNGsCSMKGy6gnypRGI41L65/preview", tbTitle: "Chapter 10 - Maths T.B." },
 };
 
 console.log('Additional features loaded: Holidays, Languages, Chapter Media');
@@ -5125,18 +5130,47 @@ function showChapterTextbook(chapterId) {
         alert('Textbook not available for this chapter.');
         return;
     }
-    
-    const modal = document.getElementById('result-modal');
-    modal.style.display = 'flex';
-    modal.querySelector('.modal-content').innerHTML = `
-        <h2 style="color: #00ffff; font-family: 'Orbitron', monospace; margin-bottom: 20px;">${media.tbTitle || 'Chapter Textbook'}</h2>
-        <div style="position: relative; width: 100%; padding-bottom: 75%; margin-bottom: 20px;">
-            <iframe src="${media.tbUrl}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 2px solid #00ffff;" allowfullscreen></iframe>
-        </div>
-        <div class="btn-group">
-            <button class="btn btn-primary" onclick="closeModal()">CLOSE</button>
-        </div>
-    `;
+
+    const fileId = media.tbUrl.replace('https://drive.google.com/file/d/', '').replace('/preview', '');
+    const downloadUrl = 'https://drive.google.com/uc?export=download&id=' + fileId;
+
+    const overlay = document.createElement('div');
+    overlay.id = 'pdf-viewer-overlay';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:10000;display:flex;flex-direction:column;';
+    overlay.innerHTML =
+        '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px;background:linear-gradient(135deg,#1a1a2e,#16213e);border-bottom:2px solid #00ffff;">' +
+            '<div style="display:flex;align-items:center;gap:10px;">' +
+                '<span style="font-size:1.5em;">📖</span>' +
+                '<span style="color:#00ffff;font-family:Orbitron,monospace;font-size:1em;">' + sanitizeHTML(media.tbTitle || 'Chapter Textbook') + '</span>' +
+            '</div>' +
+            '<div style="display:flex;gap:8px;">' +
+                '<a href="' + downloadUrl + '" target="_blank" style="padding:6px 14px;background:#00a884;color:#fff;border:none;border-radius:6px;cursor:pointer;text-decoration:none;font-size:0.85em;display:flex;align-items:center;gap:4px;">⬇ Download</a>' +
+                '<button onclick="togglePdfFullscreen()" style="padding:6px 14px;background:#0066ff;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:0.85em;">⛶ Fullscreen</button>' +
+                '<button onclick="closePdfViewer()" style="padding:6px 14px;background:#ff4444;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:0.85em;">✕ Close</button>' +
+            '</div>' +
+        '</div>' +
+        '<div style="flex:1;overflow:hidden;position:relative;">' +
+            '<iframe id="pdf-viewer-frame" src="' + media.tbUrl + '" style="width:100%;height:100%;border:none;" allowfullscreen></iframe>' +
+        '</div>';
+    document.body.appendChild(overlay);
+    document.body.style.overflow = 'hidden';
+}
+
+function togglePdfFullscreen() {
+    var frame = document.getElementById('pdf-viewer-frame');
+    if (frame) {
+        if (frame.requestFullscreen) frame.requestFullscreen();
+        else if (frame.webkitRequestFullscreen) frame.webkitRequestFullscreen();
+        else if (frame.msRequestFullscreen) frame.msRequestFullscreen();
+    }
+}
+
+function closePdfViewer() {
+    var overlay = document.getElementById('pdf-viewer-overlay');
+    if (overlay) {
+        overlay.remove();
+        document.body.style.overflow = '';
+    }
 }
 
 // Back to chapters
@@ -6281,8 +6315,8 @@ function renderChatMessages() {
     }
     container.innerHTML = appState.chatMessages.map(msg => 
         '<div class="chat-message ' + (msg.user_id === appState.userId ? 'own' : 'other') + (msg.is_ai ? ' ai' : '') + '">' +
-        '<div class="chat-sender">' + msg.sender_name + (msg.is_ai ? ' (AI)' : '') + '</div>' +
-        '<div class="chat-text">' + msg.content + '</div>' +
+        '<div class="chat-sender">' + sanitizeHTML(msg.sender_name) + (msg.is_ai ? ' (AI)' : '') + '</div>' +
+        '<div class="chat-text">' + sanitizeHTML(msg.content) + '</div>' +
         '<div class="chat-time">' + new Date(msg.created_at).toLocaleString() + '</div></div>'
     ).join('');
     container.scrollTop = container.scrollHeight;
@@ -6359,14 +6393,14 @@ function renderUserChatMessages() {
             return '<div style="display: flex; justify-content: flex-start; margin-bottom: 10px;">' +
                 '<div style="max-width: 70%; background: linear-gradient(135deg, #3a3a5c, #2a2a4c); padding: 12px 15px; border-radius: 15px 15px 15px 0; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">' +
                 '<div style="color: #00ffff; font-size: 0.8em; margin-bottom: 5px;">Master Admin</div>' +
-                '<div style="color: #fff; word-wrap: break-word;">' + msg.content + '</div>' +
+                '<div style="color: #fff; word-wrap: break-word;">' + sanitizeHTML(msg.content) + '</div>' +
                 '<div style="color: #888; font-size: 0.75em; text-align: right; margin-top: 5px;">' + time + '</div>' +
                 '</div></div>';
         } else {
             // User message - right side (green)
             return '<div style="display: flex; justify-content: flex-end; margin-bottom: 10px;">' +
                 '<div style="max-width: 70%; background: linear-gradient(135deg, #00a884, #008f6f); padding: 12px 15px; border-radius: 15px 15px 0 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">' +
-                '<div style="color: #fff; word-wrap: break-word;">' + msg.content + '</div>' +
+                '<div style="color: #fff; word-wrap: break-word;">' + sanitizeHTML(msg.content) + '</div>' +
                 '<div style="color: rgba(255,255,255,0.7); font-size: 0.75em; text-align: right; margin-top: 5px;">' + time + '</div>' +
                 '</div></div>';
         }
@@ -8083,14 +8117,14 @@ function renderChatMessages() {
             // Admin message - right side (green bubble like WhatsApp)
             return '<div style="display: flex; justify-content: flex-end; margin-bottom: 10px;">' +
                 '<div style="max-width: 70%; background: linear-gradient(135deg, #00a884, #008f72); padding: 10px 15px; border-radius: 15px 15px 0 15px; color: #fff;">' +
-                '<div style="word-wrap: break-word;">' + msg.content + '</div>' +
+                '<div style="word-wrap: break-word;">' + sanitizeHTML(msg.content) + '</div>' +
                 '<div style="text-align: right; font-size: 0.7em; color: rgba(255,255,255,0.7); margin-top: 5px;">' + time + '</div>' +
                 '</div></div>';
         } else {
             // User message - left side (white/gray bubble)
             return '<div style="display: flex; justify-content: flex-start; margin-bottom: 10px;">' +
                 '<div style="max-width: 70%; background: rgba(255,255,255,0.1); padding: 10px 15px; border-radius: 15px 15px 15px 0; color: #fff;">' +
-                '<div style="word-wrap: break-word;">' + msg.content + '</div>' +
+                '<div style="word-wrap: break-word;">' + sanitizeHTML(msg.content) + '</div>' +
                 '<div style="text-align: right; font-size: 0.7em; color: rgba(255,255,255,0.5); margin-top: 5px;">' + time + '</div>' +
                 '</div></div>';
         }

@@ -33,7 +33,7 @@ app.add_middleware(
 )
 
 # Configuration
-SECRET_KEY = "ganita-prakash-secret-key-2024"
+SECRET_KEY = os.getenv("SECRET_KEY", secrets.token_hex(32))
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
@@ -113,7 +113,7 @@ def verify_password(password: str, hashed: str) -> bool:
         salt, stored_hash = hashed.split('$')
         new_hash = hashlib.pbkdf2_hmac('sha256', password.encode(), salt.encode(), 100000)
         return new_hash.hex() == stored_hash
-    except:
+    except (ValueError, AttributeError):
         return False
 
 security = HTTPBearer()
@@ -188,7 +188,8 @@ async def init_db():
         # Check for admin account with correct email
         admin_exists = await db.execute("SELECT id FROM users WHERE username = ?", (ADMIN_EMAIL,))
         if not await admin_exists.fetchone():
-            admin_hash = hash_password("admin123")
+            admin_pw = os.getenv("ADMIN_PASSWORD", "admin123")
+            admin_hash = hash_password(admin_pw)
             await db.execute("INSERT INTO users (username, password_hash, name, is_admin) VALUES (?, ?, ?, ?)",
                 (ADMIN_EMAIL, admin_hash, "Master Admin", True))
         # Also check for legacy admin account and update if needed
@@ -253,6 +254,8 @@ async def healthz():
 
 @app.post("/api/auth/register", response_model=Token)
 async def register(user_data: UserCreate):
+    if len(user_data.password) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
     async with aiosqlite.connect(DB_PATH) as db:
         cursor = await db.execute("SELECT id FROM users WHERE username = ?", (user_data.username,))
         if await cursor.fetchone():
@@ -331,9 +334,15 @@ async def check_user(request: CheckUserRequest):
             return {"exists": True, "user": {"id": user["id"], "username": user["username"], "name": user["name"], "is_admin": bool(user["is_admin"])}}
         return {"exists": False, "user": None}
 
+class GoogleLoginRequestWithToken(BaseModel):
+    email: str
+    id_token: Optional[str] = None
+
 @app.post("/api/auth/google-login")
 async def google_login(request: GoogleLoginRequest):
-    """Login user via Google Sign-In (no password required)"""
+    """Login user via Google Sign-In (verified through Firebase on client side)"""
+    if not request.email or "@" not in request.email:
+        raise HTTPException(status_code=400, detail="Invalid email address")
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
         cursor = await db.execute("SELECT * FROM users WHERE username = ?", (request.email,))
@@ -464,8 +473,8 @@ async def ai_chat(chat_data: AIChat, user: dict = Depends(get_optional_user)):
                     (user["id"], chat_data.message, ai_response, chat_data.chapter_id))
                 await db.commit()
         return {"response": ai_response, "status": "success"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"AI error: {str(e)}")
+    except Exception:
+        raise HTTPException(status_code=500, detail="AI service temporarily unavailable")
 
 @app.get("/api/admin/dashboard")
 async def admin_dashboard(admin: dict = Depends(get_admin_user)):
@@ -565,14 +574,39 @@ async def admin_reply(reply_data: AdminReply, admin: dict = Depends(get_admin_us
         try:
             await db.execute("ALTER TABLE messages ADD COLUMN target_user_id INTEGER")
             await db.commit()
-        except:
-            pass  # Column already exists
+        except Exception:
+            pass
         # Insert admin reply with target_user_id set to the user being replied to
         # user_id is admin's ID (1), target_user_id is the student's ID
         await db.execute("INSERT INTO messages (user_id, content, message_type, is_admin_reply, target_user_id) VALUES (?, ?, 'text', TRUE, ?)",
             (admin["id"], reply_data.message, reply_data.user_id))
         await db.commit()
         return {"status": "success", "message": "Reply sent"}
+
+@app.get("/api/admin/chat/{user_id}")
+async def get_admin_chat(user_id: int, admin: dict = Depends(get_admin_user)):
+    """Get chat history between admin and a specific user"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        try:
+            await db.execute("ALTER TABLE messages ADD COLUMN target_user_id INTEGER")
+            await db.commit()
+        except Exception:
+            pass
+        try:
+            await db.execute("ALTER TABLE messages ADD COLUMN is_admin_reply BOOLEAN DEFAULT FALSE")
+            await db.commit()
+        except Exception:
+            pass
+        cursor = await db.execute('''
+            SELECT m.*, u.name as sender_name
+            FROM messages m
+            JOIN users u ON m.user_id = u.id
+            WHERE m.user_id = ? OR (m.is_admin_reply = TRUE AND m.target_user_id = ?)
+            ORDER BY m.created_at ASC
+        ''', (user_id, user_id))
+        messages = [dict(m) for m in await cursor.fetchall()]
+        return {"messages": messages}
 
 @app.post("/api/admin/notify")
 async def admin_notify(notify_data: AdminNotify, admin: dict = Depends(get_admin_user)):
@@ -623,8 +657,8 @@ async def ai_chat_with_language(chat_data: GeminiChatWithLanguage, user: dict = 
                 (user["id"], chat_data.message, ai_response, chat_data.chapter_id))
             await db.commit()
         return {"response": ai_response, "language": chat_data.language, "status": "success"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"AI error: {str(e)}")
+    except Exception:
+        raise HTTPException(status_code=500, detail="AI service temporarily unavailable")
 
 @app.get("/api/models/{chapter_id}")
 async def get_chapter_models(chapter_id: int):
@@ -919,7 +953,17 @@ async def get_pending_calls(user: dict = Depends(get_current_user)):
 
 # WebSocket for real-time WebRTC signaling
 @app.websocket("/ws/webrtc/{user_id}")
-async def websocket_webrtc(websocket: WebSocket, user_id: int):
+async def websocket_webrtc(websocket: WebSocket, user_id: int, token: Optional[str] = None):
+    if token:
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            token_user_id = payload.get("user_id")
+            if token_user_id != user_id:
+                await websocket.close(code=4003)
+                return
+        except JWTError:
+            await websocket.close(code=4001)
+            return
     await websocket.accept()
     webrtc_connections[user_id] = websocket
     try:
@@ -938,8 +982,7 @@ async def websocket_webrtc(websocket: WebSocket, user_id: int):
     except WebSocketDisconnect:
         if user_id in webrtc_connections:
             del webrtc_connections[user_id]
-    except Exception as e:
-        print(f"WebSocket error: {e}")
+    except Exception:
         if user_id in webrtc_connections:
             del webrtc_connections[user_id]
 
@@ -953,14 +996,14 @@ async def get_user_messages(user: dict = Depends(get_current_user)):
         try:
             await db.execute("ALTER TABLE messages ADD COLUMN is_admin_reply BOOLEAN DEFAULT FALSE")
             await db.commit()
-        except:
-            pass  # Column already exists
+        except Exception:
+            pass
         # Ensure target_user_id column exists for admin replies
         try:
             await db.execute("ALTER TABLE messages ADD COLUMN target_user_id INTEGER")
             await db.commit()
-        except:
-            pass  # Column already exists
+        except Exception:
+            pass
         # Get messages sent by this user OR admin replies targeted to this user
         cursor = await db.execute('''
             SELECT m.*, u.name as sender_name, u.username as sender_username
@@ -1014,8 +1057,10 @@ async def update_screen_share(data: ScreenShareUpdate, user: dict = Depends(get_
         })
     return {"status": "success"}
 
+MAX_SCREENSHOT_SIZE = 5 * 1024 * 1024
+
 class ScreenShareScreenshot(BaseModel):
-    screenshot: str  # Base64 encoded image
+    screenshot: str
     current_question: int
     total_questions: int
     timestamp: str
@@ -1026,6 +1071,8 @@ screen_share_screenshots: Dict[int, dict] = {}
 @app.post("/api/exam/screen-share/screenshot")
 async def receive_screenshot(data: ScreenShareScreenshot, user: dict = Depends(get_current_user)):
     """Receive screenshot from student during exam"""
+    if len(data.screenshot) > MAX_SCREENSHOT_SIZE:
+        raise HTTPException(status_code=413, detail="Screenshot too large")
     screen_share_screenshots[user["id"]] = {
         "user_id": user["id"],
         "user_name": user["name"],
@@ -1153,15 +1200,29 @@ async def get_screen_share_ice_candidates(user_id: int, user: dict = Depends(get
 # Force submit exam endpoint
 force_submit_users: Dict[int, dict] = {}
 
+class ForceSubmitRequest(BaseModel):
+    user_id: int
+    reason: str = "cheating"
+
 @app.post("/api/admin/force-submit/{user_id}")
 async def admin_force_submit(user_id: int, admin: dict = Depends(get_admin_user)):
-    """Admin force-submits a student's exam (for cheating)"""
+    """Admin force-submits a student's exam (for cheating) via path param"""
     force_submit_users[user_id] = {
         "force_submitted": True,
         "message": "Your exam has been auto-submitted by admin because you were caught cheating!",
         "timestamp": datetime.utcnow().isoformat()
     }
     return {"status": "success", "message": f"Force-submitted exam for user {user_id}"}
+
+@app.post("/api/admin/force-submit")
+async def admin_force_submit_body(data: ForceSubmitRequest, admin: dict = Depends(get_admin_user)):
+    """Admin force-submits a student's exam via JSON body"""
+    force_submit_users[data.user_id] = {
+        "force_submitted": True,
+        "message": "Your exam has been auto-submitted by admin because you were caught cheating!",
+        "timestamp": datetime.utcnow().isoformat()
+    }
+    return {"status": "success", "message": f"Force-submitted exam for user {data.user_id}"}
 
 @app.get("/api/exam/check-force-submit")
 async def check_force_submit(user: dict = Depends(get_current_user)):
