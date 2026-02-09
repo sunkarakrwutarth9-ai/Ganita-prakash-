@@ -276,7 +276,7 @@ const generate3DModelHTML = (modelType, modelName) => {
   `;
 };
 
-const API_URL = "https://app-zmatwbmr.fly.dev";
+const API_URL = "https://app-lqmnnlxp.fly.dev";
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // Admin email for Google OAuth

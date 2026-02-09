@@ -5799,7 +5799,7 @@ document.addEventListener('DOMContentLoaded', init);
 // API INTEGRATION AND NEW FEATURES
 // ============================================
 
-const API_URL = "https://app-zmatwbmr.fly.dev";
+const API_URL = "https://app-lqmnnlxp.fly.dev";
 // ADMIN_EMAIL is defined in index.html
 
 // 3D Models data for each chapter
