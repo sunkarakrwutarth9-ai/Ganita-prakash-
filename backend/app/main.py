@@ -687,7 +687,8 @@ async def mark_notification_read(notification_id: int, user: dict = Depends(get_
         return {"status": "success"}
 
 @app.post("/api/ai/chat-with-language")
-async def ai_chat_with_language(chat_data: GeminiChatWithLanguage, user: dict = Depends(get_current_user)):
+async def ai_chat_with_language(chat_data: GeminiChatWithLanguage, request: Request, user: dict = Depends(get_current_user)):
+    check_rate_limit(request.client.host, RATE_LIMIT_MAX_REQUESTS)
     try:
         language_names = {"en": "English", "hi": "Hindi", "te": "Telugu", "ta": "Tamil", "kn": "Kannada", 
             "ml": "Malayalam", "mr": "Marathi", "bn": "Bengali", "gu": "Gujarati", "pa": "Punjabi"}
@@ -697,13 +698,28 @@ async def ai_chat_with_language(chat_data: GeminiChatWithLanguage, user: dict = 
             5: "Prime Time", 6: "Perimeter and Area", 7: "Fractions", 8: "Playing with Constructions", 9: "Symmetry", 10: "The Other Side of Zero"}
         if chat_data.chapter_id:
             system_prompt += f"\nCurrent chapter: {chapter_topics.get(chat_data.chapter_id, '')}"
-        response = gemini_model.generate_content(f"{system_prompt}\n\nStudent's question: {chat_data.message}")
-        ai_response = response.text
+        ai_response = None
+        try:
+            async with httpx.AsyncClient() as client:
+                groq_response = await client.post(
+                    "https://api.groq.com/openai/v1/chat/completions",
+                    headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
+                    json={"model": "llama-3.3-70b-versatile", "messages": [{"role": "system", "content": system_prompt}, {"role": "user", "content": chat_data.message}], "max_tokens": 1024, "temperature": 0.7},
+                    timeout=30.0
+                )
+                if groq_response.status_code == 200:
+                    ai_response = groq_response.json()["choices"][0]["message"]["content"]
+        except Exception:
+            pass
+        if not ai_response:
+            raise HTTPException(status_code=500, detail="AI service temporarily unavailable")
         async with aiosqlite.connect(DB_PATH) as db:
             await db.execute("INSERT INTO ai_conversations (user_id, user_message, ai_response, chapter_id) VALUES (?, ?, ?, ?)",
                 (user["id"], chat_data.message, ai_response, chat_data.chapter_id))
             await db.commit()
         return {"response": ai_response, "language": chat_data.language, "status": "success"}
+    except HTTPException:
+        raise
     except Exception:
         raise HTTPException(status_code=500, detail="AI service temporarily unavailable")
 

@@ -6770,19 +6770,19 @@ export default function App() {
           <Text style={styles.quickActionTitle}>Neural AI</Text>
           <Text style={styles.quickActionSubtitle}>Query system</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.quickActionCard} onPress={() => Alert.alert('Transmissions', 'Visual transmissions loading...')}>
+        <TouchableOpacity style={styles.quickActionCard} onPress={() => setScreen('progress')}>
           <View style={styles.quickActionIconBox}>
             <Text style={styles.quickActionIconText}>◉</Text>
           </View>
-          <Text style={styles.quickActionTitle}>Transmissions</Text>
-          <Text style={styles.quickActionSubtitle}>Visual data</Text>
+          <Text style={styles.quickActionTitle}>Progress</Text>
+          <Text style={styles.quickActionSubtitle}>Track learning</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.quickActionCard} onPress={() => setShowResources(true)}>
+        <TouchableOpacity style={styles.quickActionCard} onPress={() => setScreen('certificates')}>
           <View style={styles.quickActionIconBox}>
             <Text style={styles.quickActionIconText}>⬡</Text>
           </View>
-          <Text style={styles.quickActionTitle}>Holograms</Text>
-          <Text style={styles.quickActionSubtitle}>3D models</Text>
+          <Text style={styles.quickActionTitle}>Certificates</Text>
+          <Text style={styles.quickActionSubtitle}>Achievements</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.quickActionCard} onPress={() => { loadChatMessages(); setScreen('chat'); }}>
           <View style={styles.quickActionIconBox}>
@@ -7324,6 +7324,9 @@ export default function App() {
         // Check Google Play Services
         await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
         
+        // Sign out first to force account picker every time
+        try { await GoogleSignin.signOut(); } catch (e) {}
+        
         // Sign in with Google using Firebase
         const signInResult = await GoogleSignin.signIn();
         const idToken = signInResult.data?.idToken || signInResult.idToken;
@@ -7373,9 +7376,8 @@ export default function App() {
           
           if (checkResponse.ok) {
             const checkData = await checkResponse.json();
-            if (checkData.exists && checkData.user) {
+            if (checkData.exists) {
               userExistsOnBackend = true;
-              backendUserData = checkData.user;
             }
           }
         } catch (e) {
@@ -7383,7 +7385,7 @@ export default function App() {
         }
         
         // Login existing user
-        if (userExistsOnBackend && backendUserData) {
+        if (userExistsOnBackend) {
           try {
             const loginResponse = await fetch(`${API_URL}/api/auth/google-login`, {
               method: 'POST',
