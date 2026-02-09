@@ -1,12 +1,16 @@
-from fastapi import FastAPI, HTTPException, Depends, status, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Depends, status, WebSocket, WebSocketDisconnect, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 from typing import Optional, List, Dict
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
 import hashlib
 import secrets
+import re
+import html
+import time
+import collections
 import google.generativeai as genai
 import aiosqlite
 import os
@@ -23,14 +27,39 @@ webrtc_calls: Dict[str, dict] = {}
 
 app = FastAPI(title="GANITA PRAKASH API", version="1.0.0")
 
-# Disable CORS. Do not remove this for full-stack development.
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "*").split(",")
+use_credentials = ALLOWED_ORIGINS != ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=use_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+rate_limit_store: Dict[str, list] = collections.defaultdict(list)
+RATE_LIMIT_WINDOW = 60
+RATE_LIMIT_MAX_REQUESTS = 20
+RATE_LIMIT_LOGIN_MAX = 5
+
+def check_rate_limit(client_ip: str, max_requests: int = RATE_LIMIT_MAX_REQUESTS):
+    now = time.time()
+    rate_limit_store[client_ip] = [t for t in rate_limit_store[client_ip] if now - t < RATE_LIMIT_WINDOW]
+    if len(rate_limit_store[client_ip]) >= max_requests:
+        raise HTTPException(status_code=429, detail="Too many requests. Please try again later.")
+    rate_limit_store[client_ip].append(now)
+
+def sanitize_input(value: str, max_length: int = 500) -> str:
+    if not value:
+        return value
+    value = value[:max_length]
+    value = html.escape(value)
+    return value
+
+def validate_email_format(email: str) -> bool:
+    pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    return bool(re.match(pattern, email))
 
 # Configuration
 SECRET_KEY = os.getenv("SECRET_KEY", secrets.token_hex(32))
@@ -253,16 +282,22 @@ async def healthz():
     return {"status": "ok"}
 
 @app.post("/api/auth/register", response_model=Token)
-async def register(user_data: UserCreate):
+async def register(user_data: UserCreate, request: Request):
+    check_rate_limit(request.client.host, RATE_LIMIT_LOGIN_MAX)
     if len(user_data.password) < 8:
         raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
+    if not validate_email_format(user_data.username):
+        raise HTTPException(status_code=400, detail="Invalid email format")
+    if len(user_data.name) > 100:
+        raise HTTPException(status_code=400, detail="Name too long")
+    safe_name = sanitize_input(user_data.name, 100)
     async with aiosqlite.connect(DB_PATH) as db:
         cursor = await db.execute("SELECT id FROM users WHERE username = ?", (user_data.username,))
         if await cursor.fetchone():
             raise HTTPException(status_code=400, detail="Username already exists")
         password_hash = hash_password(user_data.password)
         cursor = await db.execute("INSERT INTO users (username, password_hash, name, platform) VALUES (?, ?, ?, ?)",
-            (user_data.username, password_hash, user_data.name, user_data.platform))
+            (user_data.username, password_hash, safe_name, user_data.platform))
         await db.commit()
         user_id = cursor.lastrowid
         for chapter_id in range(1, 11):
@@ -270,12 +305,11 @@ async def register(user_data: UserCreate):
                 (user_id, chapter_id, chapter_id == 1))
         await db.commit()
         
-        # Send notification to admin about new user registration
-        asyncio.create_task(send_admin_notification(user_data.name, user_data.username, user_data.platform))
+        asyncio.create_task(send_admin_notification(safe_name, user_data.username, user_data.platform))
         
         token = create_access_token({"user_id": user_id})
         return {"access_token": token, "token_type": "bearer",
-            "user": {"id": user_id, "username": user_data.username, "name": user_data.name, "is_admin": False}}
+            "user": {"id": user_id, "username": user_data.username, "name": safe_name, "is_admin": False}}
 
 async def send_login_notification(user_name: str, user_email: str, platform: str):
     """Send notification to admin when user logs in"""
@@ -293,7 +327,8 @@ async def send_login_notification(user_name: str, user_email: str, platform: str
         return False
 
 @app.post("/api/auth/login", response_model=Token)
-async def login(user_data: UserLogin):
+async def login(user_data: UserLogin, request: Request):
+    check_rate_limit(request.client.host, RATE_LIMIT_LOGIN_MAX)
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
         cursor = await db.execute("SELECT * FROM users WHERE username = ?", (user_data.username,))
@@ -324,24 +359,28 @@ class GoogleLoginRequest(BaseModel):
     email: str
 
 @app.post("/api/auth/check-user")
-async def check_user(request: CheckUserRequest):
+async def check_user(request: CheckUserRequest, req: Request):
     """Check if a user exists by email for Google Sign-In"""
+    check_rate_limit(req.client.host, RATE_LIMIT_LOGIN_MAX)
+    if not request.email or not validate_email_format(request.email):
+        raise HTTPException(status_code=400, detail="Invalid email format")
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
-        cursor = await db.execute("SELECT id, username, name, is_admin FROM users WHERE username = ?", (request.email,))
+        cursor = await db.execute("SELECT id FROM users WHERE username = ?", (request.email,))
         user = await cursor.fetchone()
         if user:
-            return {"exists": True, "user": {"id": user["id"], "username": user["username"], "name": user["name"], "is_admin": bool(user["is_admin"])}}
-        return {"exists": False, "user": None}
+            return {"exists": True}
+        return {"exists": False}
 
 class GoogleLoginRequestWithToken(BaseModel):
     email: str
     id_token: Optional[str] = None
 
 @app.post("/api/auth/google-login")
-async def google_login(request: GoogleLoginRequest):
+async def google_login(request: GoogleLoginRequest, req: Request):
     """Login user via Google Sign-In (verified through Firebase on client side)"""
-    if not request.email or "@" not in request.email:
+    check_rate_limit(req.client.host, RATE_LIMIT_LOGIN_MAX)
+    if not request.email or not validate_email_format(request.email):
         raise HTTPException(status_code=400, detail="Invalid email address")
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
@@ -367,8 +406,11 @@ class NameUpdate(BaseModel):
 @app.post("/api/user/update-name")
 async def update_user_name(name_data: NameUpdate, user: dict = Depends(get_current_user)):
     """Update user's name"""
+    if len(name_data.name) > 100:
+        raise HTTPException(status_code=400, detail="Name too long")
+    safe_name = sanitize_input(name_data.name, 100)
     async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute("UPDATE users SET name = ? WHERE id = ?", (name_data.name, user["id"]))
+        await db.execute("UPDATE users SET name = ? WHERE id = ?", (safe_name, user["id"]))
         await db.commit()
         return {"status": "success", "message": "Name updated successfully"}
 
@@ -410,22 +452,27 @@ async def create_certificate(cert_type: str, chapter_id: Optional[int] = None, s
 
 @app.get("/api/messages")
 async def get_messages(limit: int = 100, user: dict = Depends(get_current_user)):
+    safe_limit = min(max(1, limit), 500)
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
         cursor = await db.execute('''SELECT m.*, u.name as sender_name, u.username as sender_username
-            FROM messages m JOIN users u ON m.user_id = u.id ORDER BY m.created_at DESC LIMIT ?''', (limit,))
+            FROM messages m JOIN users u ON m.user_id = u.id ORDER BY m.created_at DESC LIMIT ?''', (safe_limit,))
         return [dict(m) for m in await cursor.fetchall()]
 
 @app.post("/api/messages")
 async def send_message(message_data: MessageCreate, user: dict = Depends(get_current_user)):
+    if len(message_data.content) > 5000:
+        raise HTTPException(status_code=400, detail="Message too long (max 5000 characters)")
+    safe_content = sanitize_input(message_data.content, 5000)
     async with aiosqlite.connect(DB_PATH) as db:
         cursor = await db.execute("INSERT INTO messages (user_id, content, message_type, media_url, platform) VALUES (?, ?, ?, ?, ?)",
-            (user["id"], message_data.content, message_data.message_type, message_data.media_url, user.get("platform", "apk")))
+            (user["id"], safe_content, message_data.message_type, message_data.media_url, user.get("platform", "apk")))
         await db.commit()
         return {"id": cursor.lastrowid, "status": "success"}
 
 @app.post("/api/ai/chat")
-async def ai_chat(chat_data: AIChat, user: dict = Depends(get_optional_user)):
+async def ai_chat(chat_data: AIChat, request: Request, user: dict = Depends(get_optional_user)):
+    check_rate_limit(request.client.host, RATE_LIMIT_MAX_REQUESTS)
     try:
         system_prompt = "You are an AI assistant for GANITA PRAKASH, a Class 6 NCERT Mathematics learning app. Help students understand mathematical concepts in simple terms. IMPORTANT: Keep your responses very concise - maximum 3 lines only. Be brief and to the point."
         chapter_topics = {1: "Patterns in Mathematics", 2: "Lines and Angles", 3: "Number Play", 4: "Data Handling",
@@ -526,7 +573,7 @@ async def admin_action(action_data: AdminAction, admin: dict = Depends(get_admin
             await db.execute("DELETE FROM progress WHERE user_id = ?", (action_data.user_id,))
             await db.execute("DELETE FROM certificates WHERE user_id = ?", (action_data.user_id,))
             await db.execute("DELETE FROM messages WHERE user_id = ?", (action_data.user_id,))
-            await db.execute("DELETE FROM ai_chats WHERE user_id = ?", (action_data.user_id,))
+            await db.execute("DELETE FROM ai_conversations WHERE user_id = ?", (action_data.user_id,))
             await db.execute("DELETE FROM users WHERE id = ? AND is_admin = FALSE", (action_data.user_id,))
         await db.commit()
         return {"status": "success", "action": action_data.action}
@@ -954,16 +1001,18 @@ async def get_pending_calls(user: dict = Depends(get_current_user)):
 # WebSocket for real-time WebRTC signaling
 @app.websocket("/ws/webrtc/{user_id}")
 async def websocket_webrtc(websocket: WebSocket, user_id: int, token: Optional[str] = None):
-    if token:
-        try:
-            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-            token_user_id = payload.get("user_id")
-            if token_user_id != user_id:
-                await websocket.close(code=4003)
-                return
-        except JWTError:
-            await websocket.close(code=4001)
+    if not token:
+        await websocket.close(code=4001)
+        return
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        token_user_id = payload.get("user_id")
+        if token_user_id != user_id:
+            await websocket.close(code=4003)
             return
+    except JWTError:
+        await websocket.close(code=4001)
+        return
     await websocket.accept()
     webrtc_connections[user_id] = websocket
     try:
