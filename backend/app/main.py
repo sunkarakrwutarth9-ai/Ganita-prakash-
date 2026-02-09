@@ -888,8 +888,8 @@ class WebRTCCandidate(BaseModel):
     sdp_m_line_index: int
 
 @app.post("/api/webrtc/offer")
-async def webrtc_offer(offer_data: WebRTCOffer, user: dict = Depends(get_current_user)):
-    """Send WebRTC offer to target user"""
+async def webrtc_offer(offer_data: WebRTCOffer, user: dict = Depends(get_admin_user)):
+    """Send WebRTC offer to target user - admin only"""
     call_id = f"{user['id']}_{offer_data.target_user_id}_{datetime.utcnow().timestamp()}"
     webrtc_calls[call_id] = {
         "caller_id": user["id"],
