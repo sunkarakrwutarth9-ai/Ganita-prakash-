@@ -8552,7 +8552,7 @@ export default function App() {
                 (resultData.isFinal ? 
                   'Congratulations! You passed the Final Exam!\n\nBe ready for Science Curiosity - Thanks!\n\nWe will update when our new app is available. We will inform you. OK Bye!' :
                   'Congratulations! You passed!\nYou can now proceed to the next chapter.') :
-                'Keep trying! You need 80% to pass.\nReview the chapter and try again.'}
+                'Keep trying! You need 35 out of 40 to pass.\nReview the chapter and try again.'}
             </Text>
             <TouchableOpacity style={styles.primaryBtn} onPress={closeResult}>
               <Text style={styles.primaryBtnText}>Continue</Text>

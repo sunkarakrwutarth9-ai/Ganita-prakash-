@@ -5295,7 +5295,7 @@ function showQuizResult() {
     const quiz = appState.currentQuiz;
     const total = quiz.questions.length;
     const percentage = Math.round((appState.score / total) * 100);
-    const passed = percentage >= 80; // Pass if 80% or more correct
+    const passed = appState.score >= 35; // Pass if 35+ out of 40 correct
     
     // Save progress
     if (passed) {
@@ -5324,7 +5324,7 @@ function showQuizResult() {
     } else {
         document.getElementById('result-message').innerHTML = `
             <strong>Keep Trying!</strong><br>
-            You need 80% to pass.<br>
+            You need 35 out of 40 to pass.<br>
             Review the chapter and try again.
         `;
     }
