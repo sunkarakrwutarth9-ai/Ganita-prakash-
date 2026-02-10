@@ -5913,7 +5913,7 @@ async function handleLogin() {
     const username = document.getElementById('login-email').value.trim();
     const password = document.getElementById('login-password').value.trim();
     if (!username || !password) { alert('Please enter email and password'); return; }
-    const btn = event.target;
+    const btn = document.querySelector('#login-form .login-btn');
     btn.disabled = true; btn.textContent = 'Logging in...';
     
     try {
@@ -5935,7 +5935,7 @@ async function handleLogin() {
             saveState(); showMainApp();
         } else { alert(data.detail || 'Login failed'); }
     } catch (e) { console.error('Login error:', e); alert('Network error. Please try again.'); }
-    btn.disabled = false; btn.textContent = 'Login';
+    btn.disabled = false; btn.textContent = 'INITIALIZE LOGIN';
 }
 
 // Firebase Configuration for Google Sign-In - Updated to classics project
@@ -6255,16 +6255,16 @@ async function processGoogleEmail(email, googleName) {
 }
 
 async function handleRegister() {
-    const name = document.getElementById('reg-name').value.trim();
-    const username = document.getElementById('reg-username').value.trim();
-    const password = document.getElementById('reg-password').value.trim();
+    const name = document.getElementById('register-name').value.trim();
+    const username = document.getElementById('register-email').value.trim();
+    const password = document.getElementById('register-password').value.trim();
     if (!name || !username || !password) { alert('Please fill all fields'); return; }
-    const btn = document.getElementById('register-btn');
+    const btn = document.querySelector('#register-form .login-btn');
     btn.disabled = true; btn.textContent = 'Registering...';
     try {
         const response = await fetch(API_URL + '/api/auth/register', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password, name, platform: 'exe' })
+            body: JSON.stringify({ username, password, name, platform: 'web' })
         });
         const data = await response.json();
         if (response.ok) {
@@ -6278,7 +6278,7 @@ async function handleRegister() {
             saveState(); showMainApp();
         } else { alert(data.detail || 'Registration failed'); }
     } catch (e) { console.error('Register error:', e); alert('Network error. Please try again.'); }
-    btn.disabled = false; btn.textContent = 'Register';
+    btn.disabled = false; btn.textContent = 'CREATE ACCOUNT';
 }
 
 function handleLogout() {
