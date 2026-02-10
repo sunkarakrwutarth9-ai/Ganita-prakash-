@@ -6765,31 +6765,31 @@ export default function App() {
       <View style={styles.quickActionsGrid}>
         <TouchableOpacity style={styles.quickActionCard} onPress={() => { setAiMessages([]); setShowLanguageSelector(true); setScreen('aiAssistant'); }}>
           <View style={styles.quickActionIconBox}>
-            <Text style={styles.quickActionIconText}>◈</Text>
+            <Text style={styles.quickActionIconText}>🤖</Text>
           </View>
-          <Text style={styles.quickActionTitle}>Neural AI</Text>
-          <Text style={styles.quickActionSubtitle}>Query system</Text>
+          <Text style={styles.quickActionTitle}>AI Assistant</Text>
+          <Text style={styles.quickActionSubtitle}>Ask doubts</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.quickActionCard} onPress={() => { loadChatMessages(); setScreen('chat'); }}>
+          <View style={styles.quickActionIconBox}>
+            <Text style={styles.quickActionIconText}>💬</Text>
+          </View>
+          <Text style={styles.quickActionTitle}>Connect with Master</Text>
+          <Text style={styles.quickActionSubtitle}>Chat & support</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.quickActionCard} onPress={() => setScreen('progress')}>
           <View style={styles.quickActionIconBox}>
-            <Text style={styles.quickActionIconText}>◉</Text>
+            <Text style={styles.quickActionIconText}>📊</Text>
           </View>
           <Text style={styles.quickActionTitle}>Progress</Text>
           <Text style={styles.quickActionSubtitle}>Track learning</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.quickActionCard} onPress={() => setScreen('certificates')}>
           <View style={styles.quickActionIconBox}>
-            <Text style={styles.quickActionIconText}>⬡</Text>
+            <Text style={styles.quickActionIconText}>🏅</Text>
           </View>
           <Text style={styles.quickActionTitle}>Certificates</Text>
           <Text style={styles.quickActionSubtitle}>Achievements</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.quickActionCard} onPress={() => { loadChatMessages(); setScreen('chat'); }}>
-          <View style={styles.quickActionIconBox}>
-            <Text style={styles.quickActionIconText}>◎</Text>
-          </View>
-          <Text style={styles.quickActionTitle}>Command Link</Text>
-          <Text style={styles.quickActionSubtitle}>Contact base</Text>
         </TouchableOpacity>
       </View>
 
