@@ -5902,22 +5902,28 @@ export default function App() {
   };
 
   const handleRegister = async () => {
-    if (!username.trim() || !password.trim() || !studentName.trim()) {
-      Alert.alert('Error', 'Please fill all fields');
+    if (!username.trim() || !password.trim()) {
+      Alert.alert('Error', 'Please enter email and password');
+      return;
+    }
+    if (password.trim().length < 8) {
+      Alert.alert('Error', 'Password must be at least 8 characters');
       return;
     }
     setLoading(true);
+    const tempName = username.trim().split('@')[0];
     try {
       const response = await fetch(`${API_URL}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: username.trim(), password: password.trim(), name: studentName.trim(), platform: 'apk' }),
+        body: JSON.stringify({ username: username.trim(), password: password.trim(), name: tempName, platform: 'apk' }),
       });
       const data = await response.json();
       if (response.ok) {
         await AsyncStorage.setItem('authToken', data.access_token);
         await AsyncStorage.setItem('userData', JSON.stringify(data.user));
         setAuthToken(data.access_token);
+        setStudentName(data.user.name);
         setIsAdmin(data.user.is_admin);
         setIsLoggedIn(true);
         setScreen('home');
@@ -5933,12 +5939,16 @@ export default function App() {
   const handleLogout = async () => {
     await AsyncStorage.removeItem('authToken');
     await AsyncStorage.removeItem('userData');
+    await AsyncStorage.removeItem('ganitaPrakashData');
     setAuthToken(null);
     setIsLoggedIn(false);
     setIsAdmin(false);
     setUsername('');
     setPassword('');
     setStudentName('');
+    setChapterProgress({});
+    setChapterScores({});
+    setCertificates([]);
     setScreen('login');
   };
 

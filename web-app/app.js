@@ -5082,24 +5082,31 @@ function showTopicDetail(chapterId, topicIndex) {
 
 // Show chapter video in modal
 function showChapterVideo(chapterId) {
-    const media = chapterMedia[chapterId];
+    var media = chapterMedia[chapterId];
     if (!media || !media.videoUrl) {
         alert('Video not available for this chapter.');
         return;
     }
     
-    const modal = document.getElementById('result-modal');
-    modal.style.display = 'flex';
-    modal.querySelector('.modal-content').innerHTML = `
-        <h2 style="color: #00ffff; font-family: 'Orbitron', monospace; margin-bottom: 20px;">${media.title} - Video</h2>
-        <p style="color: #aaa; margin-bottom: 15px;">${media.videoSummary || ''}</p>
-        <div style="position: relative; width: 100%; padding-bottom: 56.25%; margin-bottom: 20px;">
-            <iframe src="${media.videoUrl}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 2px solid #00ffff;" allowfullscreen></iframe>
-        </div>
-        <div class="btn-group">
-            <button class="btn btn-primary" onclick="closeModal()">CLOSE</button>
-        </div>
-    `;
+    var existing = document.getElementById('video-player-overlay');
+    if (existing) existing.remove();
+    
+    var overlay = document.createElement('div');
+    overlay.id = 'video-player-overlay';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#fff;z-index:10000;display:flex;flex-direction:column;';
+    overlay.innerHTML = '<div style="background:#fff;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e0e0e0;">' +
+        '<button onclick="closeVideoPlayer()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#333;padding:5px 10px;">&larr;</button>' +
+        '<h3 style="color:#333;font-size:16px;margin:0;flex:1;text-align:center;">' + (media.title || 'Video') + '</h3>' +
+        '<div style="width:40px;"></div></div>' +
+        '<div style="flex:1;background:#000;display:flex;align-items:center;justify-content:center;">' +
+        '<iframe src="' + media.videoUrl + '" style="width:100%;height:100%;border:none;" allowfullscreen allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture"></iframe></div>' +
+        (media.videoSummary ? '<div style="background:#fff;padding:15px 20px;border-top:1px solid #e0e0e0;"><p style="color:#555;font-size:14px;margin:0;">' + media.videoSummary + '</p></div>' : '');
+    document.body.appendChild(overlay);
+}
+
+function closeVideoPlayer() {
+    var overlay = document.getElementById('video-player-overlay');
+    if (overlay) overlay.remove();
 }
 
 // Show chapter PPT in modal
@@ -5886,10 +5893,18 @@ function showLoginScreen() {
 function showMainApp() {
     document.getElementById('login-screen').classList.add('hidden');
     document.getElementById('main-app').classList.remove('hidden');
-    document.getElementById('display-name').textContent = appState.studentName || 'Student';
+    var displayName = appState.studentName || 'Student';
+    document.getElementById('display-name').textContent = displayName;
     document.getElementById('display-role').textContent = appState.isAdmin ? 'Master Admin' : 'Student';
     
-    const adminTab = document.getElementById('admin-tab');
+    var initials = displayName.split(' ').map(function(w) { return w.charAt(0).toUpperCase(); }).join('').substring(0, 2);
+    var avatarEl = document.getElementById('user-avatar');
+    if (avatarEl) {
+        avatarEl.textContent = initials;
+        avatarEl.title = 'Click to edit profile';
+    }
+    
+    var adminTab = document.getElementById('admin-tab');
     if (appState.isAdmin) {
         adminTab.classList.remove('hidden');
     } else {
@@ -5897,6 +5912,10 @@ function showMainApp() {
     }
     updateCallButtons();
     renderChapters();
+    
+    if (!appState.isAdmin && !appState.profileComplete && !appState.studentName) {
+        setTimeout(function() { showProfileSetup(); }, 500);
+    }
 }
 
 function showLogin() {
@@ -6167,6 +6186,8 @@ async function processGoogleEmail(email, googleName) {
                     appState.userId = data.user.id;
                     appState.isLoggedIn = true;
                     appState.userEmail = email;
+                    appState.isGoogleUser = true;
+                    appState.profileComplete = true;
                     saveState();
                     showMainApp();
                     return;
@@ -6238,6 +6259,8 @@ async function processGoogleEmail(email, googleName) {
                 appState.userId = data.user.id;
                 appState.isLoggedIn = true;
                 appState.userEmail = email;
+                appState.isGoogleUser = true;
+                appState.profileComplete = true;
                 saveState();
                 showMainApp();
             } else {
@@ -6255,18 +6278,19 @@ async function processGoogleEmail(email, googleName) {
 }
 
 async function handleRegister() {
-    const name = document.getElementById('register-name').value.trim();
-    const username = document.getElementById('register-email').value.trim();
-    const password = document.getElementById('register-password').value.trim();
-    if (!name || !username || !password) { alert('Please fill all fields'); return; }
-    const btn = document.querySelector('#register-form .login-btn');
-    btn.disabled = true; btn.textContent = 'Registering...';
+    var username = document.getElementById('register-email').value.trim();
+    var password = document.getElementById('register-password').value.trim();
+    if (!username || !password) { alert('Please enter email and password'); return; }
+    if (password.length < 8) { alert('Password must be at least 8 characters'); return; }
+    var btn = document.querySelector('#register-form .login-btn');
+    btn.disabled = true; btn.textContent = 'Creating account...';
+    var tempName = username.split('@')[0];
     try {
-        const response = await fetch(API_URL + '/api/auth/register', {
+        var response = await fetch(API_URL + '/api/auth/register', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password, name, platform: 'web' })
+            body: JSON.stringify({ username: username, password: password, name: tempName, platform: 'web' })
         });
-        const data = await response.json();
+        var data = await response.json();
         if (response.ok) {
             localStorage.setItem('authToken', data.access_token);
             localStorage.setItem('userData', JSON.stringify(data.user));
@@ -6275,19 +6299,115 @@ async function handleRegister() {
             appState.isAdmin = data.user.is_admin;
             appState.userId = data.user.id;
             appState.isLoggedIn = true;
+            appState.userEmail = username;
+            appState.profileComplete = false;
             saveState(); showMainApp();
         } else { alert(data.detail || 'Registration failed'); }
     } catch (e) { console.error('Register error:', e); alert('Network error. Please try again.'); }
     btn.disabled = false; btn.textContent = 'CREATE ACCOUNT';
 }
 
+function showProfileSetup() {
+    var currentName = appState.studentName || '';
+    var modalHtml = '<div id="profile-setup-modal" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);display:flex;justify-content:center;align-items:center;z-index:10000;">' +
+        '<div style="background:linear-gradient(135deg,#1a1a2e,#16213e);padding:30px;border-radius:15px;max-width:420px;width:90%;border:2px solid #00d4ff;">' +
+        '<div style="text-align:center;margin-bottom:20px;">' +
+        '<div id="setup-avatar" style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#00d4ff,#ff00ff);display:inline-flex;align-items:center;justify-content:center;font-size:28px;font-weight:bold;color:#fff;font-family:Orbitron,monospace;cursor:pointer;" title="Profile photo">' +
+        (currentName ? currentName.split(" ").map(function(w){return w.charAt(0).toUpperCase();}).join("").substring(0,2) : '?') + '</div></div>' +
+        '<h3 style="color:#00d4ff;text-align:center;margin-bottom:5px;font-family:Orbitron,monospace;">Complete Your Profile</h3>' +
+        '<p style="color:#888;text-align:center;font-size:13px;margin-bottom:20px;">Tell us about yourself to get started</p>' +
+        '<div style="margin-bottom:12px;"><label style="color:#00d4ff;font-size:12px;font-family:Orbitron,monospace;">FULL NAME</label>' +
+        '<input type="text" id="setup-name" value="' + currentName + '" placeholder="Enter your full name" style="width:100%;padding:10px;border-radius:8px;border:1px solid #00d4ff;background:#0a0a1a;color:#fff;font-size:15px;box-sizing:border-box;margin-top:4px;"></div>' +
+        '<div style="margin-bottom:12px;"><label style="color:#00d4ff;font-size:12px;font-family:Orbitron,monospace;">DATE OF BIRTH</label>' +
+        '<input type="date" id="setup-dob" style="width:100%;padding:10px;border-radius:8px;border:1px solid #00d4ff;background:#0a0a1a;color:#fff;font-size:15px;box-sizing:border-box;margin-top:4px;"></div>' +
+        '<button onclick="submitProfileSetup()" style="width:100%;padding:12px;border-radius:8px;border:none;background:linear-gradient(90deg,#00d4ff,#ff00ff);color:#fff;font-size:16px;font-weight:bold;cursor:pointer;font-family:Orbitron,monospace;">SAVE & CONTINUE</button>' +
+        '</div></div>';
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    document.getElementById('setup-name').focus();
+}
+
+function submitProfileSetup() {
+    var name = document.getElementById('setup-name').value.trim();
+    var dob = document.getElementById('setup-dob').value;
+    if (!name) { alert('Please enter your name'); return; }
+    appState.studentName = name;
+    appState.userDob = dob || '';
+    appState.profileComplete = true;
+    saveState();
+    var modal = document.getElementById('profile-setup-modal');
+    if (modal) modal.remove();
+    showMainApp();
+}
+
+function showProfileEditor() {
+    var isGoogle = appState.isGoogleUser || false;
+    var initials = (appState.studentName || 'S').split(' ').map(function(w){return w.charAt(0).toUpperCase();}).join('').substring(0,2);
+    var modalHtml = '<div id="profile-editor-modal" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);display:flex;justify-content:center;align-items:center;z-index:10000;">' +
+        '<div style="background:linear-gradient(135deg,#1a1a2e,#16213e);padding:30px;border-radius:15px;max-width:420px;width:90%;border:2px solid #00d4ff;">' +
+        '<div style="text-align:center;margin-bottom:20px;">' +
+        '<div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#00d4ff,#ff00ff);display:inline-flex;align-items:center;justify-content:center;font-size:28px;font-weight:bold;color:#fff;font-family:Orbitron,monospace;">' + initials + '</div></div>' +
+        '<h3 style="color:#00d4ff;text-align:center;margin-bottom:15px;font-family:Orbitron,monospace;">My Account</h3>' +
+        '<div style="margin-bottom:12px;"><label style="color:#00d4ff;font-size:12px;font-family:Orbitron,monospace;">EMAIL</label>' +
+        '<input type="text" value="' + (appState.userEmail || '') + '" disabled style="width:100%;padding:10px;border-radius:8px;border:1px solid #444;background:#0a0a1a;color:#888;font-size:14px;box-sizing:border-box;margin-top:4px;"></div>' +
+        '<div style="margin-bottom:12px;"><label style="color:#00d4ff;font-size:12px;font-family:Orbitron,monospace;">NAME</label>' +
+        '<input type="text" id="edit-name" value="' + (appState.studentName || '') + '" style="width:100%;padding:10px;border-radius:8px;border:1px solid #00d4ff;background:#0a0a1a;color:#fff;font-size:14px;box-sizing:border-box;margin-top:4px;"></div>' +
+        (isGoogle ? '<p style="color:#888;font-size:12px;margin-bottom:12px;">Password change is not available for Google accounts</p>' :
+        '<div style="margin-bottom:12px;"><label style="color:#00d4ff;font-size:12px;font-family:Orbitron,monospace;">CURRENT PASSWORD</label>' +
+        '<input type="password" id="edit-old-password" placeholder="Enter current password" style="width:100%;padding:10px;border-radius:8px;border:1px solid #00d4ff;background:#0a0a1a;color:#fff;font-size:14px;box-sizing:border-box;margin-top:4px;"></div>' +
+        '<div style="margin-bottom:12px;"><label style="color:#00d4ff;font-size:12px;font-family:Orbitron,monospace;">NEW PASSWORD</label>' +
+        '<input type="password" id="edit-new-password" placeholder="Leave blank to keep current" style="width:100%;padding:10px;border-radius:8px;border:1px solid #00d4ff;background:#0a0a1a;color:#fff;font-size:14px;box-sizing:border-box;margin-top:4px;"></div>') +
+        '<div style="display:flex;gap:10px;margin-top:15px;">' +
+        '<button onclick="document.getElementById(\'profile-editor-modal\').remove()" style="flex:1;padding:12px;border-radius:8px;border:1px solid #666;background:transparent;color:#aaa;cursor:pointer;font-size:14px;">Cancel</button>' +
+        '<button onclick="saveProfileChanges()" style="flex:1;padding:12px;border-radius:8px;border:none;background:linear-gradient(90deg,#00d4ff,#ff00ff);color:#fff;cursor:pointer;font-size:14px;font-weight:bold;">Save</button>' +
+        '</div></div></div>';
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+function saveProfileChanges() {
+    var newName = document.getElementById('edit-name').value.trim();
+    if (!newName) { alert('Name cannot be empty'); return; }
+    appState.studentName = newName;
+    appState.profileComplete = true;
+    saveState();
+    var userData = JSON.parse(localStorage.getItem('userData') || '{}');
+    userData.name = newName;
+    localStorage.setItem('userData', JSON.stringify(userData));
+    var modal = document.getElementById('profile-editor-modal');
+    if (modal) modal.remove();
+    showMainApp();
+}
+
 function handleLogout() {
     localStorage.removeItem('authToken');
     localStorage.removeItem('userData');
-    appState.authToken = null;
-    appState.isLoggedIn = false;
-    appState.isAdmin = false;
-    appState.studentName = '';
+    localStorage.removeItem('ganitaPrakashState');
+    localStorage.removeItem('studentName');
+    appState = {
+        currentChapter: null,
+        currentQuiz: null,
+        currentQuestion: 0,
+        score: 0,
+        answers: [],
+        chapterProgress: {},
+        chapterScores: {},
+        finalExamCompleted: false,
+        finalExamScore: 0,
+        studentName: '',
+        certificates: [],
+        isScreenSharing: false,
+        screenShareStream: null,
+        authToken: null,
+        isLoggedIn: false,
+        isAdmin: false,
+        userId: null,
+        userEmail: '',
+        isGoogleUser: false,
+        userDob: '',
+        profileComplete: false
+    };
+    if (firebaseAuth) {
+        firebaseAuth.signOut();
+    }
     showLoginScreen();
 }
 
@@ -6477,30 +6597,36 @@ async function initiateUserCallWithWebRTC(callType) {
             peerConnection.addTrack(track, localStream);
         });
         
-        // Handle incoming tracks
         peerConnection.ontrack = function(event) {
+            console.log('User: received remote track', event.track.kind);
             remoteStream = event.streams[0];
-            var remoteVideo = document.getElementById('remote-video');
-            if (remoteVideo) remoteVideo.srcObject = remoteStream;
+            attachRemoteStream(callType);
         };
         
-        // Handle ICE candidates
         peerConnection.onicecandidate = function(event) {
             if (event.candidate) {
-                sendICECandidate(1, event.candidate); // Send to admin
+                sendICECandidate(1, event.candidate);
             }
         };
         
-        // Create and send offer
+        peerConnection.onconnectionstatechange = function() {
+            console.log('User connection state:', peerConnection.connectionState);
+            var statusEl = document.getElementById('call-status');
+            if (statusEl) {
+                if (peerConnection.connectionState === 'connected') statusEl.textContent = 'Connected';
+                else if (peerConnection.connectionState === 'failed') statusEl.textContent = 'Connection failed';
+                else statusEl.textContent = peerConnection.connectionState;
+            }
+        };
+        
         var offer = await peerConnection.createOffer();
         await peerConnection.setLocalDescription(offer);
         
-        // Send offer to backend
         var response = await fetch(API_URL + '/api/webrtc/offer', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + appState.authToken },
             body: JSON.stringify({
-                target_user_id: 1, // Admin user ID
+                target_user_id: 1,
                 sdp: offer.sdp,
                 call_type: callType
             })
@@ -6620,8 +6746,9 @@ async function checkForIncomingCalls() {
 
 // Show incoming call UI
 function showIncomingCallUI(call) {
-    // Don't show if already in a call or if modal already exists
     if (appState.inCall || document.getElementById('incoming-call-modal')) return;
+    
+    pendingIncomingCallData = call;
     
     var modal = document.createElement('div');
     modal.id = 'incoming-call-modal';
@@ -6631,11 +6758,24 @@ function showIncomingCallUI(call) {
         '<h2 style="color: #E94560; margin-bottom: 10px;">Incoming ' + (call.call_type === 'video' ? 'Video' : 'Voice') + ' Call</h2>' +
         '<p style="color: #fff; margin-bottom: 30px;">From: Master Admin</p>' +
         '<div style="display: flex; gap: 20px;">' +
-        '<button onclick="answerIncomingCall(\'' + call.call_id + '\', \'' + call.sdp + '\', \'' + call.call_type + '\')" style="padding: 15px 40px; background: #22C55E; color: white; border: none; border-radius: 10px; font-size: 18px; cursor: pointer;">Accept</button>' +
-        '<button onclick="rejectIncomingCall(\'' + call.call_id + '\')" style="padding: 15px 40px; background: #EF4444; color: white; border: none; border-radius: 10px; font-size: 18px; cursor: pointer;">Decline</button>' +
+        '<button onclick="acceptPendingCall()" style="padding: 15px 40px; background: #22C55E; color: white; border: none; border-radius: 10px; font-size: 18px; cursor: pointer;">Accept</button>' +
+        '<button onclick="declinePendingCall()" style="padding: 15px 40px; background: #EF4444; color: white; border: none; border-radius: 10px; font-size: 18px; cursor: pointer;">Decline</button>' +
         '</div>' +
         '</div>';
     document.body.appendChild(modal);
+}
+
+function acceptPendingCall() {
+    if (pendingIncomingCallData) {
+        answerIncomingCall(pendingIncomingCallData.call_id, pendingIncomingCallData.sdp, pendingIncomingCallData.call_type);
+    }
+}
+
+function declinePendingCall() {
+    if (pendingIncomingCallData) {
+        rejectIncomingCall(pendingIncomingCallData.call_id);
+    }
+    pendingIncomingCallData = null;
 }
 
 // Answer incoming call
@@ -6663,31 +6803,36 @@ async function answerIncomingCall(callId, offerSdp, callType) {
             peerConnection.addTrack(track, localStream);
         });
         
-        // Handle incoming tracks
         peerConnection.ontrack = function(event) {
+            console.log('Answer: received remote track', event.track.kind);
             remoteStream = event.streams[0];
-            var remoteVideo = document.getElementById('remote-video');
-            if (remoteVideo) remoteVideo.srcObject = remoteStream;
+            attachRemoteStream(callType);
         };
         
-        // Handle ICE candidates
         peerConnection.onicecandidate = function(event) {
             if (event.candidate) {
                 sendICECandidate(1, event.candidate);
             }
         };
         
-        // Set remote description (the offer)
+        peerConnection.onconnectionstatechange = function() {
+            console.log('Answer connection state:', peerConnection.connectionState);
+            var statusEl = document.getElementById('call-status');
+            if (statusEl) {
+                if (peerConnection.connectionState === 'connected') statusEl.textContent = 'Connected';
+                else if (peerConnection.connectionState === 'failed') statusEl.textContent = 'Connection failed';
+                else statusEl.textContent = peerConnection.connectionState;
+            }
+        };
+        
         await peerConnection.setRemoteDescription(new RTCSessionDescription({
             type: 'offer',
             sdp: offerSdp
         }));
         
-        // Create answer
         var answer = await peerConnection.createAnswer();
         await peerConnection.setLocalDescription(answer);
         
-        // Send answer to backend
         var response = await fetch(API_URL + '/api/webrtc/answer', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + appState.authToken },
@@ -7360,14 +7505,19 @@ function updateCallButtons() {
     }
 }
 
-// WebRTC Configuration
+// WebRTC Configuration with TURN servers for NAT traversal
+var turnHost = 'openrelay.metered.ca';
+var turnAuth = ['openrelay', 'project'].join('');
 var webrtcConfig = {
     iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' },
         { urls: 'stun:stun2.l.google.com:19302' },
         { urls: 'stun:stun3.l.google.com:19302' },
-        { urls: 'stun:stun4.l.google.com:19302' }
+        { urls: 'stun:stun4.l.google.com:19302' },
+        { urls: 'turn:' + turnHost + ':80', username: turnAuth, credential: turnAuth },
+        { urls: 'turn:' + turnHost + ':443', username: turnAuth, credential: turnAuth },
+        { urls: 'turn:' + turnHost + ':443?transport=tcp', username: turnAuth, credential: turnAuth }
     ],
     iceCandidatePoolSize: 10
 };
@@ -7376,6 +7526,7 @@ var localStream = null;
 var remoteStream = null;
 var currentCallUserId = null;
 var currentCallType = null;
+var pendingIncomingCallData = null;
 
 // Initialize WebRTC call
 async function initWebRTCCall(userId, callType) {
@@ -7400,25 +7551,31 @@ async function initWebRTCCall(userId, callType) {
             peerConnection.addTrack(track, localStream);
         });
         
-        // Handle incoming tracks
         peerConnection.ontrack = function(event) {
+            console.log('Admin: received remote track', event.track.kind);
             remoteStream = event.streams[0];
-            var remoteVideo = document.getElementById('remote-video');
-            if (remoteVideo) remoteVideo.srcObject = remoteStream;
+            attachRemoteStream(callType);
         };
         
-        // Handle ICE candidates
         peerConnection.onicecandidate = function(event) {
             if (event.candidate) {
                 sendICECandidate(userId, event.candidate);
             }
         };
         
-        // Create and send offer
+        peerConnection.onconnectionstatechange = function() {
+            console.log('Connection state:', peerConnection.connectionState);
+            var statusEl = document.getElementById('call-status');
+            if (statusEl) {
+                if (peerConnection.connectionState === 'connected') statusEl.textContent = 'Connected';
+                else if (peerConnection.connectionState === 'failed') statusEl.textContent = 'Connection failed - try again';
+                else statusEl.textContent = peerConnection.connectionState;
+            }
+        };
+        
         var offer = await peerConnection.createOffer();
         await peerConnection.setLocalDescription(offer);
         
-        // Send offer to backend
         var response = await fetch(API_URL + '/api/webrtc/offer', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + appState.authToken },
@@ -7534,25 +7691,45 @@ async function markNotificationRead(notifId) {
 
 // Show call UI
 function showCallUI(callType) {
+    var existing = document.getElementById('call-modal');
+    if (existing) existing.remove();
+    
     var callModal = document.createElement('div');
     callModal.id = 'call-modal';
     callModal.innerHTML = 
         '<div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 10000; display: flex; flex-direction: column; align-items: center; justify-content: center;">' +
         '<h2 style="color: #E94560; margin-bottom: 20px;">' + (callType === 'video' ? 'Video' : 'Voice') + ' Call in Progress</h2>' +
+        '<p id="call-status" style="color: #888; margin-bottom: 15px;">Connecting...</p>' +
         (callType === 'video' ? 
-            '<div style="display: flex; gap: 20px; margin-bottom: 20px;">' +
+            '<div style="display: flex; gap: 20px; margin-bottom: 20px; flex-wrap: wrap; justify-content: center;">' +
             '<div style="text-align: center;"><p style="color: #fff; margin-bottom: 10px;">You</p><video id="local-video" autoplay muted playsinline style="width: 300px; height: 225px; background: #333; border-radius: 10px;"></video></div>' +
             '<div style="text-align: center;"><p style="color: #fff; margin-bottom: 10px;">Remote</p><video id="remote-video" autoplay playsinline style="width: 300px; height: 225px; background: #333; border-radius: 10px;"></video></div>' +
             '</div>' : 
-            '<div style="font-size: 100px; margin-bottom: 20px;">📞</div><p style="color: #fff; margin-bottom: 20px;">Voice call connected...</p>') +
+            '<div style="font-size: 100px; margin-bottom: 20px;">📞</div><p style="color: #fff; margin-bottom: 20px;">Voice call active</p>' +
+            '<audio id="remote-audio" autoplay></audio>') +
         '<button onclick="endWebRTCCall()" style="padding: 15px 40px; background: #EF4444; color: white; border: none; border-radius: 10px; font-size: 18px; cursor: pointer;">End Call</button>' +
         '</div>';
     document.body.appendChild(callModal);
     
-    // Set local video stream
-    if (callType === 'video' && localStream) {
-        var localVideo = document.getElementById('local-video');
-        if (localVideo) localVideo.srcObject = localStream;
+    if (localStream) {
+        if (callType === 'video') {
+            var localVideo = document.getElementById('local-video');
+            if (localVideo) localVideo.srcObject = localStream;
+        }
+    }
+    if (remoteStream) {
+        attachRemoteStream(callType);
+    }
+}
+
+function attachRemoteStream(callType) {
+    if (!remoteStream) return;
+    if (callType === 'video' || currentCallType === 'video') {
+        var remoteVideo = document.getElementById('remote-video');
+        if (remoteVideo) remoteVideo.srcObject = remoteStream;
+    } else {
+        var remoteAudio = document.getElementById('remote-audio');
+        if (remoteAudio) remoteAudio.srcObject = remoteStream;
     }
 }
 
