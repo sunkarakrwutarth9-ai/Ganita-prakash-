@@ -5954,6 +5954,7 @@ export default function App() {
     setChapterProgress({});
     setChapterScores({});
     setCertificates([]);
+    setIsGoogleUser(false);
     setScreen('login');
   };
 
