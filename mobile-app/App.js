@@ -5457,6 +5457,11 @@ export default function App() {
   const [showLanguageSelector, setShowLanguageSelector] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState('en');
   
+  // Profile editor state
+  const [isGoogleUser, setIsGoogleUser] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [editName, setEditName] = useState('');
+  
   // Video Player state (inbuilt)
   const [showVideoPlayer, setShowVideoPlayer] = useState(false);
   const [currentVideoChapter, setCurrentVideoChapter] = useState(null);
@@ -6696,11 +6701,11 @@ export default function App() {
         {/* Header - Command Bridge Style */}
         <View style={styles.homeHeader}>
           <View style={styles.headerLeft}>
-            <View style={styles.userAvatarCircle}>
+            <TouchableOpacity style={styles.userAvatarCircle} onPress={() => { setEditName(studentName); setShowProfileModal(true); }}>
               <Text style={styles.userAvatarText}>
                 {studentName ? studentName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'GP'}
               </Text>
-            </View>
+            </TouchableOpacity>
             <View>
               <Text style={styles.welcomeText}>WELCOME</Text>
               <Text style={styles.userName}>{studentName || 'Student'}</Text>
@@ -7417,6 +7422,7 @@ export default function App() {
               setAuthToken(loginData.access_token);
               setStudentName(loginData.user.name);
               setIsAdmin(loginData.user.is_admin);
+              setIsGoogleUser(true);
               setIsLoggedIn(true);
               setScreen('home');
               loadData();
@@ -7531,6 +7537,7 @@ export default function App() {
         setAuthToken(finalToken);
         setStudentName(fullName);
         setIsAdmin(isAdminUser);
+        setIsGoogleUser(true);
         setIsLoggedIn(true);
         setScreen('home');
         loadData();
@@ -7596,6 +7603,7 @@ export default function App() {
         setAuthToken(finalToken);
         setStudentName(displayName);
         setIsAdmin(isAdminUser);
+        setIsGoogleUser(true);
         setIsLoggedIn(true);
         setScreen('home');
         loadData();
@@ -7707,6 +7715,7 @@ export default function App() {
         setAuthToken(finalToken);
         setStudentName(finalName);
         setIsAdmin(isAdminUser);
+        setIsGoogleUser(true);
         setIsLoggedIn(true);
         setScreen('home');
         loadData();
@@ -8546,6 +8555,50 @@ export default function App() {
             <TouchableOpacity style={styles.primaryBtn} onPress={saveName}>
               <Text style={styles.primaryBtnText}>Start Learning</Text>
             </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={showProfileModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={{width: 80, height: 80, borderRadius: 40, backgroundColor: '#00d4ff', alignSelf: 'center', alignItems: 'center', justifyContent: 'center', marginBottom: 15}}>
+              <Text style={{fontSize: 28, fontWeight: 'bold', color: '#fff'}}>{studentName ? studentName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'GP'}</Text>
+            </View>
+            <Text style={styles.modalTitle}>My Account</Text>
+            <Text style={{color: '#888', textAlign: 'center', marginBottom: 15, fontSize: 13}}>
+              {isGoogleUser ? 'Google Account - You can edit your name' : 'You can edit your name'}
+            </Text>
+            <TextInput
+              style={styles.input}
+              value={editName}
+              onChangeText={setEditName}
+              placeholder="Your name"
+              placeholderTextColor="#888"
+            />
+            {isGoogleUser && (
+              <Text style={{color: '#666', fontSize: 12, textAlign: 'center', marginTop: 5, marginBottom: 10}}>Password change is not available for Google accounts</Text>
+            )}
+            <View style={{flexDirection: 'row', gap: 10, marginTop: 10}}>
+              <TouchableOpacity style={[styles.primaryBtn, {flex: 1, backgroundColor: '#333'}]} onPress={() => setShowProfileModal(false)}>
+                <Text style={styles.primaryBtnText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.primaryBtn, {flex: 1}]} onPress={async () => {
+                if (editName.trim()) {
+                  setStudentName(editName.trim());
+                  await AsyncStorage.setItem('studentName', editName.trim());
+                  const ud = await AsyncStorage.getItem('userData');
+                  if (ud) {
+                    const parsed = JSON.parse(ud);
+                    parsed.name = editName.trim();
+                    await AsyncStorage.setItem('userData', JSON.stringify(parsed));
+                  }
+                  setShowProfileModal(false);
+                }
+              }}>
+                <Text style={styles.primaryBtnText}>Save</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
