@@ -4976,7 +4976,6 @@ function showSection(section) {
     if (section === 'progress') renderProgress();
     if (section === 'final-exam') renderFinalExam();
     if (section === 'certificates' || section === 'certificate') renderCertificates();
-    if (section === 'points') renderPoints();
     if (section === '3d-models') show3DModels();
     if (section === 'chat') startUserChatRefresh(); // WhatsApp-style chat with auto-refresh
     if (section === 'admin' && appState.isAdmin) { loadAdminDashboard(); startAdminChatRefresh(); }
@@ -8223,7 +8222,6 @@ showSection = function(section) {
     if (section === 'progress') renderProgress();
     if (section === 'final-exam') renderFinalExam();
     if (section === 'certificates' || section === 'certificate') renderCertificates();
-    if (section === 'points') renderPoints();
     if (section === '3d-models') show3DModels();
     if (section === 'chat') loadChatMessages();
     if (section === 'admin') loadAdminDashboard();
