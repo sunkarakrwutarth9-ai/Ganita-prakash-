@@ -6342,7 +6342,7 @@ export default function App() {
 
   // Go back to previous screen
   const goBack = () => {
-    if (screen === 'chapter' || screen === 'quiz' || screen === 'progress' || screen === 'certificates' || screen === 'chat' || screen === 'aiAssistant' || screen === 'admin') {
+    if (screen === 'chapter' || screen === 'quiz' || screen === 'progress' || screen === 'points' || screen === 'certificates' || screen === 'chat' || screen === 'aiAssistant' || screen === 'admin') {
       setScreen('home');
     } else {
       setScreen(previousScreen || 'home');
@@ -6761,7 +6761,7 @@ export default function App() {
 
       {/* Continue Mission */}
       <Text style={styles.sectionTitle}>CONTINUE MISSION</Text>
-      {chapters.slice(0, 1).map((chapter) => (
+      {[ (chapters.find(c => chapterProgress[c.id] !== 'completed') || chapters[0]) ].map((chapter) => (
         <TouchableOpacity 
           key={chapter.id} 
           style={styles.continueCard}
@@ -6816,6 +6816,9 @@ export default function App() {
         </TouchableOpacity>
         <TouchableOpacity style={styles.bottomActionBtn} onPress={() => setScreen('certificates')}>
           <Text style={styles.bottomActionText}>◉ Achievements</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.bottomActionBtn} onPress={() => setScreen('points')}>
+          <Text style={styles.bottomActionText}>★ Points</Text>
         </TouchableOpacity>
         {isAdmin && (
           <TouchableOpacity style={styles.bottomActionBtn} onPress={() => { loadAdminDashboard(); setScreen('admin'); }}>
@@ -7291,6 +7294,41 @@ export default function App() {
     );
   };
 
+  const renderPoints = () => (
+    <ScrollView style={styles.container}>
+      <TouchableOpacity style={styles.backBtn} onPress={() => setScreen('home')}>
+        <Text style={styles.backBtnText}>Back</Text>
+      </TouchableOpacity>
+
+      <Text style={styles.sectionTitle}>My Points</Text>
+
+      {(() => {
+        const totalPoints = Object.values(chapterScores).reduce((sum, s) => sum + (s || 0), 0);
+        const completedCount = Object.keys(chapterProgress).filter(k => chapterProgress[k] === 'completed').length;
+        return (
+          <View>
+            <View style={styles.progressContainer}>
+              <View style={[styles.progressBar, { width: Math.min(100, Math.round((completedCount/chapters.length)*100)) + '%' }]} />
+            </View>
+            <Text style={styles.progressText}>{totalPoints} pts • {completedCount}/{chapters.length} Chapters Completed</Text>
+          </View>
+        );
+      })()}
+
+      {chapters.map(chapter => (
+        <View key={chapter.id} style={styles.progressCard}>
+          <Text style={styles.progressChapterNum}>{chapter.number}</Text>
+          <View style={styles.progressChapterInfo}>
+            <Text style={styles.progressChapterTitle}>{chapter.title}</Text>
+            <Text style={chapterProgress[chapter.id] === 'completed' ? styles.statusCompletedText : styles.statusLockedText}>
+              {(chapterScores[chapter.id] || 0)} pts
+            </Text>
+          </View>
+        </View>
+      ))}
+    </ScrollView>
+  );
+
   const renderCertificates = () => (
     <ScrollView style={styles.container}>
       <TouchableOpacity style={styles.backBtn} onPress={() => setScreen('home')}>
@@ -7307,6 +7345,7 @@ export default function App() {
       ) : (
         certificates.map((cert, index) => (
           <View key={index} style={styles.certificate}>
+            <Image source={require('./assets/icon.png')} style={{width:60,height:60,alignSelf:'center',marginBottom:10}} />
             <Text style={styles.certTitle}>
               {cert.type === 'master' ? 'MASTER CERTIFICATE' : 
                cert.type === 'final' ? 'FINAL EXAM CERTIFICATE' : 

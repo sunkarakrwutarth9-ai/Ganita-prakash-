@@ -4947,6 +4947,7 @@ function showSection(section) {
         'final-exam': 'final-exam-section',
         'certificates': 'certificates-section',
         'certificate': 'certificates-section',
+        'points': 'points-section',
         '3d-models': '3d-models-section',
         'ai-assistant': 'ai-assistant-section',
         'chat': 'chat-section',
@@ -4974,6 +4975,7 @@ function showSection(section) {
     if (section === 'progress') renderProgress();
     if (section === 'final-exam') renderFinalExam();
     if (section === 'certificates' || section === 'certificate') renderCertificates();
+    if (section === 'points') renderPoints();
     if (section === '3d-models') show3DModels();
     if (section === 'chat') startUserChatRefresh(); // WhatsApp-style chat with auto-refresh
     if (section === 'admin' && appState.isAdmin) { loadAdminDashboard(); startAdminChatRefresh(); }
@@ -5401,6 +5403,41 @@ function renderProgress() {
 }
 
 // Render final exam
+function renderPoints() {
+    const completedChapters = Object.keys(appState.chapterProgress).filter(k => appState.chapterProgress[k] === 'completed').length;
+    const totalChapters = chapters.length;
+    const overallProgress = Math.round((completedChapters / totalChapters) * 100);
+    const totalPoints = chapters.reduce((sum, c) => sum + (appState.chapterScores[c.id] || 0), 0);
+
+    const perChapter = chapters.map(ch => {
+        const score = appState.chapterScores[ch.id] || 0;
+        const completed = appState.chapterProgress[ch.id] === 'completed';
+        return `
+            <div class=\"chapter-card ${completed ? 'completed' : ''}\">
+                <div class=\"chapter-number\">${ch.number}</div>
+                <div class=\"chapter-title\">${ch.title}</div>
+                <div class=\"chapter-status\">
+                    <span class=\"status-badge ${completed ? 'completed' : 'in-progress'}\">${score} pts</span>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    document.getElementById('points-content').innerHTML = `
+        <div style=\"text-align:center;margin-bottom:30px;\">
+            <h3 style=\"color:#E94560;\">Total Points</h3>
+            <div class=\"progress-container\" style=\"max-width:500px;margin:20px auto;\">
+                <div class=\"progress-bar\" style=\"width: ${overallProgress}%\"></div>
+            </div>
+            <p style=\"font-size:1.5em;color:#E94560;\">${totalPoints} pts • ${completedChapters}/${totalChapters} Chapters Completed</p>
+        </div>
+        <h3 style=\"color:#E94560;margin-bottom:20px;\">Chapter Points</h3>
+        <div class=\"chapters-grid\">
+            ${perChapter}
+        </div>
+    `;
+}
+
 function renderFinalExam() {
     const allChaptersCompleted = chapters.every(c => appState.chapterProgress[c.id] === 'completed');
     
@@ -8178,6 +8215,7 @@ showSection = function(section) {
     if (section === 'progress') renderProgress();
     if (section === 'final-exam') renderFinalExam();
     if (section === 'certificates' || section === 'certificate') renderCertificates();
+    if (section === 'points') renderPoints();
     if (section === '3d-models') show3DModels();
     if (section === 'chat') loadChatMessages();
     if (section === 'admin') loadAdminDashboard();
