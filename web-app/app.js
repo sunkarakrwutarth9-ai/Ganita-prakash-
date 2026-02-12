@@ -7553,11 +7553,47 @@ function startIncomingCallPolling() {
     }, 3000);
 }
 
+var incomingCallRingtoneCtx = null;
+var incomingCallRingtoneOsc = null;
+var incomingCallRingtoneInterval = null;
+function startCallRingtone() {
+    try {
+        stopCallRingtone();
+        incomingCallRingtoneCtx = new (window.AudioContext || window.webkitAudioContext)();
+        var gainNode = incomingCallRingtoneCtx.createGain();
+        gainNode.gain.value = 0.3;
+        gainNode.connect(incomingCallRingtoneCtx.destination);
+        var playing = false;
+        incomingCallRingtoneInterval = setInterval(function() {
+            if (!incomingCallRingtoneCtx) return;
+            if (playing) return;
+            playing = true;
+            var osc = incomingCallRingtoneCtx.createOscillator();
+            osc.type = 'sine';
+            osc.frequency.value = 440;
+            osc.connect(gainNode);
+            osc.start();
+            setTimeout(function() {
+                osc.frequency.value = 523;
+                setTimeout(function() {
+                    osc.stop();
+                    playing = false;
+                }, 200);
+            }, 200);
+        }, 1000);
+    } catch(e) { console.log('Ringtone error:', e); }
+}
+function stopCallRingtone() {
+    if (incomingCallRingtoneInterval) { clearInterval(incomingCallRingtoneInterval); incomingCallRingtoneInterval = null; }
+    if (incomingCallRingtoneCtx) { try { incomingCallRingtoneCtx.close(); } catch(e){} incomingCallRingtoneCtx = null; }
+}
+
 function handleIncomingCall(callerId, callData) {
     if (appState.inCall) return;
     pendingIncomingCallData = { callerId: callerId, callData: callData };
     var existing = document.getElementById('incoming-call-modal');
     if (existing) existing.remove();
+    startCallRingtone();
     var modal = document.createElement('div');
     modal.id = 'incoming-call-modal';
     modal.innerHTML =
@@ -7573,6 +7609,7 @@ function handleIncomingCall(callerId, callData) {
 }
 
 async function acceptIncomingCall() {
+    stopCallRingtone();
     var modal = document.getElementById('incoming-call-modal');
     if (modal) modal.remove();
     if (!pendingIncomingCallData) return;
@@ -7640,6 +7677,7 @@ async function acceptIncomingCall() {
 }
 
 function rejectIncomingCall() {
+    stopCallRingtone();
     var modal = document.getElementById('incoming-call-modal');
     if (modal) modal.remove();
     if (pendingIncomingCallData) {
@@ -7816,12 +7854,31 @@ function showCallUI(callType) {
 
 function attachRemoteStream(callType) {
     if (!remoteStream) return;
-    if (callType === 'video' || currentCallType === 'video') {
+    var ct = callType || currentCallType;
+    var persistentAudio = document.getElementById('persistent-remote-audio');
+    if (!persistentAudio) {
+        persistentAudio = document.createElement('audio');
+        persistentAudio.id = 'persistent-remote-audio';
+        persistentAudio.autoplay = true;
+        persistentAudio.setAttribute('playsinline', '');
+        document.body.appendChild(persistentAudio);
+    }
+    persistentAudio.srcObject = remoteStream;
+    persistentAudio.play().catch(function(e){ console.log('Audio play blocked, will retry:', e); });
+    if (ct === 'video') {
         var remoteVideo = document.getElementById('remote-video');
-        if (remoteVideo) remoteVideo.srcObject = remoteStream;
+        if (remoteVideo) {
+            remoteVideo.srcObject = remoteStream;
+            remoteVideo.play().catch(function(){});
+        } else {
+            setTimeout(function(){ attachRemoteStream(ct); }, 500);
+        }
     } else {
         var remoteAudio = document.getElementById('remote-audio');
-        if (remoteAudio) remoteAudio.srcObject = remoteStream;
+        if (remoteAudio) {
+            remoteAudio.srcObject = remoteStream;
+            remoteAudio.play().catch(function(){});
+        }
     }
 }
 
@@ -7840,6 +7897,7 @@ async function endWebRTCCall() {
 
 // Cleanup call resources
 function cleanupCall() {
+    stopCallRingtone();
     if (callPollInterval) {
         clearInterval(callPollInterval);
         callPollInterval = null;
@@ -7856,7 +7914,8 @@ function cleanupCall() {
     currentCallUserId = null;
     currentCallType = null;
     appState.inCall = false;
-    
+    var persistentAudio = document.getElementById('persistent-remote-audio');
+    if (persistentAudio) { persistentAudio.srcObject = null; persistentAudio.remove(); }
     var callModal = document.getElementById('call-modal');
     if (callModal) callModal.remove();
 }

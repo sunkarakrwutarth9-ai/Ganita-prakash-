@@ -5477,6 +5477,7 @@ export default function App() {
   const [showCallWebView, setShowCallWebView] = useState(false);
   const [callWebViewUrl, setCallWebViewUrl] = useState('');
   const [callWebViewTitle, setCallWebViewTitle] = useState('');
+  const ringtoneRef = useRef(null);
   
   // Screen sharing during exam state
   const [isScreenSharing, setIsScreenSharing] = useState(false);
@@ -5516,6 +5517,16 @@ export default function App() {
                 sdp: data.sdp
               });
               Vibration.vibrate([0, 500, 200, 500, 200, 500], true);
+              playRingtone();
+              await Notifications.scheduleNotificationAsync({
+                content: {
+                  title: 'Incoming Call',
+                  body: `${data.caller_name || 'Admin'} is calling you (${data.call_type || 'voice'})`,
+                  sound: true,
+                  priority: Notifications.AndroidNotificationPriority.MAX,
+                },
+                trigger: null,
+              });
               
               // Mark notification as read
               try {
@@ -5706,10 +5717,43 @@ export default function App() {
   const [callDuration, setCallDuration] = useState(0);
   const callTimerRef = useRef(null);
 
+  const playRingtone = async () => {
+    try {
+      await stopRingtone();
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        staysActiveInBackground: true,
+        playsInSilentModeIOS: true,
+        shouldDuckAndroid: false,
+        playThroughEarpieceAndroid: false,
+      });
+      const { sound } = await Audio.Sound.createAsync(
+        { uri: 'https://actions.google.com/sounds/v1/alarms/phone_alerts_and_rings.ogg' },
+        { shouldPlay: true, isLooping: true, volume: 1.0 }
+      );
+      ringtoneRef.current = sound;
+    } catch (e) {
+      console.log('Ringtone play error:', e);
+    }
+  };
+
+  const stopRingtone = async () => {
+    try {
+      if (ringtoneRef.current) {
+        await ringtoneRef.current.stopAsync();
+        await ringtoneRef.current.unloadAsync();
+        ringtoneRef.current = null;
+      }
+    } catch (e) {
+      console.log('Ringtone stop error:', e);
+    }
+  };
+
   // Answer incoming call - shows native in-app call UI
   const answerCall = async () => {
     if (incomingCall) {
       Vibration.cancel();
+      await stopRingtone();
       
       // Send answer notification back to caller
       try {
@@ -5776,6 +5820,7 @@ export default function App() {
   const declineCall = async () => {
     if (incomingCall) {
       Vibration.cancel();
+      await stopRingtone();
       try {
         await fetch(`${API_URL}/api/webrtc/end-call`, {
           method: 'POST',
@@ -6509,9 +6554,9 @@ export default function App() {
                 
                 Alert.alert(
                   'EXAM AUTO-SUBMITTED',
-                  forceData.message || 'Admin has auto-submitted your exam because you were caught cheating!',
+                  forceData.message || 'You have been noticing that you are cheating. Please try without cheating.',
                   [{ text: 'OK', onPress: () => {
-                    setScreen('chapters');
+                    setScreen('home');
                     setCurrentQuestion(0);
                     setScore(0);
                     setSelectedOption(null);
