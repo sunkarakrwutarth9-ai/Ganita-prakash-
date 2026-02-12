@@ -6844,9 +6844,6 @@ export default function App() {
         <TouchableOpacity style={styles.bottomActionBtn} onPress={() => setScreen('certificates')}>
           <Text style={styles.bottomActionText}>◉ Achievements</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.bottomActionBtn} onPress={() => setScreen('points')}>
-          <Text style={styles.bottomActionText}>★ Points</Text>
-        </TouchableOpacity>
         {isAdmin && (
           <TouchableOpacity style={styles.bottomActionBtn} onPress={() => { loadAdminDashboard(); setScreen('admin'); }}>
             <Text style={styles.bottomActionText}>⬡ Command Center</Text>

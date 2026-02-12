@@ -4949,7 +4949,6 @@ function showSection(section) {
         'final-exam': 'final-exam-section',
         'certificates': 'certificates-section',
         'certificate': 'certificates-section',
-        'points': 'points-section',
         '3d-models': '3d-models-section',
         'ai-assistant': 'ai-assistant-section',
         'chat': 'chat-section',
@@ -6650,7 +6649,10 @@ async function initiateUserCallWithWebRTC(callType) {
         
         peerConnection.onicecandidate = function(event) {
             if (event.candidate) {
-                sendICECandidate(1, event.candidate);
+                var sent = sendSignalingMessage('ice_candidate', 1, {
+                    candidate: event.candidate.candidate, sdp_mid: event.candidate.sdpMid, sdp_m_line_index: event.candidate.sdpMLineIndex
+                });
+                if (!sent) { sendICECandidateHTTP(1, event.candidate); }
             }
         };
         
@@ -6663,10 +6665,19 @@ async function initiateUserCallWithWebRTC(callType) {
                 else statusEl.textContent = peerConnection.connectionState;
             }
         };
+        peerConnection.oniceconnectionstatechange = function() {
+            console.log('User ICE state:', peerConnection.iceConnectionState);
+            if (peerConnection.iceConnectionState === 'failed') {
+                console.log('ICE failed, restarting...');
+                peerConnection.restartIce();
+            }
+        };
         
         var offer = await peerConnection.createOffer();
         await peerConnection.setLocalDescription(offer);
         
+        connectSignalingWS();
+        var wsSent = sendSignalingMessage('offer', 1, { sdp: offer.sdp, call_type: callType });
         var response = await fetch(API_URL + '/api/webrtc/offer', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + appState.authToken },
@@ -6677,7 +6688,7 @@ async function initiateUserCallWithWebRTC(callType) {
             })
         });
         
-        if (response.ok) {
+        if (response.ok || wsSent) {
             appState.inCall = true;
             showCallUI(callType);
             startPollingForCallUpdates();
@@ -6712,25 +6723,42 @@ async function initiateCallFromMobile(targetUserId, callType, existingCallId) {
             peerConnection.addTrack(track, localStream);
         });
         
-        // Handle incoming tracks
         peerConnection.ontrack = function(event) {
+            console.log('Mobile: remote track', event.track.kind);
             remoteStream = event.streams[0];
-            var remoteVideo = document.getElementById('remote-video');
-            if (remoteVideo) remoteVideo.srcObject = remoteStream;
+            attachRemoteStream(callType);
         };
         
-        // Handle ICE candidates
         peerConnection.onicecandidate = function(event) {
             if (event.candidate) {
-                sendICECandidate(targetUserId, event.candidate);
+                var sent = sendSignalingMessage('ice_candidate', targetUserId, {
+                    candidate: event.candidate.candidate, sdp_mid: event.candidate.sdpMid, sdp_m_line_index: event.candidate.sdpMLineIndex
+                });
+                if (!sent) { sendICECandidateHTTP(targetUserId, event.candidate); }
+            }
+        };
+        peerConnection.onconnectionstatechange = function() {
+            console.log('Mobile call connection state:', peerConnection.connectionState);
+            var statusEl = document.getElementById('call-status');
+            if (statusEl) {
+                if (peerConnection.connectionState === 'connected') statusEl.textContent = 'Connected';
+                else if (peerConnection.connectionState === 'failed') statusEl.textContent = 'Connection failed';
+                else statusEl.textContent = peerConnection.connectionState;
+            }
+        };
+        peerConnection.oniceconnectionstatechange = function() {
+            console.log('Mobile ICE state:', peerConnection.iceConnectionState);
+            if (peerConnection.iceConnectionState === 'failed') {
+                console.log('ICE failed, restarting...');
+                peerConnection.restartIce();
             }
         };
         
-        // Create and send offer with real SDP
         var offer = await peerConnection.createOffer();
         await peerConnection.setLocalDescription(offer);
         
-        // Send real SDP offer to backend (replacing the mobile_call_request placeholder)
+        connectSignalingWS();
+        var wsSent = sendSignalingMessage('offer', targetUserId, { sdp: offer.sdp, call_type: callType });
         var response = await fetch(API_URL + '/api/webrtc/offer', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + appState.authToken },
@@ -6741,7 +6769,7 @@ async function initiateCallFromMobile(targetUserId, callType, existingCallId) {
             })
         });
         
-        if (response.ok) {
+        if (response.ok || wsSent) {
             appState.inCall = true;
             showCallUI(callType);
             startPollingForCallUpdates();
@@ -7524,12 +7552,19 @@ async function acceptIncomingCall() {
             }
         };
         peerConnection.onconnectionstatechange = function() {
-            console.log('Connection state:', peerConnection.connectionState);
+            console.log('Student connection state:', peerConnection.connectionState);
             var statusEl = document.getElementById('call-status');
             if (statusEl) {
                 if (peerConnection.connectionState === 'connected') statusEl.textContent = 'Connected';
                 else if (peerConnection.connectionState === 'failed') statusEl.textContent = 'Connection failed';
                 else statusEl.textContent = peerConnection.connectionState;
+            }
+        };
+        peerConnection.oniceconnectionstatechange = function() {
+            console.log('Student ICE state:', peerConnection.iceConnectionState);
+            if (peerConnection.iceConnectionState === 'failed') {
+                console.log('ICE failed, restarting...');
+                peerConnection.restartIce();
             }
         };
         await peerConnection.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: callData.sdp }));
@@ -7590,12 +7625,19 @@ async function initWebRTCCall(userId, callType) {
             }
         };
         peerConnection.onconnectionstatechange = function() {
-            console.log('Connection state:', peerConnection.connectionState);
+            console.log('Admin connection state:', peerConnection.connectionState);
             var statusEl = document.getElementById('call-status');
             if (statusEl) {
                 if (peerConnection.connectionState === 'connected') statusEl.textContent = 'Connected';
                 else if (peerConnection.connectionState === 'failed') statusEl.textContent = 'Connection failed - try again';
                 else statusEl.textContent = peerConnection.connectionState;
+            }
+        };
+        peerConnection.oniceconnectionstatechange = function() {
+            console.log('Admin ICE state:', peerConnection.iceConnectionState);
+            if (peerConnection.iceConnectionState === 'failed') {
+                console.log('ICE failed, restarting...');
+                peerConnection.restartIce();
             }
         };
         var offer = await peerConnection.createOffer();
@@ -7628,7 +7670,14 @@ async function sendICECandidateHTTP(userId, candidate) {
 
 async function handleCallAnswer(answerSdp) {
     if (peerConnection) {
-        try { await peerConnection.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: answerSdp })); }
+        try {
+            await peerConnection.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: answerSdp }));
+            console.log('Remote description set, draining ICE queue:', iceCandidateQueue.length);
+            for (var i = 0; i < iceCandidateQueue.length; i++) {
+                try { await peerConnection.addIceCandidate(new RTCIceCandidate(iceCandidateQueue[i])); } catch(e) { console.error('Drain ICE error:', e); }
+            }
+            iceCandidateQueue = [];
+        }
         catch(e) { console.error('Set remote desc error:', e); }
     }
 }
