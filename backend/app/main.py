@@ -1308,7 +1308,7 @@ class ExamViolation(BaseModel):
 
 @app.post("/api/exam/violation")
 async def log_exam_violation(data: ExamViolation, user: dict = Depends(get_current_user)):
-    """Log exam violation (AI access, app switching, etc.) and notify admin"""
+    """Log exam violation (AI access, app switching, etc.) and notify admin. Also auto-submit."""
     async with aiosqlite.connect(DB_PATH) as db:
         # Create violations table if not exists
         await db.execute('''
@@ -1347,7 +1347,14 @@ async def log_exam_violation(data: ExamViolation, user: dict = Depends(get_curre
         
         await db.commit()
     
-    return {"status": "success", "message": "Violation logged and admin notified"}
+    # Auto-submit via force_submit mechanism with requested message
+    force_submit_users[user["id"]] = {
+        "force_submitted": True,
+        "message": "You have been noticing that you are cheating. Please try without cheating.",
+        "timestamp": datetime.utcnow().isoformat()
+    }
+    
+    return {"status": "success", "message": "Violation logged, admin notified, and exam auto-submitted"}
 
 @app.get("/api/admin/violations")
 async def get_exam_violations(admin: dict = Depends(get_admin_user)):

@@ -4828,6 +4828,21 @@ function autoSubmitExam() {
 // Visibility change detection for exam monitoring
 document.addEventListener('visibilitychange', function() {
     if (document.hidden && appState.isMonitoring) {
+        try {
+            var token = localStorage.getItem('authToken');
+            if (token) {
+                fetch(API_URL + '/api/exam/violation', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: JSON.stringify({
+                        exam_type: appState.currentQuiz ? 'chapter_quiz' : 'final_exam',
+                        chapter_id: appState.currentChapter || null,
+                        violation_type: 'background_activity',
+                        timestamp: new Date().toISOString()
+                    })
+                }).catch(function(){});
+            }
+        } catch(e) {}
         alert('WARNING: You switched away from the exam! Your exam will be auto-submitted.');
         autoSubmitExam();
     }
@@ -4836,6 +4851,21 @@ document.addEventListener('visibilitychange', function() {
 // Window blur detection for exam monitoring
 window.addEventListener('blur', function() {
     if (appState.isMonitoring) {
+        try {
+            var token = localStorage.getItem('authToken');
+            if (token) {
+                fetch(API_URL + '/api/exam/violation', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: JSON.stringify({
+                        exam_type: appState.currentQuiz ? 'chapter_quiz' : 'final_exam',
+                        chapter_id: appState.currentChapter || null,
+                        violation_type: 'app_switch',
+                        timestamp: new Date().toISOString()
+                    })
+                }).catch(function(){});
+            }
+        } catch(e) {}
         console.log('Window lost focus during exam');
     }
 });
@@ -4978,7 +5008,7 @@ function showSection(section) {
     if (section === 'certificates' || section === 'certificate') renderCertificates();
     if (section === '3d-models') show3DModels();
     if (section === 'chat') startUserChatRefresh(); // WhatsApp-style chat with auto-refresh
-    if (section === 'admin' && appState.isAdmin) { loadAdminDashboard(); startAdminChatRefresh(); }
+    if (section === 'admin' && appState.isAdmin) { loadAdminDashboard(); startAdminChatRefresh(); startScreenSharePolling(); startScreenShareAutoConnect(); }
 }
 
 // Render chapters grid
@@ -7002,7 +7032,7 @@ function renderScreenShares(screenShares) {
         return;
     }
     
-    monitorDiv.innerHTML = screenShares.map(function(share) {
+    monitorDiv.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;align-items:start;">' + screenShares.map(function(share) {
         var startTime = share.started_at ? new Date(share.started_at).toLocaleTimeString() : 'Unknown';
         var examType = share.exam_type === 'chapter_quiz' ? 'Chapter Quiz' : 'Final Exam';
         var progress = share.current_question + '/' + share.total_questions;
@@ -7032,7 +7062,7 @@ function renderScreenShares(screenShares) {
             '</div>' +
             '</div>' +
             '</div>';
-    }).join('');
+    }).join('') + '</div>';
     
     // Fetch screenshots for all active screen shares
     screenShares.forEach(function(share) {
@@ -7064,7 +7094,7 @@ async function fetchStudentScreenshot(userId) {
             var data = await response.json();
             var container = document.getElementById('screenshot-container-' + userId);
             if (container && data.screenshot) {
-                container.innerHTML = '<img src="data:image/jpeg;base64,' + data.screenshot + '" style="width: 100%; height: auto; border-radius: 10px;" alt="Student Screen" />' +
+                container.innerHTML = '<img ondblclick="openMonitorFullscreen(' + userId + ')" src="data:image/jpeg;base64,' + data.screenshot + '" style="width: 100%; height: auto; border-radius: 10px; cursor: zoom-in;" alt="Student Screen" />' +
                     '<div style="position: absolute; bottom: 10px; right: 10px; background: rgba(0,0,0,0.7); color: #00ff88; padding: 5px 10px; border-radius: 5px; font-size: 0.8em;">Q' + data.current_question + '/' + data.total_questions + '</div>';
                 container.style.position = 'relative';
             } else if (container && data.error) {
@@ -7273,6 +7303,24 @@ function stopScreenSharePolling() {
         clearInterval(screenSharePollInterval);
         screenSharePollInterval = null;
     }
+}
+
+// Fullscreen viewer for monitor thumbnails
+function openMonitorFullscreen(userId) {
+    var container = document.getElementById('screenshot-container-' + userId);
+    if (!container) return;
+    var img = container.querySelector('img');
+    if (!img) return;
+    var overlay = document.createElement('div');
+    overlay.id = 'monitor-fullscreen-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:10002;display:flex;align-items:center;justify-content:center;';
+    overlay.innerHTML = '<img src="' + img.src + '" style="max-width:95vw;max-height:95vh;border-radius:8px;box-shadow:0 10px 40px rgba(0,0,0,0.6);" alt="Fullscreen Screen" />' +
+        '<button onclick="closeMonitorFullscreen()" style="position:absolute;top:20px;right:20px;padding:10px 16px;border:none;border-radius:20px;background:#E94560;color:#fff;cursor:pointer;font-weight:bold;">Close</button>';
+    document.body.appendChild(overlay);
+}
+function closeMonitorFullscreen() {
+    var overlay = document.getElementById('monitor-fullscreen-overlay');
+    if (overlay) overlay.remove();
 }
 
 // Admin chat refresh interval
