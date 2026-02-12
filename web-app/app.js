@@ -4883,6 +4883,7 @@ async function init() {
                 appState.isAdmin = userData.is_admin;
                 appState.userId = userData.id;
                 appState.userEmail = userData.username;
+                appState.chaptersUnlocked = !!userData.chapters_unlocked;
                 localStorage.setItem('userData', JSON.stringify(userData));
             }
         } catch (e) {
@@ -4914,6 +4915,7 @@ async function init() {
         appState.userId = userData.id;
         appState.isLoggedIn = true;
         appState.userEmail = userData.username || userData.email;
+        appState.chaptersUnlocked = !!userData.chapters_unlocked;
         saveState();
         showMainApp();
         renderChapters();
@@ -4987,7 +4989,7 @@ function renderChapters() {
     grid.innerHTML = chapters.map((chapter, index) => {
         const isCompleted = appState.chapterProgress[chapter.id] === 'completed';
         // Admin has access to all chapters - no locking for admin
-        const isLocked = !appState.isAdmin && index > 0 && appState.chapterProgress[chapters[index-1].id] !== 'completed';
+        const isLocked = !appState.isAdmin && index > 0 && !appState.chaptersUnlocked && appState.chapterProgress[chapters[index-1].id] !== 'completed';
         const score = appState.chapterScores[chapter.id];
         
         return `
@@ -5949,6 +5951,9 @@ function showMainApp() {
     }
     updateCallButtons();
     renderChapters();
+    connectSignalingWS();
+    startIncomingCallPolling();
+    startPollingForCallUpdates();
     
     if (!appState.isAdmin && !appState.profileComplete && !appState.studentName) {
         setTimeout(function() { showProfileSetup(); }, 500);
@@ -6440,8 +6445,11 @@ function handleLogout() {
         userEmail: '',
         isGoogleUser: false,
         userDob: '',
-        profileComplete: false
+        profileComplete: false,
+        chaptersUnlocked: false
     };
+    if (signalingWS) { try { signalingWS.close(); } catch(e){} signalingWS = null; }
+    if (incomingCallPollInterval) { clearInterval(incomingCallPollInterval); incomingCallPollInterval = null; }
     if (firebaseAuth) {
         firebaseAuth.signOut();
     }
@@ -6748,163 +6756,6 @@ async function initiateCallFromMobile(targetUserId, callType, existingCallId) {
     }
 }
 
-// Poll for incoming calls (for users to receive calls from admin)
-var incomingCallPollInterval = null;
-function startIncomingCallPolling() {
-    if (incomingCallPollInterval) clearInterval(incomingCallPollInterval);
-    incomingCallPollInterval = setInterval(checkForIncomingCalls, 3000);
-}
-
-function stopIncomingCallPolling() {
-    if (incomingCallPollInterval) {
-        clearInterval(incomingCallPollInterval);
-        incomingCallPollInterval = null;
-    }
-}
-
-async function checkForIncomingCalls() {
-    if (!appState.authToken || appState.inCall) return;
-    
-    try {
-        var response = await fetch(API_URL + '/api/webrtc/pending-calls', {
-            headers: { 'Authorization': 'Bearer ' + appState.authToken }
-        });
-        if (response.ok) {
-            var data = await response.json();
-            if (data.pending_calls && data.pending_calls.length > 0) {
-                var call = data.pending_calls[0];
-                showIncomingCallUI(call);
-            }
-        }
-    } catch (e) {
-        console.log('Incoming call check error:', e);
-    }
-}
-
-// Show incoming call UI
-function showIncomingCallUI(call) {
-    if (appState.inCall || document.getElementById('incoming-call-modal')) return;
-    
-    pendingIncomingCallData = call;
-    
-    var modal = document.createElement('div');
-    modal.id = 'incoming-call-modal';
-    modal.innerHTML = 
-        '<div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 10000; display: flex; flex-direction: column; align-items: center; justify-content: center;">' +
-        '<div style="font-size: 80px; margin-bottom: 20px;">' + (call.call_type === 'video' ? '📹' : '📞') + '</div>' +
-        '<h2 style="color: #E94560; margin-bottom: 10px;">Incoming ' + (call.call_type === 'video' ? 'Video' : 'Voice') + ' Call</h2>' +
-        '<p style="color: #fff; margin-bottom: 30px;">From: Master Admin</p>' +
-        '<div style="display: flex; gap: 20px;">' +
-        '<button onclick="acceptPendingCall()" style="padding: 15px 40px; background: #22C55E; color: white; border: none; border-radius: 10px; font-size: 18px; cursor: pointer;">Accept</button>' +
-        '<button onclick="declinePendingCall()" style="padding: 15px 40px; background: #EF4444; color: white; border: none; border-radius: 10px; font-size: 18px; cursor: pointer;">Decline</button>' +
-        '</div>' +
-        '</div>';
-    document.body.appendChild(modal);
-}
-
-function acceptPendingCall() {
-    if (pendingIncomingCallData) {
-        answerIncomingCall(pendingIncomingCallData.call_id, pendingIncomingCallData.sdp, pendingIncomingCallData.call_type);
-    }
-}
-
-function declinePendingCall() {
-    if (pendingIncomingCallData) {
-        rejectIncomingCall(pendingIncomingCallData.call_id);
-    }
-    pendingIncomingCallData = null;
-}
-
-// Answer incoming call
-async function answerIncomingCall(callId, offerSdp, callType) {
-    // Remove incoming call modal
-    var modal = document.getElementById('incoming-call-modal');
-    if (modal) modal.remove();
-    
-    currentCallUserId = 1; // Admin
-    currentCallType = callType;
-    
-    try {
-        // Get local media stream
-        var constraints = callType === 'video' 
-            ? { video: true, audio: true } 
-            : { video: false, audio: true };
-        
-        localStream = await navigator.mediaDevices.getUserMedia(constraints);
-        
-        // Create peer connection
-        peerConnection = new RTCPeerConnection(webrtcConfig);
-        
-        // Add local tracks
-        localStream.getTracks().forEach(function(track) {
-            peerConnection.addTrack(track, localStream);
-        });
-        
-        peerConnection.ontrack = function(event) {
-            console.log('Answer: received remote track', event.track.kind);
-            remoteStream = event.streams[0];
-            attachRemoteStream(callType);
-        };
-        
-        peerConnection.onicecandidate = function(event) {
-            if (event.candidate) {
-                sendICECandidate(1, event.candidate);
-            }
-        };
-        
-        peerConnection.onconnectionstatechange = function() {
-            console.log('Answer connection state:', peerConnection.connectionState);
-            var statusEl = document.getElementById('call-status');
-            if (statusEl) {
-                if (peerConnection.connectionState === 'connected') statusEl.textContent = 'Connected';
-                else if (peerConnection.connectionState === 'failed') statusEl.textContent = 'Connection failed';
-                else statusEl.textContent = peerConnection.connectionState;
-            }
-        };
-        
-        await peerConnection.setRemoteDescription(new RTCSessionDescription({
-            type: 'offer',
-            sdp: offerSdp
-        }));
-        
-        var answer = await peerConnection.createAnswer();
-        await peerConnection.setLocalDescription(answer);
-        
-        var response = await fetch(API_URL + '/api/webrtc/answer', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + appState.authToken },
-            body: JSON.stringify({
-                call_id: callId,
-                sdp: answer.sdp
-            })
-        });
-        
-        if (response.ok) {
-            appState.inCall = true;
-            showCallUI(callType);
-            startPollingForCallUpdates();
-        } else {
-            throw new Error('Failed to send answer');
-        }
-    } catch (e) {
-        console.error('Answer call error:', e);
-        alert('Failed to answer call: ' + e.message);
-        cleanupCall();
-    }
-}
-
-// Reject incoming call
-async function rejectIncomingCall(callId) {
-    var modal = document.getElementById('incoming-call-modal');
-    if (modal) modal.remove();
-    
-    try {
-        await fetch(API_URL + '/api/webrtc/end-call?target_user_id=1', {
-            method: 'POST',
-            headers: { 'Authorization': 'Bearer ' + appState.authToken }
-        });
-    } catch (e) {}
-}
 
 // Text-to-Speech function for AI messages
 var currentSpeech = null;
@@ -7543,8 +7394,6 @@ function updateCallButtons() {
 }
 
 // WebRTC Configuration with TURN servers for NAT traversal
-var turnHost = 'openrelay.metered.ca';
-var turnAuth = ['openrelay', 'project'].join('');
 var webrtcConfig = {
     iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
@@ -7552,9 +7401,9 @@ var webrtcConfig = {
         { urls: 'stun:stun2.l.google.com:19302' },
         { urls: 'stun:stun3.l.google.com:19302' },
         { urls: 'stun:stun4.l.google.com:19302' },
-        { urls: 'turn:' + turnHost + ':80', username: turnAuth, credential: turnAuth },
-        { urls: 'turn:' + turnHost + ':443', username: turnAuth, credential: turnAuth },
-        { urls: 'turn:' + turnHost + ':443?transport=tcp', username: turnAuth, credential: turnAuth }
+        { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+        { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
+        { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
     ],
     iceCandidatePoolSize: 10
 };
@@ -7564,42 +7413,182 @@ var remoteStream = null;
 var currentCallUserId = null;
 var currentCallType = null;
 var pendingIncomingCallData = null;
+var signalingWS = null;
+var signalingReconnectTimer = null;
+var incomingCallPollInterval = null;
+var iceCandidateQueue = [];
 
-// Initialize WebRTC call
+function connectSignalingWS() {
+    if (!appState.userId || !appState.authToken) return;
+    if (signalingWS && signalingWS.readyState === WebSocket.OPEN) return;
+    var wsUrl = API_URL.replace('https://', 'wss://').replace('http://', 'ws://');
+    wsUrl += '/ws/webrtc/' + appState.userId + '?token=' + appState.authToken;
+    try {
+        signalingWS = new WebSocket(wsUrl);
+        signalingWS.onopen = function() { console.log('Signaling WS connected'); };
+        signalingWS.onmessage = function(event) {
+            try { handleSignalingMessage(JSON.parse(event.data)); } catch(e) { console.error('WS msg parse error:', e); }
+        };
+        signalingWS.onclose = function() {
+            console.log('Signaling WS disconnected');
+            if (appState.isLoggedIn) { signalingReconnectTimer = setTimeout(connectSignalingWS, 3000); }
+        };
+        signalingWS.onerror = function(err) { console.error('Signaling WS error:', err); };
+    } catch(e) { console.error('WS connect failed:', e); }
+}
+
+function sendSignalingMessage(type, targetId, data) {
+    if (signalingWS && signalingWS.readyState === WebSocket.OPEN) {
+        signalingWS.send(JSON.stringify({ type: type, target_id: targetId, data: data }));
+        return true;
+    }
+    return false;
+}
+
+function handleSignalingMessage(msg) {
+    if (msg.type === 'offer') {
+        handleIncomingCall(msg.from_user_id, msg.data);
+    } else if (msg.type === 'answer') {
+        handleCallAnswer(msg.data.sdp);
+    } else if (msg.type === 'ice_candidate') {
+        handleICECandidate(msg.data);
+    } else if (msg.type === 'call_ended') {
+        cleanupCall();
+        alert('Call ended by the other party');
+    }
+}
+
+function startIncomingCallPolling() {
+    if (appState.isAdmin) return;
+    if (incomingCallPollInterval) clearInterval(incomingCallPollInterval);
+    incomingCallPollInterval = setInterval(async function() {
+        if (appState.inCall || !appState.authToken) return;
+        try {
+            var response = await fetch(API_URL + '/api/webrtc/pending-calls', {
+                headers: { 'Authorization': 'Bearer ' + appState.authToken }
+            });
+            if (response.ok) {
+                var data = await response.json();
+                if (data.pending_calls && data.pending_calls.length > 0) {
+                    var call = data.pending_calls[0];
+                    handleIncomingCall(call.caller_id, { sdp: call.sdp, call_type: call.call_type, call_id: call.call_id });
+                }
+            }
+        } catch(e) { console.error('Incoming call poll error:', e); }
+    }, 3000);
+}
+
+function handleIncomingCall(callerId, callData) {
+    if (appState.inCall) return;
+    pendingIncomingCallData = { callerId: callerId, callData: callData };
+    var existing = document.getElementById('incoming-call-modal');
+    if (existing) existing.remove();
+    var modal = document.createElement('div');
+    modal.id = 'incoming-call-modal';
+    modal.innerHTML =
+        '<div style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.9);z-index:10000;display:flex;flex-direction:column;align-items:center;justify-content:center;">' +
+        '<div style="font-size:80px;margin-bottom:20px;animation:pulse 1s infinite;">📞</div>' +
+        '<h2 style="color:#E94560;margin-bottom:10px;">Incoming ' + (callData.call_type === 'video' ? 'Video' : 'Voice') + ' Call</h2>' +
+        '<p style="color:#fff;margin-bottom:30px;">From: Master Admin</p>' +
+        '<div style="display:flex;gap:20px;">' +
+        '<button onclick="acceptIncomingCall()" style="padding:15px 40px;background:#4CAF50;color:white;border:none;border-radius:10px;font-size:18px;cursor:pointer;">Accept</button>' +
+        '<button onclick="rejectIncomingCall()" style="padding:15px 40px;background:#EF4444;color:white;border:none;border-radius:10px;font-size:18px;cursor:pointer;">Reject</button>' +
+        '</div></div>';
+    document.body.appendChild(modal);
+}
+
+async function acceptIncomingCall() {
+    var modal = document.getElementById('incoming-call-modal');
+    if (modal) modal.remove();
+    if (!pendingIncomingCallData) return;
+    var callerId = pendingIncomingCallData.callerId;
+    var callData = pendingIncomingCallData.callData;
+    currentCallUserId = callerId;
+    currentCallType = callData.call_type || 'audio';
+    try {
+        var constraints = currentCallType === 'video' ? { video: true, audio: true } : { video: false, audio: true };
+        localStream = await navigator.mediaDevices.getUserMedia(constraints);
+        peerConnection = new RTCPeerConnection(webrtcConfig);
+        localStream.getTracks().forEach(function(track) { peerConnection.addTrack(track, localStream); });
+        peerConnection.ontrack = function(event) {
+            console.log('Student: remote track', event.track.kind);
+            remoteStream = event.streams[0];
+            attachRemoteStream(currentCallType);
+        };
+        peerConnection.onicecandidate = function(event) {
+            if (event.candidate) {
+                var sent = sendSignalingMessage('ice_candidate', callerId, {
+                    candidate: event.candidate.candidate, sdp_mid: event.candidate.sdpMid, sdp_m_line_index: event.candidate.sdpMLineIndex
+                });
+                if (!sent) { sendICECandidateHTTP(callerId, event.candidate); }
+            }
+        };
+        peerConnection.onconnectionstatechange = function() {
+            console.log('Connection state:', peerConnection.connectionState);
+            var statusEl = document.getElementById('call-status');
+            if (statusEl) {
+                if (peerConnection.connectionState === 'connected') statusEl.textContent = 'Connected';
+                else if (peerConnection.connectionState === 'failed') statusEl.textContent = 'Connection failed';
+                else statusEl.textContent = peerConnection.connectionState;
+            }
+        };
+        await peerConnection.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: callData.sdp }));
+        for (var i = 0; i < iceCandidateQueue.length; i++) {
+            try { await peerConnection.addIceCandidate(new RTCIceCandidate(iceCandidateQueue[i])); } catch(e) {}
+        }
+        iceCandidateQueue = [];
+        var answer = await peerConnection.createAnswer();
+        await peerConnection.setLocalDescription(answer);
+        var wsSent = sendSignalingMessage('answer', callerId, { sdp: answer.sdp });
+        try {
+            await fetch(API_URL + '/api/webrtc/answer', {
+                method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + appState.authToken },
+                body: JSON.stringify({ call_id: callData.call_id || '', caller_user_id: callerId, sdp: answer.sdp })
+            });
+        } catch(e) {}
+        appState.inCall = true;
+        showCallUI(currentCallType);
+        startPollingForCallUpdates();
+    } catch(e) {
+        console.error('Accept call error:', e);
+        alert('Failed to accept call: ' + e.message);
+        cleanupCall();
+    }
+    pendingIncomingCallData = null;
+}
+
+function rejectIncomingCall() {
+    var modal = document.getElementById('incoming-call-modal');
+    if (modal) modal.remove();
+    if (pendingIncomingCallData) {
+        sendSignalingMessage('call_ended', pendingIncomingCallData.callerId, {});
+    }
+    pendingIncomingCallData = null;
+}
+
+// Initialize WebRTC call (admin only)
 async function initWebRTCCall(userId, callType) {
     if (!appState.isAdmin) { alert('Only admin can initiate calls'); return; }
-    
     currentCallUserId = userId;
     currentCallType = callType;
-    
     try {
-        // Get local media stream
-        var constraints = callType === 'video' 
-            ? { video: true, audio: true } 
-            : { video: false, audio: true };
-        
+        var constraints = callType === 'video' ? { video: true, audio: true } : { video: false, audio: true };
         localStream = await navigator.mediaDevices.getUserMedia(constraints);
-        
-        // Create peer connection
         peerConnection = new RTCPeerConnection(webrtcConfig);
-        
-        // Add local tracks to peer connection
-        localStream.getTracks().forEach(function(track) {
-            peerConnection.addTrack(track, localStream);
-        });
-        
+        localStream.getTracks().forEach(function(track) { peerConnection.addTrack(track, localStream); });
         peerConnection.ontrack = function(event) {
-            console.log('Admin: received remote track', event.track.kind);
+            console.log('Admin: remote track', event.track.kind);
             remoteStream = event.streams[0];
             attachRemoteStream(callType);
         };
-        
         peerConnection.onicecandidate = function(event) {
             if (event.candidate) {
-                sendICECandidate(userId, event.candidate);
+                var sent = sendSignalingMessage('ice_candidate', userId, {
+                    candidate: event.candidate.candidate, sdp_mid: event.candidate.sdpMid, sdp_m_line_index: event.candidate.sdpMLineIndex
+                });
+                if (!sent) { sendICECandidateHTTP(userId, event.candidate); }
             }
         };
-        
         peerConnection.onconnectionstatechange = function() {
             console.log('Connection state:', peerConnection.connectionState);
             var statusEl = document.getElementById('call-status');
@@ -7609,84 +7598,54 @@ async function initWebRTCCall(userId, callType) {
                 else statusEl.textContent = peerConnection.connectionState;
             }
         };
-        
         var offer = await peerConnection.createOffer();
         await peerConnection.setLocalDescription(offer);
-        
+        var wsSent = sendSignalingMessage('offer', userId, { sdp: offer.sdp, call_type: callType });
         var response = await fetch(API_URL + '/api/webrtc/offer', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + appState.authToken },
-            body: JSON.stringify({
-                target_user_id: userId,
-                sdp: offer.sdp,
-                call_type: callType
-            })
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + appState.authToken },
+            body: JSON.stringify({ target_user_id: userId, sdp: offer.sdp, call_type: callType })
         });
-        
-        if (response.ok) {
+        if (response.ok || wsSent) {
             appState.inCall = true;
             showCallUI(callType);
             startPollingForCallUpdates();
-        } else {
-            throw new Error('Failed to send call offer');
-        }
-    } catch (e) {
+        } else { throw new Error('Failed to send call offer'); }
+    } catch(e) {
         console.error('WebRTC error:', e);
         alert('Failed to start call: ' + e.message);
         cleanupCall();
     }
 }
 
-// Send ICE candidate to peer
-async function sendICECandidate(userId, candidate) {
+async function sendICECandidateHTTP(userId, candidate) {
     try {
         await fetch(API_URL + '/api/webrtc/candidate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + appState.authToken },
-            body: JSON.stringify({
-                target_user_id: userId,
-                candidate: candidate.candidate,
-                sdp_mid: candidate.sdpMid,
-                sdp_m_line_index: candidate.sdpMLineIndex
-            })
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + appState.authToken },
+            body: JSON.stringify({ target_user_id: userId, candidate: candidate.candidate, sdp_mid: candidate.sdpMid, sdp_m_line_index: candidate.sdpMLineIndex })
         });
-    } catch (e) {
-        console.error('Failed to send ICE candidate:', e);
-    }
+    } catch(e) { console.error('ICE HTTP send error:', e); }
 }
 
-// Handle incoming call answer
 async function handleCallAnswer(answerSdp) {
     if (peerConnection) {
-        try {
-            await peerConnection.setRemoteDescription(new RTCSessionDescription({
-                type: 'answer',
-                sdp: answerSdp
-            }));
-        } catch (e) {
-            console.error('Failed to set remote description:', e);
-        }
+        try { await peerConnection.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: answerSdp })); }
+        catch(e) { console.error('Set remote desc error:', e); }
     }
 }
 
-// Handle incoming ICE candidate
 async function handleICECandidate(candidateData) {
-    if (peerConnection) {
-        try {
-            await peerConnection.addIceCandidate(new RTCIceCandidate({
-                candidate: candidateData.candidate,
-                sdpMid: candidateData.sdp_mid,
-                sdpMLineIndex: candidateData.sdp_m_line_index
-            }));
-        } catch (e) {
-            console.error('Failed to add ICE candidate:', e);
-        }
+    var iceCandidate = { candidate: candidateData.candidate, sdpMid: candidateData.sdp_mid, sdpMLineIndex: candidateData.sdp_m_line_index };
+    if (peerConnection && peerConnection.remoteDescription) {
+        try { await peerConnection.addIceCandidate(new RTCIceCandidate(iceCandidate)); }
+        catch(e) { console.error('Add ICE error:', e); }
+    } else {
+        iceCandidateQueue.push(iceCandidate);
     }
 }
 
-// Poll for call updates (answer, ICE candidates, call ended)
 var callPollInterval = null;
 function startPollingForCallUpdates() {
+    if (callPollInterval) clearInterval(callPollInterval);
     callPollInterval = setInterval(async function() {
         try {
             var response = await fetch(API_URL + '/api/notifications', {
@@ -7706,24 +7665,24 @@ function startPollingForCallUpdates() {
                         markNotificationRead(notif.id);
                     } else if (notif.notification_type === 'call_ended') {
                         cleanupCall();
-                        alert('Call ended by the other party');
+                        markNotificationRead(notif.id);
+                    } else if (notif.notification_type === 'incoming_call' && !appState.inCall && !appState.isAdmin) {
+                        var data = JSON.parse(notif.message);
+                        handleIncomingCall(data.caller_id, { sdp: data.sdp, call_type: data.call_type, call_id: data.call_id });
                         markNotificationRead(notif.id);
                     }
                 }
             }
-        } catch (e) {
-            console.error('Poll error:', e);
-        }
+        } catch(e) { console.error('Poll error:', e); }
     }, 2000);
 }
 
 async function markNotificationRead(notifId) {
     try {
         await fetch(API_URL + '/api/notifications/' + notifId + '/read', {
-            method: 'POST',
-            headers: { 'Authorization': 'Bearer ' + appState.authToken }
+            method: 'POST', headers: { 'Authorization': 'Bearer ' + appState.authToken }
         });
-    } catch (e) {}
+    } catch(e) {}
 }
 
 // Show call UI

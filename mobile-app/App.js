@@ -5462,6 +5462,10 @@ export default function App() {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [editName, setEditName] = useState('');
   
+  // Chapter unlock state (from backend)
+  const [chaptersUnlocked, setChaptersUnlocked] = useState(false);
+  const [chapterUnlockMap, setChapterUnlockMap] = useState({});
+  
   // Video Player state (inbuilt)
   const [showVideoPlayer, setShowVideoPlayer] = useState(false);
   const [currentVideoChapter, setCurrentVideoChapter] = useState(null);
@@ -5955,6 +5959,8 @@ export default function App() {
     setChapterScores({});
     setCertificates([]);
     setIsGoogleUser(false);
+    setChaptersUnlocked(false);
+    setChapterUnlockMap({});
     setScreen('login');
   };
 
@@ -6306,6 +6312,27 @@ export default function App() {
       if (certs) setCertificates(JSON.parse(certs));
       if (finalCompleted) setFinalExamCompleted(JSON.parse(finalCompleted));
       if (finalScore) setFinalExamScore(JSON.parse(finalScore));
+      
+      if (authToken) {
+        try {
+          const resp = await fetch(`${API_URL}/api/progress`, {
+            headers: { 'Authorization': `Bearer ${authToken}` },
+          });
+          if (resp.ok) {
+            const backendProgress = await resp.json();
+            const unlockMap = {};
+            let allUnlocked = true;
+            backendProgress.forEach(p => {
+              unlockMap[p.chapter_id] = p.unlocked;
+              if (!p.unlocked) allUnlocked = false;
+            });
+            setChapterUnlockMap(unlockMap);
+            setChaptersUnlocked(allUnlocked && backendProgress.length >= 10);
+          }
+        } catch (e) {
+          console.log('Backend progress fetch error:', e);
+        }
+      }
     } catch (e) {
       console.log('Error loading data:', e);
     }
@@ -6831,10 +6858,10 @@ export default function App() {
       <Text style={styles.sectionTitle}>COSMIC SECTORS</Text>
       {chapters.map((chapter, index) => {
         const isCompleted = chapterProgress[chapter.id] === 'completed';
-        // Chapter is locked if previous chapter is not completed (Chapter 1 always unlocked, Admin sees all unlocked)
         const previousChapterId = index > 0 ? chapters[index - 1].id : null;
         const isPreviousCompleted = previousChapterId ? chapterProgress[previousChapterId] === 'completed' : true;
-        const isLocked = !isAdmin && index > 0 && !isPreviousCompleted;
+        const isBackendUnlocked = chapterUnlockMap[index + 1] === true || chapterUnlockMap[index + 1] === 1;
+        const isLocked = !isAdmin && index > 0 && !chaptersUnlocked && !isBackendUnlocked && !isPreviousCompleted;
         
         return (
           <TouchableOpacity
@@ -8192,7 +8219,7 @@ export default function App() {
         setCallStatus('Calling ' + user.name + '...');
         
         // Open in-app WebView for WebRTC call instead of external browser
-        const callUrl = `https://cbse-ai-learning-app-o4rl0um1.devinapps.com?autoLogin=true&token=${authToken}&callId=${data.call_id}&callType=${type}&targetUserId=${user.id}&mode=call`;
+        const callUrl = `https://exam-monitoring-app-y80t21tr.devinapps.com?autoLogin=true&token=${authToken}&callId=${data.call_id}&callType=${type}&targetUserId=${user.id}&mode=call`;
         setCallWebViewUrl(callUrl);
         setCallWebViewTitle(type === 'video' ? 'Video Call with ' + user.name : 'Voice Call with ' + user.name);
         setShowCallWebView(true);
@@ -8213,7 +8240,7 @@ export default function App() {
       try {
         await fetch(`${API_URL}/api/webrtc/end-call`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
           body: JSON.stringify({ call_id: activeCall })
         });
       } catch (error) {
@@ -8231,9 +8258,9 @@ export default function App() {
     setCallingUser(user);
     setCallStatus('Initiating call...');
     try {
-      const response = await fetch(`${API_URL}/admin/gemini-call`, {
+      const response = await fetch(`${API_URL}/api/admin/gemini-call`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
         body: JSON.stringify({ user_id: user.id, action: 'initiate_call' })
       });
       if (response.ok) {
