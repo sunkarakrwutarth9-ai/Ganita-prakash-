@@ -4608,7 +4608,11 @@ async function sendScreenShareToAdmin(stream, token) {
         studentScreenSharePC = new RTCPeerConnection({
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' }
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:stun2.l.google.com:19302' },
+                { urls: 'turn:a.relay.metered.ca:80', username: 'e8dd65b92af4d12ef0ed3b86', credential: 'uWdWNmkhvyqTEswO' },
+                { urls: 'turn:a.relay.metered.ca:443', username: 'e8dd65b92af4d12ef0ed3b86', credential: 'uWdWNmkhvyqTEswO' },
+                { urls: 'turn:a.relay.metered.ca:443?transport=tcp', username: 'e8dd65b92af4d12ef0ed3b86', credential: 'uWdWNmkhvyqTEswO' }
             ]
         });
         
@@ -7022,7 +7026,7 @@ function stopScreenShareAutoConnect() {
     }
 }
 
-// Render active screen shares in the monitor section with screenshots
+// Render active screen shares in the monitor section with live video + screenshot fallback
 function renderScreenShares(screenShares) {
     var monitorDiv = document.getElementById('screen-share-monitor');
     if (!monitorDiv) return;
@@ -7032,56 +7036,65 @@ function renderScreenShares(screenShares) {
         return;
     }
     
-    monitorDiv.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;align-items:start;">' + screenShares.map(function(share) {
+    monitorDiv.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;align-items:start;">' + screenShares.map(function(share) {
         var startTime = share.started_at ? new Date(share.started_at).toLocaleTimeString() : 'Unknown';
         var examType = share.exam_type === 'chapter_quiz' ? 'Chapter Quiz' : 'Final Exam';
         var progress = share.current_question + '/' + share.total_questions;
+        var hasLiveConnection = !!adminScreenShareConnections[share.user_id];
         
-        return '<div style="background: linear-gradient(135deg, rgba(0,255,136,0.1), rgba(0,255,255,0.1)); border: 2px solid #00ff88; border-radius: 15px; padding: 20px; margin-bottom: 15px;">' +
+        return '<div style="background: linear-gradient(135deg, rgba(0,255,136,0.1), rgba(0,255,255,0.1)); border: 2px solid #00ff88; border-radius: 15px; padding: 20px;">' +
             '<div style="display: flex; justify-content: space-between; align-items: center;">' +
             '<div>' +
             '<div style="color: #00ff88; font-family: \'Orbitron\', monospace; font-size: 1.2em; margin-bottom: 5px;">' + (share.user_name || 'Unknown User') + '</div>' +
             '<div style="color: #888; font-size: 0.9em;">' + examType + (share.chapter_id ? ' - Chapter ' + share.chapter_id : '') + '</div>' +
             '</div>' +
             '<div style="text-align: right;">' +
-            '<div style="color: #00ffff; font-size: 1.5em; font-family: \'Orbitron\', monospace;">' + progress + '</div>' +
-            '<div style="color: #888; font-size: 0.8em;">Questions</div>' +
+            '<span id="live-label-' + share.user_id + '" style="display:' + (hasLiveConnection ? 'inline-block' : 'none') + ';background:#ff0000;color:#fff;padding:3px 10px;border-radius:10px;font-size:0.75em;font-weight:bold;animation:pulse 1.5s infinite;margin-right:8px;">LIVE</span>' +
+            '<span id="screenshot-label-' + share.user_id + '" style="display:' + (hasLiveConnection ? 'none' : 'inline-block') + ';background:#FF9800;color:#fff;padding:3px 10px;border-radius:10px;font-size:0.75em;font-weight:bold;">SCREENSHOTS</span>' +
+            '<div style="color: #00ffff; font-size: 1.5em; font-family: \'Orbitron\', monospace; margin-top:5px;">' + progress + '</div>' +
             '</div>' +
             '</div>' +
-            '<div style="margin-top: 15px;">' +
-            '<div id="screenshot-container-' + share.user_id + '" style="width: 100%; min-height: 200px; background: #111; border-radius: 10px; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; overflow: hidden;">' +
-            '<div style="color: #888; text-align: center; padding: 20px;">Loading screenshot...<br><small>Screenshots update every 3 seconds</small></div>' +
+            '<div style="margin-top: 15px; position:relative;">' +
+            '<div id="live-video-container-' + share.user_id + '" style="width:100%;min-height:200px;background:#000;border-radius:10px;margin-bottom:10px;display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;" ondblclick="openLiveFullscreen(' + share.user_id + ')">' +
+            (hasLiveConnection ? '<video id="screen-video-' + share.user_id + '" autoplay playsinline muted style="width:100%;height:auto;border-radius:10px;"></video>' :
+            '<div id="screenshot-container-' + share.user_id + '" style="width:100%;min-height:200px;display:flex;align-items:center;justify-content:center;"><div style="color:#888;text-align:center;padding:20px;">Connecting live stream...<br><small>Falling back to screenshots</small></div></div>') +
             '</div>' +
-            '<button onclick="fetchStudentScreenshot(' + share.user_id + ')" style="padding: 8px 20px; background: linear-gradient(135deg, #00ff88, #00ffff); border: none; border-radius: 20px; color: #000; font-family: Orbitron, monospace; font-weight: bold; cursor: pointer; margin-right: 10px;">Refresh Screenshot</button>' +
             '</div>' +
-            '<div style="margin-top: 15px; display: flex; justify-content: space-between; align-items: center;">' +
+            '<div style="margin-top: 10px; display: flex; justify-content: space-between; align-items: center; flex-wrap:wrap; gap:8px;">' +
             '<div style="color: #888; font-size: 0.85em;">Started: ' + startTime + '</div>' +
-            '<div style="display: flex; gap: 10px;">' +
+            '<div style="display: flex; gap: 10px; flex-wrap:wrap;">' +
             '<span style="background: ' + (share.is_active ? '#00ff88' : '#ff4444') + '; color: #000; padding: 5px 15px; border-radius: 20px; font-size: 0.8em; font-weight: bold;">' + (share.is_active ? 'ACTIVE' : 'PAUSED') + '</span>' +
-            '<button onclick="adminForceSubmit(' + share.user_id + ', \'' + (share.user_name || 'Student') + '\')" style="padding: 8px 20px; background: linear-gradient(135deg, #ff4444, #ff6666); border: none; border-radius: 20px; color: #fff; font-family: Orbitron, monospace; font-weight: bold; cursor: pointer;">AUTO SUBMIT</button>' +
+            '<button onclick="adminForceSubmit(' + share.user_id + ', \'' + (share.user_name || 'Student').replace(/'/g, '') + '\')" style="padding: 8px 20px; background: linear-gradient(135deg, #ff4444, #ff6666); border: none; border-radius: 20px; color: #fff; font-family: Orbitron, monospace; font-weight: bold; cursor: pointer;">AUTO SUBMIT</button>' +
             '</div>' +
             '</div>' +
             '</div>';
     }).join('') + '</div>';
     
-    // Fetch screenshots for all active screen shares
+    // Auto-connect to WebRTC screen share offers for live streaming
+    startScreenShareAutoConnect();
+    
+    // Fetch screenshots as fallback for students without WebRTC (mobile app)
     screenShares.forEach(function(share) {
-        fetchStudentScreenshot(share.user_id);
+        if (!adminScreenShareConnections[share.user_id]) {
+            fetchStudentScreenshot(share.user_id);
+        }
     });
     
-    // Start auto-refresh of screenshots every 5 seconds
     if (window.screenshotRefreshInterval) {
         clearInterval(window.screenshotRefreshInterval);
     }
     window.screenshotRefreshInterval = setInterval(function() {
         screenShares.forEach(function(share) {
-            fetchStudentScreenshot(share.user_id);
+            if (!adminScreenShareConnections[share.user_id]) {
+                fetchStudentScreenshot(share.user_id);
+            }
         });
-    }, 5000);
+    }, 3000);
 }
 
-// Fetch and display screenshot for a specific student
+// Fetch and display screenshot for a specific student (fallback when no live WebRTC)
 async function fetchStudentScreenshot(userId) {
+    if (adminScreenShareConnections[userId]) return;
     var token = appState.authToken || localStorage.getItem('authToken');
     if (!token) return;
     
@@ -7093,8 +7106,11 @@ async function fetchStudentScreenshot(userId) {
         if (response.ok) {
             var data = await response.json();
             var container = document.getElementById('screenshot-container-' + userId);
+            if (!container) {
+                container = document.getElementById('live-video-container-' + userId);
+            }
             if (container && data.screenshot) {
-                container.innerHTML = '<img ondblclick="openMonitorFullscreen(' + userId + ')" src="data:image/jpeg;base64,' + data.screenshot + '" style="width: 100%; height: auto; border-radius: 10px; cursor: zoom-in;" alt="Student Screen" />' +
+                container.innerHTML = '<img ondblclick="openLiveFullscreen(' + userId + ')" src="data:image/jpeg;base64,' + data.screenshot + '" style="width: 100%; height: auto; border-radius: 10px; cursor: zoom-in;" alt="Student Screen" />' +
                     '<div style="position: absolute; bottom: 10px; right: 10px; background: rgba(0,0,0,0.7); color: #00ff88; padding: 5px 10px; border-radius: 5px; font-size: 0.8em;">Q' + data.current_question + '/' + data.total_questions + '</div>';
                 container.style.position = 'relative';
             } else if (container && data.error) {
@@ -7172,22 +7188,37 @@ async function connectToStudentScreen(offer) {
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
                 { urls: 'stun:stun1.l.google.com:19302' },
-                { urls: 'stun:stun2.l.google.com:19302' },
-                { urls: 'stun:stun3.l.google.com:19302' }
+                { urls: 'turn:a.relay.metered.ca:80', username: 'e8dd65b92af4d12ef0ed3b86', credential: 'uWdWNmkhvyqTEswO' },
+                { urls: 'turn:a.relay.metered.ca:443', username: 'e8dd65b92af4d12ef0ed3b86', credential: 'uWdWNmkhvyqTEswO' },
+                { urls: 'turn:a.relay.metered.ca:443?transport=tcp', username: 'e8dd65b92af4d12ef0ed3b86', credential: 'uWdWNmkhvyqTEswO' }
             ]
         });
         
         adminScreenShareConnections[offer.user_id] = pc;
         
-        // Add transceiver to receive video
-        pc.addTransceiver('video', { direction: 'recvonly' });
-        
         pc.ontrack = function(event) {
-            console.log('Received track from student:', offer.user_id, event.streams);
+            console.log('Received live screen track from student:', offer.user_id, event.streams);
             var videoElement = document.getElementById('screen-video-' + offer.user_id);
+            if (!videoElement) {
+                var container = document.getElementById('live-video-container-' + offer.user_id);
+                if (container) {
+                    videoElement = document.createElement('video');
+                    videoElement.id = 'screen-video-' + offer.user_id;
+                    videoElement.autoplay = true;
+                    videoElement.playsInline = true;
+                    videoElement.muted = true;
+                    videoElement.style.cssText = 'width:100%;height:auto;border-radius:10px;background:#000;';
+                    container.innerHTML = '';
+                    container.appendChild(videoElement);
+                }
+            }
             if (videoElement && event.streams[0]) {
                 videoElement.srcObject = event.streams[0];
                 videoElement.play().catch(function(e) { console.log('Video play error:', e); });
+                var liveLabel = document.getElementById('live-label-' + offer.user_id);
+                if (liveLabel) liveLabel.style.display = 'inline-block';
+                var ssLabel = document.getElementById('screenshot-label-' + offer.user_id);
+                if (ssLabel) ssLabel.style.display = 'none';
             }
         };
         
@@ -7305,19 +7336,43 @@ function stopScreenSharePolling() {
     }
 }
 
-// Fullscreen viewer for monitor thumbnails
-function openMonitorFullscreen(userId) {
-    var container = document.getElementById('screenshot-container-' + userId);
-    if (!container) return;
-    var img = container.querySelector('img');
-    if (!img) return;
+// Fullscreen viewer for live video or screenshot
+function openLiveFullscreen(userId) {
+    var videoEl = document.getElementById('screen-video-' + userId);
     var overlay = document.createElement('div');
     overlay.id = 'monitor-fullscreen-overlay';
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:10002;display:flex;align-items:center;justify-content:center;';
-    overlay.innerHTML = '<img src="' + img.src + '" style="max-width:95vw;max-height:95vh;border-radius:8px;box-shadow:0 10px 40px rgba(0,0,0,0.6);" alt="Fullscreen Screen" />' +
-        '<button onclick="closeMonitorFullscreen()" style="position:absolute;top:20px;right:20px;padding:10px 16px;border:none;border-radius:20px;background:#E94560;color:#fff;cursor:pointer;font-weight:bold;">Close</button>';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:10002;display:flex;align-items:center;justify-content:center;flex-direction:column;';
+    if (videoEl && videoEl.srcObject) {
+        var fullVideo = document.createElement('video');
+        fullVideo.autoplay = true;
+        fullVideo.playsInline = true;
+        fullVideo.muted = true;
+        fullVideo.srcObject = videoEl.srcObject;
+        fullVideo.style.cssText = 'max-width:95vw;max-height:85vh;border-radius:8px;box-shadow:0 10px 40px rgba(0,255,136,0.3);';
+        overlay.appendChild(fullVideo);
+        fullVideo.play().catch(function(e){});
+    } else {
+        var container = document.getElementById('screenshot-container-' + userId);
+        var img = container ? container.querySelector('img') : null;
+        if (img) {
+            var fullImg = document.createElement('img');
+            fullImg.src = img.src;
+            fullImg.style.cssText = 'max-width:95vw;max-height:85vh;border-radius:8px;box-shadow:0 10px 40px rgba(0,0,0,0.6);';
+            overlay.appendChild(fullImg);
+        }
+    }
+    var closeBtn = document.createElement('button');
+    closeBtn.textContent = 'Close';
+    closeBtn.style.cssText = 'position:absolute;top:20px;right:20px;padding:10px 20px;border:none;border-radius:20px;background:#E94560;color:#fff;cursor:pointer;font-weight:bold;font-size:16px;';
+    closeBtn.onclick = closeMonitorFullscreen;
+    overlay.appendChild(closeBtn);
+    var liveTag = document.createElement('div');
+    liveTag.style.cssText = 'position:absolute;top:20px;left:20px;background:#ff0000;color:#fff;padding:6px 16px;border-radius:20px;font-weight:bold;font-size:14px;animation:pulse 1.5s infinite;';
+    liveTag.textContent = videoEl && videoEl.srcObject ? 'LIVE' : 'SCREENSHOT';
+    overlay.appendChild(liveTag);
     document.body.appendChild(overlay);
 }
+function openMonitorFullscreen(userId) { openLiveFullscreen(userId); }
 function closeMonitorFullscreen() {
     var overlay = document.getElementById('monitor-fullscreen-overlay');
     if (overlay) overlay.remove();
@@ -8673,32 +8728,7 @@ function selectUserForReply(userId, userName) {
 
 // View user screen during exam (screen sharing monitoring)
 function viewUserScreen(userId) {
-    var user = adminUsers ? adminUsers.find(function(u) { return u.id === userId; }) : null;
-    var userName = user ? user.name : 'Student';
-    
-    var modal = document.createElement('div');
-    modal.id = 'screen-view-modal';
-    modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:10000;display:flex;flex-direction:column;align-items:center;justify-content:center;';
-    
-    modal.innerHTML = '<div style="width:90%;max-width:1000px;background:linear-gradient(135deg,#1A1A2E,#16213E);border-radius:15px;overflow:hidden;box-shadow:0 20px 60px rgba(233,69,96,0.3);">' +
-        '<div style="display:flex;justify-content:space-between;align-items:center;padding:15px 20px;background:linear-gradient(90deg,#E94560,#FF6B6B);">' +
-            '<h3 style="margin:0;color:#fff;font-size:18px;display:flex;align-items:center;gap:10px;"><span style="width:10px;height:10px;background:#fff;border-radius:50%;animation:pulse 1.5s infinite;"></span> ' + userName + ' - Screen Share</h3>' +
-            '<button onclick="closeScreenView()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:24px;cursor:pointer;padding:5px 15px;border-radius:5px;">X</button>' +
-        '</div>' +
-        '<div style="padding:40px;text-align:center;">' +
-            '<div style="background:rgba(0,0,0,0.5);border-radius:10px;padding:60px;border:2px dashed rgba(233,69,96,0.5);">' +
-                '<div style="font-size:48px;margin-bottom:20px;">🖥️</div>' +
-                '<p style="color:#aaa;font-size:1.1em;margin-bottom:15px;">Screen sharing preview will appear here when the student shares their screen during the exam.</p>' +
-                '<p style="color:#888;font-size:0.9em;">The student is currently taking the exam. Their screen will be visible once they enable screen sharing.</p>' +
-            '</div>' +
-            '<div style="margin-top:20px;display:flex;justify-content:center;gap:15px;flex-wrap:wrap;">' +
-                '<button onclick="requestScreenShare(' + userId + ')" style="padding:12px 25px;background:linear-gradient(135deg,#8B5CF6,#EC4899);border:none;border-radius:25px;color:#fff;cursor:pointer;font-size:14px;">Request Screen Share</button>' +
-                '<button onclick="sendExamWarning(' + userId + ')" style="padding:12px 25px;background:linear-gradient(135deg,#FF9800,#F44336);border:none;border-radius:25px;color:#fff;cursor:pointer;font-size:14px;">Send Warning</button>' +
-            '</div>' +
-        '</div>' +
-    '</div>';
-    
-    document.body.appendChild(modal);
+    openLiveFullscreen(userId);
 }
 
 function adminVoiceCallStudent(userId) {

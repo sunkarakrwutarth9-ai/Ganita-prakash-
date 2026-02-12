@@ -6569,7 +6569,7 @@ export default function App() {
             console.log('Screen share update error:', e);
           }
         }
-      }, 3000); // Capture screenshot every 3 seconds
+      }, 2000); // Capture screenshot every 2 seconds for near-live experience
       setScreenShareInterval(interval);
     } catch (e) {
       console.log('Screen share start error:', e);
