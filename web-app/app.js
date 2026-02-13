@@ -4942,13 +4942,13 @@ async function init() {
         showMainApp();
         
         // If this is a call mode, initiate or answer the call
-        if (mode === 'answer' && callId) {
+        if (mode === 'answer' && targetUserId) {
             setTimeout(function() {
-                answerCallFromMobile(parseInt(targetUserId), callType || 'audio', callId);
+                answerCallFromMobile(parseInt(targetUserId), callType || 'audio', callId || '');
             }, 1000);
-        } else if (callId && targetUserId) {
+        } else if (mode === 'call' && targetUserId) {
             setTimeout(function() {
-                initiateCallFromMobile(parseInt(targetUserId), callType || 'audio', callId);
+                initiateCallFromMobile(parseInt(targetUserId), callType || 'audio', callId || '');
             }, 1000);
         }
         return;
@@ -7823,6 +7823,14 @@ async function acceptIncomingCall() {
                 peerConnection.restartIce();
             }
         };
+        if (!callData.sdp || callData.sdp === 'mobile_call_request') {
+            console.log('Received placeholder SDP from mobile, waiting for real offer...');
+            appState.inCall = true;
+            showCallUI(currentCallType);
+            startPollingForCallUpdates();
+            pendingIncomingCallData = null;
+            return;
+        }
         await peerConnection.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: callData.sdp }));
         for (var i = 0; i < iceCandidateQueue.length; i++) {
             try { await peerConnection.addIceCandidate(new RTCIceCandidate(iceCandidateQueue[i])); } catch(e) {}

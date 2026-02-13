@@ -8214,39 +8214,16 @@ export default function App() {
   const [activeCall, setActiveCall] = useState(null);
   const [callType, setCallType] = useState(null);
 
-  // Function to initiate WebRTC voice/video call - opens in-app WebView
+  // Function to initiate WebRTC voice/video call - opens in-app WebView directly
   const initiateWebRTCCall = async (user, type) => {
     setCallingUser(user);
     setCallType(type);
-    setCallStatus('Initiating ' + type + ' call...');
-    try {
-      const response = await fetch(`${API_URL}/api/webrtc/offer`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-        body: JSON.stringify({ 
-          target_user_id: user.id, 
-          sdp: 'mobile_call_request',
-          call_type: type 
-        })
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setActiveCall(data.call_id);
-        setCallStatus('Calling ' + user.name + '...');
-        
-        // Open in-app WebView for WebRTC call instead of external browser
-        const callUrl = `https://exam-monitoring-app-y80t21tr.devinapps.com?autoLogin=true&token=${authToken}&callId=${data.call_id}&callType=${type}&targetUserId=${user.id}&mode=call`;
-        setCallWebViewUrl(callUrl);
-        setCallWebViewTitle(type === 'video' ? 'Video Call with ' + user.name : 'Voice Call with ' + user.name);
-        setShowCallWebView(true);
-      } else {
-        setCallStatus('Call failed');
-        Alert.alert('Error', 'Failed to initiate call. Please try again.');
-      }
-    } catch (error) {
-      setCallStatus('Call failed');
-      Alert.alert('Error', 'Network error. Please check your connection.');
-    }
+    setCallStatus('Calling ' + user.name + '...');
+    
+    const callUrl = `https://exam-monitoring-app-y80t21tr.devinapps.com?autoLogin=true&token=${authToken}&callType=${type}&targetUserId=${user.id}&mode=call`;
+    setCallWebViewUrl(callUrl);
+    setCallWebViewTitle(type === 'video' ? 'Video Call with ' + user.name : 'Voice Call with ' + user.name);
+    setShowCallWebView(true);
     setTimeout(() => { setCallingUser(null); setCallStatus(''); setActiveCall(null); setCallType(null); }, 5000);
   };
 
