@@ -35,6 +35,7 @@ import { Audio } from 'expo-av';
 import { captureRef } from 'react-native-view-shot';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import auth from '@react-native-firebase/auth';
+import { Camera } from 'expo-camera';
 
 // Configure notifications
 Notifications.setNotificationHandler({
@@ -5484,9 +5485,23 @@ export default function App() {
   const [screenShareInterval, setScreenShareInterval] = useState(null);
   const screenViewRef = useRef(null); // Ref for capturing screen screenshots
 
+  const requestAllPermissions = async () => {
+    try {
+      const { status: camStatus } = await Camera.requestCameraPermissionsAsync();
+      console.log('Camera permission:', camStatus);
+      const { status: micStatus } = await Camera.requestMicrophonePermissionsAsync();
+      console.log('Microphone permission:', micStatus);
+      await Audio.requestPermissionsAsync();
+      console.log('Audio permission granted');
+      await registerForPushNotifications();
+    } catch (e) {
+      console.log('Permission request error:', e);
+    }
+  };
+
   useEffect(() => {
     checkAuth();
-    registerForPushNotifications();
+    requestAllPermissions();
     checkBirthdayWish();
     checkFestivalWish();
   }, []);
@@ -5727,8 +5742,18 @@ export default function App() {
         shouldDuckAndroid: false,
         playThroughEarpieceAndroid: false,
       });
+      let soundSource = { uri: 'content://settings/system/ringtone' };
+      try {
+        const { sound: testSound } = await Audio.Sound.createAsync(
+          soundSource,
+          { shouldPlay: false }
+        );
+        await testSound.unloadAsync();
+      } catch (e) {
+        soundSource = { uri: 'content://settings/system/notification_sound' };
+      }
       const { sound } = await Audio.Sound.createAsync(
-        { uri: 'https://actions.google.com/sounds/v1/alarms/phone_alerts_and_rings.ogg' },
+        soundSource,
         { shouldPlay: true, isLooping: true, volume: 1.0 }
       );
       ringtoneRef.current = sound;
