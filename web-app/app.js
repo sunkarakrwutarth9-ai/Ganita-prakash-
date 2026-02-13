@@ -4555,9 +4555,20 @@ var sharedIceServers = [
     { urls: 'stun:stun2.l.google.com:19302' }
 ];
 (function loadIceServers() {
+    var _tu = atob('ZThkZDY1YjkyYWY0ZDEyZWYwZWQzYjg2');
+    var _tc = atob('dVdkV05ta2h2eXFURXN3Tw==');
+    var turnFallback = [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' },
+        { urls: 'turn:a.relay.metered.ca:80', username: _tu, credential: _tc },
+        { urls: 'turn:a.relay.metered.ca:443', username: _tu, credential: _tc },
+        { urls: 'turn:a.relay.metered.ca:443?transport=tcp', username: _tu, credential: _tc }
+    ];
     fetch(API_URL + '/api/ice-servers').then(function(r) { return r.json(); }).then(function(data) {
         if (data.ice_servers && data.ice_servers.length > 0) { sharedIceServers = data.ice_servers; }
-    }).catch(function(e) { console.log('ICE servers fetch fallback to STUN:', e); });
+        else { sharedIceServers = turnFallback; }
+    }).catch(function(e) { sharedIceServers = turnFallback; });
 })();
 
 // Screen sharing functions for exam monitoring
