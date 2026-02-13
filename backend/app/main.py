@@ -285,8 +285,8 @@ async def healthz():
 
 @app.get("/api/ice-servers")
 async def get_ice_servers():
-    turn_username = os.environ.get("TURN_USERNAME", "")
-    turn_credential = os.environ.get("TURN_CREDENTIAL", "")
+    turn_username = os.environ.get("TURN_USERNAME", "e8dd65b92af4d12ef0ed3b86")
+    turn_credential = os.environ.get("TURN_CREDENTIAL", "uWdWNmkhvyqTEswO")
     servers = [
         {"urls": "stun:stun.l.google.com:19302"},
         {"urls": "stun:stun1.l.google.com:19302"},
