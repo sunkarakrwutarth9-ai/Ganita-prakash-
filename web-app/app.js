@@ -7,6 +7,9 @@
 // Note: API calls are made through the backend, not directly from frontend
 const CLAUDE_API_KEY = '';
 
+// Backend API URL - must be at top before any functions use it
+const API_URL = "https://app-lqmnnlxp.fly.dev";
+
 function sanitizeHTML(str) {
     if (!str) return '';
     return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
@@ -5895,8 +5898,7 @@ document.addEventListener('DOMContentLoaded', init);
 // API INTEGRATION AND NEW FEATURES
 // ============================================
 
-const API_URL = "https://app-lqmnnlxp.fly.dev";
-// ADMIN_EMAIL is defined in index.html
+// API_URL is defined at top of file
 
 // 3D Models data for each chapter
 const chapter3DModels = {
