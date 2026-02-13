@@ -348,9 +348,12 @@ async def send_login_notification(user_name: str, user_email: str, platform: str
 @app.post("/api/auth/login", response_model=Token)
 async def login(user_data: UserLogin, request: Request):
     check_rate_limit(request.client.host, RATE_LIMIT_LOGIN_MAX)
+    login_username = user_data.username
+    if login_username == "admin":
+        login_username = ADMIN_EMAIL
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
-        cursor = await db.execute("SELECT * FROM users WHERE username = ?", (user_data.username,))
+        cursor = await db.execute("SELECT * FROM users WHERE username = ?", (login_username,))
         user = await cursor.fetchone()
         if not user or not verify_password(user_data.password, user["password_hash"]):
             raise HTTPException(status_code=401, detail="Invalid credentials")

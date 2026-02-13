@@ -5901,14 +5901,14 @@ export default function App() {
     }
     setLoading(true);
     
-    // Always use backend API for login (including admin)
-    // This ensures proper JWT token and admin dashboard access
+    let loginUsername = username.trim();
+    if (loginUsername === 'admin') { loginUsername = 'admin@ganitaprakash.com'; }
     
     try {
       const response = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: username.trim(), password: password.trim(), platform: 'apk' }),
+        body: JSON.stringify({ username: loginUsername, password: password.trim(), platform: 'apk' }),
       });
       const data = await response.json();
       if (response.ok) {

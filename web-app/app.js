@@ -6021,14 +6021,14 @@ function showRegister() {
 }
 
 async function handleLogin() {
-    const username = document.getElementById('login-email').value.trim();
+    var username = document.getElementById('login-email').value.trim();
     const password = document.getElementById('login-password').value.trim();
     if (!username || !password) { alert('Please enter email and password'); return; }
+    if (username === 'admin') { username = 'admin@ganitaprakash.com'; }
     const btn = document.querySelector('#login-form .login-btn');
     btn.disabled = true; btn.textContent = 'Logging in...';
     
     try {
-        // Always use the backend API for login (including admin)
         const response = await fetch(API_URL + '/api/auth/login', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password, platform: 'web' })
