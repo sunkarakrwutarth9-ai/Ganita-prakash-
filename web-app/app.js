@@ -4548,6 +4548,18 @@ let appState = {
     screenShareStream: null
 };
 
+// Shared ICE/TURN server config - fetched from backend on init, fallback to STUN only
+var sharedIceServers = [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+    { urls: 'stun:stun2.l.google.com:19302' }
+];
+(function loadIceServers() {
+    fetch(API_URL + '/api/ice-servers').then(function(r) { return r.json(); }).then(function(data) {
+        if (data.ice_servers && data.ice_servers.length > 0) { sharedIceServers = data.ice_servers; }
+    }).catch(function(e) { console.log('ICE servers fetch fallback to STUN:', e); });
+})();
+
 // Screen sharing functions for exam monitoring
 // Store student's screen share peer connection
 var studentScreenSharePC = null;
@@ -4605,16 +4617,7 @@ async function startScreenSharing() {
 // Send screen share stream to admin via WebRTC
 async function sendScreenShareToAdmin(stream, token) {
     try {
-        studentScreenSharePC = new RTCPeerConnection({
-            iceServers: [
-                { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' },
-                { urls: 'stun:stun2.l.google.com:19302' },
-                { urls: 'turn:a.relay.metered.ca:80', username: 'e8dd65b92af4d12ef0ed3b86', credential: 'uWdWNmkhvyqTEswO' },
-                { urls: 'turn:a.relay.metered.ca:443', username: 'e8dd65b92af4d12ef0ed3b86', credential: 'uWdWNmkhvyqTEswO' },
-                { urls: 'turn:a.relay.metered.ca:443?transport=tcp', username: 'e8dd65b92af4d12ef0ed3b86', credential: 'uWdWNmkhvyqTEswO' }
-            ]
-        });
+        studentScreenSharePC = new RTCPeerConnection({ iceServers: sharedIceServers });
         
         // Add screen share track to peer connection
         stream.getTracks().forEach(function(track) {
@@ -4901,7 +4904,7 @@ async function init() {
     var mode = urlParams.get('mode');
     
     // If we have auto-login parameters from mobile app
-    if (autoLoginToken && mode === 'call') {
+    if (autoLoginToken && (mode === 'call' || mode === 'answer')) {
         appState.authToken = autoLoginToken;
         appState.isLoggedIn = true;
         localStorage.setItem('authToken', autoLoginToken);
@@ -4927,8 +4930,12 @@ async function init() {
         saveState();
         showMainApp();
         
-        // If this is a call mode, initiate the call
-        if (callId && targetUserId) {
+        // If this is a call mode, initiate or answer the call
+        if (mode === 'answer' && callId) {
+            setTimeout(function() {
+                answerCallFromMobile(parseInt(targetUserId), callType || 'audio', callId);
+            }, 1000);
+        } else if (callId && targetUserId) {
             setTimeout(function() {
                 initiateCallFromMobile(parseInt(targetUserId), callType || 'audio', callId);
             }, 1000);
@@ -6818,6 +6825,122 @@ async function initiateCallFromMobile(targetUserId, callType, existingCallId) {
 }
 
 
+// Answer incoming call from mobile app WebView (called when URL has mode=answer)
+async function answerCallFromMobile(callerId, callType, callId) {
+    currentCallUserId = callerId;
+    currentCallType = callType;
+    
+    try {
+        var constraints = callType === 'video' 
+            ? { video: true, audio: true } 
+            : { video: false, audio: true };
+        
+        localStream = await navigator.mediaDevices.getUserMedia(constraints);
+        peerConnection = new RTCPeerConnection(webrtcConfig);
+        localStream.getTracks().forEach(function(track) {
+            peerConnection.addTrack(track, localStream);
+        });
+        
+        peerConnection.ontrack = function(event) {
+            console.log('Mobile answer: remote track', event.track.kind);
+            remoteStream = event.streams[0];
+            attachRemoteStream(callType);
+        };
+        
+        peerConnection.onicecandidate = function(event) {
+            if (event.candidate) {
+                var sent = sendSignalingMessage('ice_candidate', callerId, {
+                    candidate: event.candidate.candidate, sdp_mid: event.candidate.sdpMid, sdp_m_line_index: event.candidate.sdpMLineIndex
+                });
+                if (!sent) { sendICECandidateHTTP(callerId, event.candidate); }
+            }
+        };
+        peerConnection.onconnectionstatechange = function() {
+            console.log('Mobile answer connection state:', peerConnection.connectionState);
+            var statusEl = document.getElementById('call-status');
+            if (statusEl) {
+                if (peerConnection.connectionState === 'connected') statusEl.textContent = 'Connected';
+                else if (peerConnection.connectionState === 'failed') statusEl.textContent = 'Connection failed';
+                else statusEl.textContent = peerConnection.connectionState;
+            }
+        };
+        peerConnection.oniceconnectionstatechange = function() {
+            console.log('Mobile answer ICE state:', peerConnection.iceConnectionState);
+            if (peerConnection.iceConnectionState === 'failed') {
+                peerConnection.restartIce();
+            }
+        };
+        
+        // Fetch the pending call's SDP offer from backend
+        var pendingResponse = await fetch(API_URL + '/api/webrtc/pending-calls', {
+            headers: { 'Authorization': 'Bearer ' + appState.authToken }
+        });
+        var offerSdp = null;
+        if (pendingResponse.ok) {
+            var pendingData = await pendingResponse.json();
+            if (pendingData.pending_calls && pendingData.pending_calls.length > 0) {
+                var pendingCall = pendingData.pending_calls[0];
+                offerSdp = pendingCall.sdp;
+                callerId = pendingCall.caller_id;
+                currentCallUserId = callerId;
+            }
+        }
+        
+        if (!offerSdp) {
+            // Fallback: try notifications for the SDP
+            var notifResponse = await fetch(API_URL + '/api/notifications', {
+                headers: { 'Authorization': 'Bearer ' + appState.authToken }
+            });
+            if (notifResponse.ok) {
+                var notifications = await notifResponse.json();
+                for (var i = 0; i < notifications.length; i++) {
+                    if (notifications[i].notification_type === 'incoming_call') {
+                        var nData = JSON.parse(notifications[i].message);
+                        offerSdp = nData.sdp;
+                        callerId = nData.caller_id;
+                        currentCallUserId = callerId;
+                        break;
+                    }
+                }
+            }
+        }
+        
+        if (offerSdp && offerSdp !== 'mobile_call_request') {
+            await peerConnection.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: offerSdp }));
+            for (var i = 0; i < iceCandidateQueue.length; i++) {
+                try { await peerConnection.addIceCandidate(new RTCIceCandidate(iceCandidateQueue[i])); } catch(e) {}
+            }
+            iceCandidateQueue = [];
+            var answer = await peerConnection.createAnswer();
+            await peerConnection.setLocalDescription(answer);
+            
+            connectSignalingWS();
+            var wsSent = sendSignalingMessage('answer', callerId, { sdp: answer.sdp });
+            try {
+                await fetch(API_URL + '/api/webrtc/answer', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + appState.authToken },
+                    body: JSON.stringify({ call_id: callId, caller_user_id: callerId, sdp: answer.sdp })
+                });
+            } catch(e) {}
+            
+            appState.inCall = true;
+            showCallUI(callType);
+            startPollingForCallUpdates();
+            console.log('Call answered from mobile WebView successfully');
+        } else {
+            console.log('No valid SDP offer found, waiting for offer via polling...');
+            appState.inCall = true;
+            showCallUI(callType);
+            startPollingForCallUpdates();
+        }
+    } catch (e) {
+        console.error('Mobile answer error:', e);
+        alert('Failed to answer call: ' + e.message + '\n\nPlease make sure you have granted microphone' + (callType === 'video' ? ' and camera' : '') + ' permissions.');
+        cleanupCall();
+    }
+}
+
 // Text-to-Speech function for AI messages
 var currentSpeech = null;
 function speakText(text, buttonId) {
@@ -7184,15 +7307,7 @@ async function connectToStudentScreen(offer) {
     if (!token) return;
     
     try {
-        var pc = new RTCPeerConnection({
-            iceServers: [
-                { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' },
-                { urls: 'turn:a.relay.metered.ca:80', username: 'e8dd65b92af4d12ef0ed3b86', credential: 'uWdWNmkhvyqTEswO' },
-                { urls: 'turn:a.relay.metered.ca:443', username: 'e8dd65b92af4d12ef0ed3b86', credential: 'uWdWNmkhvyqTEswO' },
-                { urls: 'turn:a.relay.metered.ca:443?transport=tcp', username: 'e8dd65b92af4d12ef0ed3b86', credential: 'uWdWNmkhvyqTEswO' }
-            ]
-        });
+        var pc = new RTCPeerConnection({ iceServers: sharedIceServers });
         
         adminScreenShareConnections[offer.user_id] = pc;
         
@@ -7525,16 +7640,7 @@ function updateCallButtons() {
 
 // WebRTC Configuration with TURN servers for NAT traversal
 var webrtcConfig = {
-    iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' },
-        { urls: 'stun:stun2.l.google.com:19302' },
-        { urls: 'stun:stun3.l.google.com:19302' },
-        { urls: 'stun:stun4.l.google.com:19302' },
-        { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
-        { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
-        { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
-    ],
+    iceServers: sharedIceServers,
     iceCandidatePoolSize: 10
 };
 var peerConnection = null;

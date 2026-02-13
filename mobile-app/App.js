@@ -5749,41 +5749,17 @@ export default function App() {
     }
   };
 
-  // Answer incoming call - shows native in-app call UI
+  // Answer incoming call - opens WebView for real WebRTC audio/video
   const answerCall = async () => {
     if (incomingCall) {
       Vibration.cancel();
       await stopRingtone();
       
-      // Send answer notification back to caller
-      try {
-        await fetch(`${API_URL}/api/webrtc/answer`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-          body: JSON.stringify({
-            caller_user_id: incomingCall.callerId,
-            sdp: 'mobile_app_answer'
-          })
-        });
-      } catch (e) {
-        console.log('Error sending answer:', e);
-      }
-      
-      // Show native in-app call UI instead of WebView
-      setNativeCallData({
-        callerId: incomingCall.callerId,
-        callerName: incomingCall.callerName,
-        callType: incomingCall.callType,
-        callId: incomingCall.callId
-      });
-      setCallDuration(0);
-      setShowNativeCall(true);
+      const callUrl = `https://exam-monitoring-app-y80t21tr.devinapps.com?autoLogin=true&token=${authToken}&callId=${incomingCall.callId || ''}&callType=${incomingCall.callType || 'audio'}&targetUserId=${incomingCall.callerId}&mode=answer`;
+      setCallWebViewUrl(callUrl);
+      setCallWebViewTitle((incomingCall.callType === 'video' ? 'Video' : 'Voice') + ' Call with ' + (incomingCall.callerName || 'Admin'));
+      setShowCallWebView(true);
       setIncomingCall(null);
-      
-      // Start call duration timer
-      callTimerRef.current = setInterval(() => {
-        setCallDuration(prev => prev + 1);
-      }, 1000);
     }
   };
 
@@ -5795,10 +5771,9 @@ export default function App() {
     }
     if (nativeCallData) {
       try {
-        await fetch(`${API_URL}/api/webrtc/end-call`, {
+        await fetch(`${API_URL}/api/webrtc/end-call?target_user_id=${nativeCallData.callerId}`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-          body: JSON.stringify({ call_id: nativeCallData.callId })
+          headers: { 'Authorization': `Bearer ${authToken}` }
         });
       } catch (e) {
         console.log('Error ending call:', e);
@@ -5822,10 +5797,9 @@ export default function App() {
       Vibration.cancel();
       await stopRingtone();
       try {
-        await fetch(`${API_URL}/api/webrtc/end-call`, {
+        await fetch(`${API_URL}/api/webrtc/end-call?target_user_id=${incomingCall.callerId}`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-          body: JSON.stringify({ call_id: incomingCall.callId })
+          headers: { 'Authorization': `Bearer ${authToken}` }
         });
       } catch (error) {
         console.log('Error declining call:', error);
@@ -8278,12 +8252,11 @@ export default function App() {
 
   // Function to end WebRTC call
   const endWebRTCCall = async () => {
-    if (activeCall) {
+    if (callingUser) {
       try {
-        await fetch(`${API_URL}/api/webrtc/end-call`, {
+        await fetch(`${API_URL}/api/webrtc/end-call?target_user_id=${callingUser.id}`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-          body: JSON.stringify({ call_id: activeCall })
+          headers: { 'Authorization': `Bearer ${authToken}` }
         });
       } catch (error) {
         console.log('Error ending call:', error);

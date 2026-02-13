@@ -283,6 +283,23 @@ async def get_optional_user(credentials: Optional[HTTPAuthorizationCredentials] 
 async def healthz():
     return {"status": "ok"}
 
+@app.get("/api/ice-servers")
+async def get_ice_servers():
+    turn_username = os.environ.get("TURN_USERNAME", "")
+    turn_credential = os.environ.get("TURN_CREDENTIAL", "")
+    servers = [
+        {"urls": "stun:stun.l.google.com:19302"},
+        {"urls": "stun:stun1.l.google.com:19302"},
+        {"urls": "stun:stun2.l.google.com:19302"},
+    ]
+    if turn_username and turn_credential:
+        servers.extend([
+            {"urls": "turn:a.relay.metered.ca:80", "username": turn_username, "credential": turn_credential},
+            {"urls": "turn:a.relay.metered.ca:443", "username": turn_username, "credential": turn_credential},
+            {"urls": "turn:a.relay.metered.ca:443?transport=tcp", "username": turn_username, "credential": turn_credential},
+        ])
+    return {"ice_servers": servers}
+
 @app.post("/api/auth/register", response_model=Token)
 async def register(user_data: UserCreate, request: Request):
     check_rate_limit(request.client.host, RATE_LIMIT_LOGIN_MAX)
