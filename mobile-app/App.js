@@ -36,6 +36,13 @@ import { captureRef } from 'react-native-view-shot';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import auth from '@react-native-firebase/auth';
 import { Camera } from 'expo-camera';
+import {
+  RTCPeerConnection,
+  RTCSessionDescription,
+  RTCIceCandidate,
+  RTCView,
+  mediaDevices,
+} from 'react-native-webrtc';
 
 // Configure notifications
 Notifications.setNotificationHandler({
@@ -5474,11 +5481,29 @@ export default function App() {
   const [videoTitle, setVideoTitle] = useState('');
   const [videoUrl, setVideoUrl] = useState('');
   
-  // In-app WebRTC calling state (using WebView)
-  const [showCallWebView, setShowCallWebView] = useState(false);
-  const [callWebViewUrl, setCallWebViewUrl] = useState('');
-  const [callWebViewTitle, setCallWebViewTitle] = useState('');
+  // Native WebRTC calling state
+  const [showNativeCallUI, setShowNativeCallUI] = useState(false);
+  const [nativeCallType, setNativeCallType] = useState('audio');
+  const [nativeCallPeer, setNativeCallPeer] = useState(null);
+  const [localStreamUrl, setLocalStreamUrl] = useState(null);
+  const [remoteStreamUrl, setRemoteStreamUrl] = useState(null);
+  const [isMuted, setIsMuted] = useState(false);
+  const [isSpeakerOn, setIsSpeakerOn] = useState(true);
+  const [isFrontCamera, setIsFrontCamera] = useState(true);
+  const peerConnectionRef = useRef(null);
+  const localStreamRef = useRef(null);
+  const remoteStreamRef = useRef(null);
+  const iceCandidateQueue = useRef([]);
   const ringtoneRef = useRef(null);
+  const webrtcConfig = {
+    iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'turn:a.relay.metered.ca:80', username: 'e8dd65b92af4d12ef0ed3b86', credential: 'uWdWNmkhvyqTEswO' },
+      { urls: 'turn:a.relay.metered.ca:443', username: 'e8dd65b92af4d12ef0ed3b86', credential: 'uWdWNmkhvyqTEswO' },
+      { urls: 'turn:a.relay.metered.ca:443?transport=tcp', username: 'e8dd65b92af4d12ef0ed3b86', credential: 'uWdWNmkhvyqTEswO' },
+    ],
+  };
   
   // Screen sharing during exam state
   const [isScreenSharing, setIsScreenSharing] = useState(false);
@@ -5774,29 +5799,121 @@ export default function App() {
     }
   };
 
-  // Answer incoming call - opens WebView for real WebRTC audio/video
-  const answerCall = async () => {
-    if (incomingCall) {
-      Vibration.cancel();
-      await stopRingtone();
-      
-      const callUrl = `https://exam-monitoring-app-y80t21tr.devinapps.com?autoLogin=true&token=${authToken}&callId=${incomingCall.callId || ''}&callType=${incomingCall.callType || 'audio'}&targetUserId=${incomingCall.callerId}&mode=answer`;
-      setCallWebViewUrl(callUrl);
-      setCallWebViewTitle((incomingCall.callType === 'video' ? 'Video' : 'Voice') + ' Call with ' + (incomingCall.callerName || 'Admin'));
-      setShowCallWebView(true);
-      setIncomingCall(null);
+  const cleanupWebRTC = async () => {
+    try {
+      if (peerConnectionRef.current) {
+        peerConnectionRef.current.close();
+        peerConnectionRef.current = null;
+      }
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach(t => t.stop());
+        localStreamRef.current = null;
+      }
+      remoteStreamRef.current = null;
+      iceCandidateQueue.current = [];
+      setLocalStreamUrl(null);
+      setRemoteStreamUrl(null);
+    } catch (e) {
+      console.log('WebRTC cleanup error:', e);
     }
   };
 
-  // End native call
+  const answerCall = async () => {
+    if (!incomingCall) return;
+    Vibration.cancel();
+    await stopRingtone();
+    const callData = { ...incomingCall };
+    setIncomingCall(null);
+    setNativeCallType(callData.callType || 'audio');
+    setNativeCallPeer({ id: callData.callerId, name: callData.callerName || 'Admin' });
+    setShowNativeCallUI(true);
+    setCallDuration(0);
+    callTimerRef.current = setInterval(() => setCallDuration(d => d + 1), 1000);
+
+    try {
+      await cleanupWebRTC();
+      const isVideo = callData.callType === 'video';
+      const stream = await mediaDevices.getUserMedia({ audio: true, video: isVideo ? { facingMode: 'user', width: 640, height: 480 } : false });
+      localStreamRef.current = stream;
+      setLocalStreamUrl(stream.toURL());
+
+      const pc = new RTCPeerConnection(webrtcConfig);
+      peerConnectionRef.current = pc;
+
+      pc.ontrack = (event) => {
+        if (event.streams && event.streams[0]) {
+          remoteStreamRef.current = event.streams[0];
+          setRemoteStreamUrl(event.streams[0].toURL());
+        }
+      };
+
+      pc.onicecandidate = async (event) => {
+        if (event.candidate) {
+          try {
+            await fetch(`${API_URL}/api/webrtc/candidate`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+              body: JSON.stringify({ target_user_id: callData.callerId, candidate: JSON.stringify(event.candidate), call_id: callData.callId || '' })
+            });
+          } catch (e) { console.log('ICE send error:', e); }
+        }
+      };
+
+      stream.getTracks().forEach(track => pc.addTrack(track, stream));
+
+      if (callData.sdp) {
+        await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: callData.sdp }));
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        await fetch(`${API_URL}/api/webrtc/answer`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+          body: JSON.stringify({ caller_user_id: callData.callerId, sdp: answer.sdp, call_id: callData.callId || '' })
+        });
+      }
+
+      for (const candidate of iceCandidateQueue.current) {
+        try { await pc.addIceCandidate(new RTCIceCandidate(candidate)); } catch (e) {}
+      }
+      iceCandidateQueue.current = [];
+
+      const pollICE = setInterval(async () => {
+        if (!peerConnectionRef.current) { clearInterval(pollICE); return; }
+        try {
+          const res = await fetch(`${API_URL}/api/webrtc/pending-calls?check_candidates=true&from_user=${callData.callerId}`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.candidates) {
+              for (const c of data.candidates) {
+                try {
+                  const parsed = typeof c === 'string' ? JSON.parse(c) : c;
+                  await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(parsed));
+                } catch (e) {}
+              }
+            }
+          }
+        } catch (e) {}
+      }, 2000);
+      setTimeout(() => clearInterval(pollICE), 30000);
+
+    } catch (e) {
+      console.log('Answer call error:', e);
+      Alert.alert('Call Error', 'Failed to connect call. Please try again.');
+      setShowNativeCallUI(false);
+    }
+  };
+
   const endNativeCall = async () => {
     if (callTimerRef.current) {
       clearInterval(callTimerRef.current);
       callTimerRef.current = null;
     }
-    if (nativeCallData) {
+    const peerId = nativeCallPeer?.id || nativeCallData?.callerId;
+    if (peerId) {
       try {
-        await fetch(`${API_URL}/api/webrtc/end-call?target_user_id=${nativeCallData.callerId}`, {
+        await fetch(`${API_URL}/api/webrtc/end-call?target_user_id=${peerId}`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${authToken}` }
         });
@@ -5804,9 +5921,14 @@ export default function App() {
         console.log('Error ending call:', e);
       }
     }
+    await cleanupWebRTC();
+    setShowNativeCallUI(false);
     setShowNativeCall(false);
     setNativeCallData(null);
+    setNativeCallPeer(null);
     setCallDuration(0);
+    setIsMuted(false);
+    setIsSpeakerOn(true);
   };
 
   // Format call duration
@@ -6506,92 +6628,125 @@ export default function App() {
     }
   };
 
-  // Function to start screen sharing and notify backend
+  const screenShareStreamRef = useRef(null);
+  const screenSharePCRef = useRef(null);
+
   const startScreenSharing = async () => {
     try {
       setIsScreenSharing(true);
-      // Notify backend that screen sharing has started
       await fetch(`${API_URL}/api/exam/screen-share/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-        body: JSON.stringify({ 
-          exam_type: isFinalExam ? 'final' : 'chapter',
-          chapter_id: currentChapter?.id || null
-        })
+        body: JSON.stringify({ exam_type: isFinalExam ? 'final' : 'chapter', chapter_id: currentChapter?.id || null })
       });
-      
-      // Start periodic screenshot capture and status updates
+
+      let screenStream = null;
+      try {
+        screenStream = await mediaDevices.getDisplayMedia({ video: true, audio: false });
+        screenShareStreamRef.current = screenStream;
+
+        const pc = new RTCPeerConnection(webrtcConfig);
+        screenSharePCRef.current = pc;
+
+        screenStream.getTracks().forEach(track => pc.addTrack(track, screenStream));
+
+        pc.onicecandidate = async (event) => {
+          if (event.candidate) {
+            try {
+              await fetch(`${API_URL}/api/screen-share/ice-candidate`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+                body: JSON.stringify({ candidate: JSON.stringify(event.candidate) })
+              });
+            } catch (e) {}
+          }
+        };
+
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+
+        await fetch(`${API_URL}/api/screen-share/offer`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+          body: JSON.stringify({ sdp: offer.sdp })
+        });
+
+        const pollAnswer = setInterval(async () => {
+          if (!screenSharePCRef.current) { clearInterval(pollAnswer); return; }
+          try {
+            const res = await fetch(`${API_URL}/api/screen-share/check-answer`, {
+              headers: { 'Authorization': `Bearer ${authToken}` }
+            });
+            if (res.ok) {
+              const data = await res.json();
+              if (data.has_answer && data.sdp) {
+                clearInterval(pollAnswer);
+                await screenSharePCRef.current.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: data.sdp }));
+              }
+            }
+          } catch (e) {}
+        }, 2000);
+        setTimeout(() => clearInterval(pollAnswer), 30000);
+
+        screenStream.getVideoTracks()[0].onended = () => {
+          console.log('Screen share stopped by user');
+          stopScreenSharing();
+        };
+      } catch (e) {
+        console.log('getDisplayMedia failed, falling back to screenshots:', e);
+      }
+
       const interval = setInterval(async () => {
         if (screen === 'quiz' && isMonitoring) {
           try {
-            // Capture and send screenshot to admin
-            await captureAndSendScreenshot();
-            
-            // Update screen share status
+            if (!screenShareStreamRef.current) {
+              await captureAndSendScreenshot();
+            }
             await fetch(`${API_URL}/api/exam/screen-share/update`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-              body: JSON.stringify({ 
-                current_question: currentQuestion + 1,
-                total_questions: isFinalExam ? finalExamMCQ.length : (currentChapter?.questions?.length || 10),
-                is_active: true
-              })
+              body: JSON.stringify({ current_question: currentQuestion + 1, total_questions: isFinalExam ? finalExamMCQ.length : (currentChapter?.questions?.length || 10), is_active: true })
             });
-            
-            // Check if admin has force-submitted this exam
             const forceCheckResponse = await fetch(`${API_URL}/api/exam/check-force-submit`, {
               headers: { 'Authorization': `Bearer ${authToken}` }
             });
             if (forceCheckResponse.ok) {
               const forceData = await forceCheckResponse.json();
               if (forceData.force_submitted) {
-                // Admin has force-submitted - show cheating message
                 clearInterval(interval);
                 setScreenShareInterval(null);
                 setIsMonitoring(false);
                 setIsScreenSharing(false);
-                
-                Alert.alert(
-                  'EXAM AUTO-SUBMITTED',
-                  forceData.message || 'You have been noticing that you are cheating. Please try without cheating.',
-                  [{ text: 'OK', onPress: () => {
-                    setScreen('home');
-                    setCurrentQuestion(0);
-                    setScore(0);
-                    setSelectedOption(null);
-                  }}],
-                  { cancelable: false }
-                );
+                Alert.alert('EXAM AUTO-SUBMITTED', forceData.message || 'You have been noticing that you are cheating. Please try without cheating.', [{ text: 'OK', onPress: () => { setScreen('home'); setCurrentQuestion(0); setScore(0); setSelectedOption(null); }}], { cancelable: false });
               }
             }
-          } catch (e) {
-            console.log('Screen share update error:', e);
-          }
+          } catch (e) { console.log('Screen share update error:', e); }
         }
-      }, 2000); // Capture screenshot every 2 seconds for near-live experience
+      }, 2000);
       setScreenShareInterval(interval);
     } catch (e) {
       console.log('Screen share start error:', e);
     }
   };
-  
-  // Function to stop screen sharing
+
   const stopScreenSharing = async () => {
     try {
       setIsScreenSharing(false);
-      if (screenShareInterval) {
-        clearInterval(screenShareInterval);
-        setScreenShareInterval(null);
+      if (screenShareInterval) { clearInterval(screenShareInterval); setScreenShareInterval(null); }
+      if (screenShareStreamRef.current) {
+        screenShareStreamRef.current.getTracks().forEach(t => t.stop());
+        screenShareStreamRef.current = null;
       }
-      // Notify backend that screen sharing has stopped
+      if (screenSharePCRef.current) {
+        screenSharePCRef.current.close();
+        screenSharePCRef.current = null;
+      }
       await fetch(`${API_URL}/api/exam/screen-share/stop`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
         body: JSON.stringify({ reason: 'exam_completed' })
       });
-    } catch (e) {
-      console.log('Screen share stop error:', e);
-    }
+    } catch (e) { console.log('Screen share stop error:', e); }
   };
 
   const startQuiz = () => {
@@ -8239,35 +8394,123 @@ export default function App() {
   const [activeCall, setActiveCall] = useState(null);
   const [callType, setCallType] = useState(null);
 
-  // Function to initiate WebRTC voice/video call - opens in-app WebView directly
   const initiateWebRTCCall = async (user, type) => {
     setCallingUser(user);
     setCallType(type);
     setCallStatus('Calling ' + user.name + '...');
-    
-    const callUrl = `https://exam-monitoring-app-y80t21tr.devinapps.com?autoLogin=true&token=${authToken}&callType=${type}&targetUserId=${user.id}&mode=call`;
-    setCallWebViewUrl(callUrl);
-    setCallWebViewTitle(type === 'video' ? 'Video Call with ' + user.name : 'Voice Call with ' + user.name);
-    setShowCallWebView(true);
-    setTimeout(() => { setCallingUser(null); setCallStatus(''); setActiveCall(null); setCallType(null); }, 5000);
+    setNativeCallType(type);
+    setNativeCallPeer({ id: user.id, name: user.name });
+    setShowNativeCallUI(true);
+    setCallDuration(0);
+    callTimerRef.current = setInterval(() => setCallDuration(d => d + 1), 1000);
+
+    try {
+      await cleanupWebRTC();
+      const isVideo = type === 'video';
+      const stream = await mediaDevices.getUserMedia({ audio: true, video: isVideo ? { facingMode: 'user', width: 640, height: 480 } : false });
+      localStreamRef.current = stream;
+      setLocalStreamUrl(stream.toURL());
+
+      const pc = new RTCPeerConnection(webrtcConfig);
+      peerConnectionRef.current = pc;
+
+      pc.ontrack = (event) => {
+        if (event.streams && event.streams[0]) {
+          remoteStreamRef.current = event.streams[0];
+          setRemoteStreamUrl(event.streams[0].toURL());
+        }
+      };
+
+      pc.onicecandidate = async (event) => {
+        if (event.candidate) {
+          try {
+            await fetch(`${API_URL}/api/webrtc/candidate`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+              body: JSON.stringify({ target_user_id: user.id, candidate: JSON.stringify(event.candidate), call_id: '' })
+            });
+          } catch (e) { console.log('ICE send error:', e); }
+        }
+      };
+
+      stream.getTracks().forEach(track => pc.addTrack(track, stream));
+
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+
+      const offerRes = await fetch(`${API_URL}/api/webrtc/offer`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+        body: JSON.stringify({ target_user_id: user.id, sdp: offer.sdp, call_type: type })
+      });
+      const offerData = await offerRes.json();
+      const callId = offerData.call_id || '';
+
+      const pollAnswer = setInterval(async () => {
+        if (!peerConnectionRef.current) { clearInterval(pollAnswer); return; }
+        try {
+          const res = await fetch(`${API_URL}/api/webrtc/pending-calls`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.answer_sdp) {
+              clearInterval(pollAnswer);
+              await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: data.answer_sdp }));
+            }
+            if (data.candidates) {
+              for (const c of data.candidates) {
+                try {
+                  const parsed = typeof c === 'string' ? JSON.parse(c) : c;
+                  await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(parsed));
+                } catch (e) {}
+              }
+            }
+          }
+        } catch (e) {}
+      }, 2000);
+      setTimeout(() => clearInterval(pollAnswer), 60000);
+
+      setCallingUser(null);
+      setCallStatus('');
+    } catch (e) {
+      console.log('Initiate call error:', e);
+      Alert.alert('Call Error', 'Failed to start call. Please try again.');
+      setShowNativeCallUI(false);
+      setCallingUser(null);
+      setCallStatus('');
+    }
   };
 
-  // Function to end WebRTC call
   const endWebRTCCall = async () => {
-    if (callingUser) {
-      try {
-        await fetch(`${API_URL}/api/webrtc/end-call?target_user_id=${callingUser.id}`, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${authToken}` }
-        });
-      } catch (error) {
-        console.log('Error ending call:', error);
-      }
-    }
+    await endNativeCall();
     setCallingUser(null);
     setCallStatus('');
     setActiveCall(null);
     setCallType(null);
+  };
+
+  const toggleMute = () => {
+    if (localStreamRef.current) {
+      const audioTracks = localStreamRef.current.getAudioTracks();
+      audioTracks.forEach(track => { track.enabled = !track.enabled; });
+      setIsMuted(!isMuted);
+    }
+  };
+
+  const toggleSpeaker = async () => {
+    try {
+      await Audio.setAudioModeAsync({ playThroughEarpieceAndroid: isSpeakerOn });
+      setIsSpeakerOn(!isSpeakerOn);
+    } catch (e) { console.log('Speaker toggle error:', e); }
+  };
+
+  const flipCamera = () => {
+    if (localStreamRef.current) {
+      const videoTracks = localStreamRef.current.getVideoTracks();
+      videoTracks.forEach(track => { track._switchCamera(); });
+      setIsFrontCamera(!isFrontCamera);
+    }
   };
 
   // Function to initiate Gemini AI voice call
@@ -8804,40 +9047,64 @@ export default function App() {
             </View>
           </Modal>
 
-          {/* In-App WebRTC Call WebView Modal */}
-          <Modal visible={showCallWebView} transparent={false} animationType="slide" onRequestClose={() => setShowCallWebView(false)}>
-            <SafeAreaView style={{flex: 1, backgroundColor: '#1A1A2E'}}>
-              <View style={{flexDirection: 'row', alignItems: 'center', padding: 15, backgroundColor: '#16213E', borderBottomWidth: 1, borderBottomColor: '#0F3460'}}>
-                <TouchableOpacity onPress={() => { setShowCallWebView(false); setCallWebViewUrl(''); }} style={{padding: 10}}>
-                  <Text style={{color: '#fff', fontSize: 18}}>✕</Text>
-                </TouchableOpacity>
-                <Text style={{color: '#fff', fontSize: 16, fontWeight: 'bold', marginLeft: 15, flex: 1}}>{callWebViewTitle || 'Call'}</Text>
-                <TouchableOpacity onPress={() => { setShowCallWebView(false); setCallWebViewUrl(''); Alert.alert('Call Ended', 'The call has been ended.'); }} style={{backgroundColor: '#EF4444', paddingHorizontal: 15, paddingVertical: 8, borderRadius: 20}}>
-                  <Text style={{color: '#fff', fontWeight: 'bold'}}>End Call</Text>
-                </TouchableOpacity>
-              </View>
-              {callWebViewUrl ? (
-                <WebView
-                  source={{ uri: callWebViewUrl }}
-                  style={{flex: 1}}
-                  javaScriptEnabled={true}
-                  domStorageEnabled={true}
-                  mediaPlaybackRequiresUserAction={false}
-                  allowsInlineMediaPlayback={true}
-                  startInLoadingState={true}
-                  renderLoading={() => (
-                    <View style={{flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#1A1A2E'}}>
-                      <ActivityIndicator size="large" color="#E94560" />
-                      <Text style={{color: '#fff', marginTop: 10}}>Connecting call...</Text>
+          {/* Native WebRTC Call UI Modal */}
+          <Modal visible={showNativeCallUI} transparent={false} animationType="slide" onRequestClose={endNativeCall}>
+            <View style={{flex: 1, backgroundColor: '#0A0A1A'}}>
+              {nativeCallType === 'video' && remoteStreamUrl ? (
+                <RTCView streamURL={remoteStreamUrl} style={{flex: 1}} objectFit="cover" zOrder={0} />
+              ) : (
+                <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+                  <View style={{width: 140, height: 140, borderRadius: 70, backgroundColor: nativeCallType === 'video' ? 'rgba(139,92,246,0.2)' : 'rgba(16,185,129,0.2)', borderWidth: 3, borderColor: nativeCallType === 'video' ? '#8B5CF6' : '#10B981', justifyContent: 'center', alignItems: 'center', marginBottom: 28}}>
+                    <Text style={{fontSize: 56}}>{nativeCallType === 'video' ? '📹' : '📞'}</Text>
+                  </View>
+                  <Text style={{fontSize: 30, fontWeight: 'bold', color: '#fff', marginBottom: 8}}>{nativeCallPeer?.name || 'Unknown'}</Text>
+                  <Text style={{fontSize: 14, color: '#8B5CF6', marginBottom: 20, letterSpacing: 1}}>GANITA PRAKASH</Text>
+                  {!remoteStreamUrl && (
+                    <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                      <ActivityIndicator size="small" color="#10B981" />
+                      <Text style={{color: '#10B981', marginLeft: 10, fontSize: 14}}>Connecting...</Text>
                     </View>
                   )}
-                  onError={(e) => {
-                    console.log('WebView error:', e);
-                    Alert.alert('Connection Error', 'Failed to connect. Please check your internet connection.');
-                  }}
-                />
+                </View>
+              )}
+              {nativeCallType === 'video' && localStreamUrl ? (
+                <View style={{position: 'absolute', top: 50, right: 16, width: 120, height: 160, borderRadius: 12, overflow: 'hidden', borderWidth: 2, borderColor: '#8B5CF6', elevation: 10}}>
+                  <RTCView streamURL={localStreamUrl} style={{flex: 1}} objectFit="cover" zOrder={1} mirror={isFrontCamera} />
+                </View>
               ) : null}
-            </SafeAreaView>
+              <View style={{position: 'absolute', top: 50, left: 16}}>
+                <View style={{backgroundColor: 'rgba(16,185,129,0.2)', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: '#10B981'}}>
+                  <Text style={{fontSize: 20, color: '#10B981', fontWeight: 'bold'}}>{formatCallDuration(callDuration)}</Text>
+                </View>
+              </View>
+              <View style={{position: 'absolute', bottom: 40, left: 0, right: 0, paddingHorizontal: 30}}>
+                <View style={{flexDirection: 'row', justifyContent: 'space-around', marginBottom: 24}}>
+                  <TouchableOpacity onPress={toggleMute} style={{alignItems: 'center'}}>
+                    <View style={{width: 60, height: 60, borderRadius: 30, backgroundColor: isMuted ? '#EF4444' : 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center'}}>
+                      <Text style={{fontSize: 24}}>{isMuted ? '🔇' : '🎤'}</Text>
+                    </View>
+                    <Text style={{color: '#fff', marginTop: 6, fontSize: 11}}>{isMuted ? 'Unmute' : 'Mute'}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={toggleSpeaker} style={{alignItems: 'center'}}>
+                    <View style={{width: 60, height: 60, borderRadius: 30, backgroundColor: isSpeakerOn ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center'}}>
+                      <Text style={{fontSize: 24}}>{isSpeakerOn ? '🔊' : '🔈'}</Text>
+                    </View>
+                    <Text style={{color: '#fff', marginTop: 6, fontSize: 11}}>{isSpeakerOn ? 'Speaker' : 'Earpiece'}</Text>
+                  </TouchableOpacity>
+                  {nativeCallType === 'video' && (
+                    <TouchableOpacity onPress={flipCamera} style={{alignItems: 'center'}}>
+                      <View style={{width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center'}}>
+                        <Text style={{fontSize: 24}}>🔄</Text>
+                      </View>
+                      <Text style={{color: '#fff', marginTop: 6, fontSize: 11}}>Flip</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+                <TouchableOpacity onPress={endNativeCall} style={{backgroundColor: '#EF4444', paddingVertical: 16, borderRadius: 30, alignItems: 'center', shadowColor: '#EF4444', shadowOffset: {width: 0, height: 4}, shadowOpacity: 0.5, shadowRadius: 12, elevation: 10}}>
+                  <Text style={{color: '#fff', fontSize: 18, fontWeight: 'bold'}}>End Call</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           </Modal>
 
           {/* Colorful Festival Wish Modal */}
@@ -8885,97 +9152,6 @@ export default function App() {
             </Modal>
           )}
 
-          {/* Native In-App Call UI Modal */}
-          {showNativeCall && nativeCallData && (
-            <Modal visible={true} transparent={false} animationType="slide" onRequestClose={endNativeCall}>
-              <View style={{flex: 1, backgroundColor: '#1A1A2E'}}>
-                {/* Call Header */}
-                <View style={{flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 60}}>
-                  <View style={{
-                    width: 120,
-                    height: 120,
-                    borderRadius: 60,
-                    backgroundColor: nativeCallData.callType === 'video' ? '#8B5CF6' : '#10B981',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    marginBottom: 24,
-                    shadowColor: nativeCallData.callType === 'video' ? '#8B5CF6' : '#10B981',
-                    shadowOffset: {width: 0, height: 0},
-                    shadowOpacity: 0.6,
-                    shadowRadius: 20,
-                    elevation: 10,
-                  }}>
-                    <Text style={{fontSize: 50}}>{nativeCallData.callType === 'video' ? '📹' : '📞'}</Text>
-                  </View>
-                  <Text style={{fontSize: 28, fontWeight: 'bold', color: '#fff', marginBottom: 8}}>
-                    {nativeCallData.callerName}
-                  </Text>
-                  <Text style={{fontSize: 16, color: '#8B5CF6', marginBottom: 16}}>
-                    GANITA PRAKASH Admin
-                  </Text>
-                  <View style={{
-                    backgroundColor: 'rgba(16, 185, 129, 0.2)',
-                    paddingHorizontal: 20,
-                    paddingVertical: 8,
-                    borderRadius: 20,
-                    borderWidth: 1,
-                    borderColor: '#10B981',
-                  }}>
-                    <Text style={{fontSize: 24, color: '#10B981', fontWeight: 'bold'}}>
-                      {formatCallDuration(callDuration)}
-                    </Text>
-                  </View>
-                  <Text style={{fontSize: 14, color: '#888', marginTop: 16}}>
-                    {nativeCallData.callType === 'video' ? 'Video Call Connected' : 'Voice Call Connected'}
-                  </Text>
-                </View>
-                
-                {/* Call Controls */}
-                <View style={{paddingBottom: 60, paddingHorizontal: 40}}>
-                  <View style={{flexDirection: 'row', justifyContent: 'space-around', marginBottom: 30}}>
-                    <TouchableOpacity style={{alignItems: 'center'}}>
-                      <View style={{width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(255,255,255,0.1)', justifyContent: 'center', alignItems: 'center'}}>
-                        <Text style={{fontSize: 24}}>🔇</Text>
-                      </View>
-                      <Text style={{color: '#888', marginTop: 8, fontSize: 12}}>Mute</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={{alignItems: 'center'}}>
-                      <View style={{width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(255,255,255,0.1)', justifyContent: 'center', alignItems: 'center'}}>
-                        <Text style={{fontSize: 24}}>🔊</Text>
-                      </View>
-                      <Text style={{color: '#888', marginTop: 8, fontSize: 12}}>Speaker</Text>
-                    </TouchableOpacity>
-                    {nativeCallData.callType === 'video' && (
-                      <TouchableOpacity style={{alignItems: 'center'}}>
-                        <View style={{width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(255,255,255,0.1)', justifyContent: 'center', alignItems: 'center'}}>
-                          <Text style={{fontSize: 24}}>🔄</Text>
-                        </View>
-                        <Text style={{color: '#888', marginTop: 8, fontSize: 12}}>Flip</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                  
-                  {/* End Call Button */}
-                  <TouchableOpacity 
-                    onPress={endNativeCall}
-                    style={{
-                      backgroundColor: '#EF4444',
-                      paddingVertical: 18,
-                      borderRadius: 30,
-                      alignItems: 'center',
-                      shadowColor: '#EF4444',
-                      shadowOffset: {width: 0, height: 4},
-                      shadowOpacity: 0.4,
-                      shadowRadius: 10,
-                      elevation: 8,
-                    }}
-                  >
-                    <Text style={{color: '#fff', fontSize: 18, fontWeight: 'bold'}}>End Call</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </Modal>
-          )}
 
           {/* Incoming Call Modal */}
           {incomingCall && (
