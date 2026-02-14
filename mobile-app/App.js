@@ -5495,6 +5495,7 @@ export default function App() {
   const remoteStreamRef = useRef(null);
   const iceCandidateQueue = useRef([]);
   const ringtoneRef = useRef(null);
+  const isCallActiveRef = useRef(false);
   const webrtcConfig = {
     iceServers: [
       { urls: 'stun:stun.l.google.com:19302' },
@@ -5537,9 +5538,9 @@ export default function App() {
     
     const pollForNotifications = async () => {
       if (!authToken || !isLoggedIn) return;
+      if (isCallActiveRef.current) return;
       
       try {
-        // Poll for incoming calls
         const callResponse = await fetch(`${API_URL}/api/notifications`, {
           headers: { 'Authorization': `Bearer ${authToken}` },
         });
@@ -5824,6 +5825,7 @@ export default function App() {
     await stopRingtone();
     const callData = { ...incomingCall };
     setIncomingCall(null);
+    isCallActiveRef.current = true;
     setNativeCallType(callData.callType || 'audio');
     setNativeCallPeer({ id: callData.callerId, name: callData.callerName || 'Admin' });
     setShowNativeCallUI(true);
@@ -5844,6 +5846,21 @@ export default function App() {
         if (event.streams && event.streams[0]) {
           remoteStreamRef.current = event.streams[0];
           setRemoteStreamUrl(event.streams[0].toURL());
+        }
+      };
+
+      pc.oniceconnectionstatechange = () => {
+        console.log('ICE connection state:', pc.iceConnectionState);
+        if (pc.iceConnectionState === 'failed') {
+          console.log('ICE failed, restarting...');
+          pc.restartIce();
+        }
+      };
+
+      pc.onconnectionstatechange = () => {
+        console.log('Connection state:', pc.connectionState);
+        if (pc.connectionState === 'failed') {
+          console.log('Connection failed');
         }
       };
 
@@ -5896,21 +5913,23 @@ export default function App() {
           }
         } catch (e) {}
       }, 2000);
-      setTimeout(() => clearInterval(pollICE), 30000);
+      setTimeout(() => clearInterval(pollICE), 120000);
 
     } catch (e) {
       console.log('Answer call error:', e);
       Alert.alert('Call Error', 'Failed to connect call. Please try again.');
+      isCallActiveRef.current = false;
       setShowNativeCallUI(false);
     }
   };
 
   const endNativeCall = async () => {
+    isCallActiveRef.current = false;
     if (callTimerRef.current) {
       clearInterval(callTimerRef.current);
       callTimerRef.current = null;
     }
-    const peerId = nativeCallPeer?.id || nativeCallData?.callerId;
+    const peerId = nativeCallPeer?.id;
     if (peerId) {
       try {
         await fetch(`${API_URL}/api/webrtc/end-call?target_user_id=${peerId}`, {
@@ -5923,8 +5942,6 @@ export default function App() {
     }
     await cleanupWebRTC();
     setShowNativeCallUI(false);
-    setShowNativeCall(false);
-    setNativeCallData(null);
     setNativeCallPeer(null);
     setCallDuration(0);
     setIsMuted(false);
@@ -8395,6 +8412,7 @@ export default function App() {
   const [callType, setCallType] = useState(null);
 
   const initiateWebRTCCall = async (user, type) => {
+    isCallActiveRef.current = true;
     setCallingUser(user);
     setCallType(type);
     setCallStatus('Calling ' + user.name + '...');
@@ -8419,6 +8437,18 @@ export default function App() {
           remoteStreamRef.current = event.streams[0];
           setRemoteStreamUrl(event.streams[0].toURL());
         }
+      };
+
+      pc.oniceconnectionstatechange = () => {
+        console.log('Caller ICE state:', pc.iceConnectionState);
+        if (pc.iceConnectionState === 'failed') {
+          console.log('ICE failed, restarting...');
+          pc.restartIce();
+        }
+      };
+
+      pc.onconnectionstatechange = () => {
+        console.log('Caller connection state:', pc.connectionState);
       };
 
       pc.onicecandidate = async (event) => {
@@ -8469,13 +8499,14 @@ export default function App() {
           }
         } catch (e) {}
       }, 2000);
-      setTimeout(() => clearInterval(pollAnswer), 60000);
+      setTimeout(() => clearInterval(pollAnswer), 120000);
 
       setCallingUser(null);
       setCallStatus('');
     } catch (e) {
       console.log('Initiate call error:', e);
       Alert.alert('Call Error', 'Failed to start call. Please try again.');
+      isCallActiveRef.current = false;
       setShowNativeCallUI(false);
       setCallingUser(null);
       setCallStatus('');
