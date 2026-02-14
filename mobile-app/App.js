@@ -5835,7 +5835,7 @@ export default function App() {
     try {
       await cleanupWebRTC();
       const isVideo = callData.callType === 'video';
-      const stream = await mediaDevices.getUserMedia({ audio: true, video: isVideo ? { facingMode: 'user', width: 640, height: 480 } : false });
+      const stream = await mediaDevices.getUserMedia({ audio: true, video: isVideo ? { facingMode: 'user', width: { ideal: 320 }, height: { ideal: 240 }, frameRate: { ideal: 15 } } : false });
       localStreamRef.current = stream;
       setLocalStreamUrl(stream.toURL());
 
@@ -6651,16 +6651,20 @@ export default function App() {
   const startScreenSharing = async () => {
     try {
       setIsScreenSharing(true);
-      await fetch(`${API_URL}/api/exam/screen-share/start`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-        body: JSON.stringify({ exam_type: isFinalExam ? 'final' : 'chapter', chapter_id: currentChapter?.id || null })
-      });
-
-      let screenStream = null;
       try {
-        screenStream = await mediaDevices.getDisplayMedia({ video: true, audio: false });
+        await fetch(`${API_URL}/api/exam/screen-share/start`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+          body: JSON.stringify({ exam_type: isFinalExam ? 'final' : 'chapter', chapter_id: currentChapter?.id || null })
+        });
+      } catch (e) { console.log('Screen share start notify error:', e); }
+
+      let hasLiveStream = false;
+      try {
+        const screenStream = await mediaDevices.getDisplayMedia({ video: { width: 720, height: 1280, frameRate: 10 }, audio: false });
         screenShareStreamRef.current = screenStream;
+        hasLiveStream = true;
+        console.log('getDisplayMedia succeeded - live screen sharing active');
 
         const pc = new RTCPeerConnection(webrtcConfig);
         screenSharePCRef.current = pc;
@@ -6673,10 +6677,15 @@ export default function App() {
               await fetch(`${API_URL}/api/screen-share/ice-candidate`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-                body: JSON.stringify({ candidate: JSON.stringify(event.candidate) })
+                body: JSON.stringify({ target_user_id: 1, candidate: event.candidate.candidate, sdp_mid: event.candidate.sdpMid, sdp_m_line_index: event.candidate.sdpMLineIndex })
               });
             } catch (e) {}
           }
+        };
+
+        pc.oniceconnectionstatechange = () => {
+          console.log('Screen share ICE state:', pc.iceConnectionState);
+          if (pc.iceConnectionState === 'failed') pc.restartIce();
         };
 
         const offer = await pc.createOffer();
@@ -6685,7 +6694,7 @@ export default function App() {
         await fetch(`${API_URL}/api/screen-share/offer`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-          body: JSON.stringify({ sdp: offer.sdp })
+          body: JSON.stringify({ sdp: offer.sdp, exam_type: isFinalExam ? 'final' : 'chapter', chapter_id: currentChapter?.id || null })
         });
 
         const pollAnswer = setInterval(async () => {
@@ -6703,43 +6712,42 @@ export default function App() {
             }
           } catch (e) {}
         }, 2000);
-        setTimeout(() => clearInterval(pollAnswer), 30000);
+        setTimeout(() => clearInterval(pollAnswer), 120000);
 
         screenStream.getVideoTracks()[0].onended = () => {
           console.log('Screen share stopped by user');
           stopScreenSharing();
         };
       } catch (e) {
-        console.log('getDisplayMedia failed, falling back to screenshots:', e);
+        console.log('getDisplayMedia not available, using screenshot fallback:', e);
+        hasLiveStream = false;
       }
 
       const interval = setInterval(async () => {
-        if (screen === 'quiz' && isMonitoring) {
-          try {
-            if (!screenShareStreamRef.current) {
-              await captureAndSendScreenshot();
+        try {
+          if (!hasLiveStream) {
+            await captureAndSendScreenshot();
+          }
+          await fetch(`${API_URL}/api/exam/screen-share/update`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+            body: JSON.stringify({ current_question: currentQuestion + 1, total_questions: isFinalExam ? finalExamMCQ.length : (currentChapter?.questions?.length || 10), is_active: true })
+          });
+          const forceCheckResponse = await fetch(`${API_URL}/api/exam/check-force-submit`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+          });
+          if (forceCheckResponse.ok) {
+            const forceData = await forceCheckResponse.json();
+            if (forceData.force_submitted) {
+              clearInterval(interval);
+              setScreenShareInterval(null);
+              setIsMonitoring(false);
+              setIsScreenSharing(false);
+              Alert.alert('EXAM AUTO-SUBMITTED', forceData.message || 'You have been noticing that you are cheating. Please try without cheating.', [{ text: 'OK', onPress: () => { setScreen('home'); setCurrentQuestion(0); setScore(0); setSelectedOption(null); }}], { cancelable: false });
             }
-            await fetch(`${API_URL}/api/exam/screen-share/update`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-              body: JSON.stringify({ current_question: currentQuestion + 1, total_questions: isFinalExam ? finalExamMCQ.length : (currentChapter?.questions?.length || 10), is_active: true })
-            });
-            const forceCheckResponse = await fetch(`${API_URL}/api/exam/check-force-submit`, {
-              headers: { 'Authorization': `Bearer ${authToken}` }
-            });
-            if (forceCheckResponse.ok) {
-              const forceData = await forceCheckResponse.json();
-              if (forceData.force_submitted) {
-                clearInterval(interval);
-                setScreenShareInterval(null);
-                setIsMonitoring(false);
-                setIsScreenSharing(false);
-                Alert.alert('EXAM AUTO-SUBMITTED', forceData.message || 'You have been noticing that you are cheating. Please try without cheating.', [{ text: 'OK', onPress: () => { setScreen('home'); setCurrentQuestion(0); setScore(0); setSelectedOption(null); }}], { cancelable: false });
-              }
-            }
-          } catch (e) { console.log('Screen share update error:', e); }
-        }
-      }, 2000);
+          }
+        } catch (e) { console.log('Screen share update error:', e); }
+      }, 3000);
       setScreenShareInterval(interval);
     } catch (e) {
       console.log('Screen share start error:', e);
@@ -8425,7 +8433,7 @@ export default function App() {
     try {
       await cleanupWebRTC();
       const isVideo = type === 'video';
-      const stream = await mediaDevices.getUserMedia({ audio: true, video: isVideo ? { facingMode: 'user', width: 640, height: 480 } : false });
+      const stream = await mediaDevices.getUserMedia({ audio: true, video: isVideo ? { facingMode: 'user', width: { ideal: 320 }, height: { ideal: 240 }, frameRate: { ideal: 15 } } : false });
       localStreamRef.current = stream;
       setLocalStreamUrl(stream.toURL());
 
