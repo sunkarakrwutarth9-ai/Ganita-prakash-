@@ -6648,93 +6648,48 @@ export default function App() {
   const screenShareStreamRef = useRef(null);
   const screenSharePCRef = useRef(null);
 
+  const screenShareActiveRef = useRef(false);
+
   const startScreenSharing = async () => {
     try {
       setIsScreenSharing(true);
+      screenShareActiveRef.current = true;
+      const token = authToken;
+      const examType = isFinalExam ? 'final' : 'chapter';
+      const chapterId = currentChapter?.id || null;
+      const totalQ = isFinalExam ? finalExamMCQ.length : (currentChapter?.questions?.length || 10);
+
       try {
         await fetch(`${API_URL}/api/exam/screen-share/start`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-          body: JSON.stringify({ exam_type: isFinalExam ? 'final' : 'chapter', chapter_id: currentChapter?.id || null })
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ exam_type: examType, chapter_id: chapterId })
         });
+        console.log('Screen share registered with backend');
       } catch (e) { console.log('Screen share start notify error:', e); }
 
-      let hasLiveStream = false;
-      try {
-        const screenStream = await mediaDevices.getDisplayMedia({ video: { width: 720, height: 1280, frameRate: 10 }, audio: false });
-        screenShareStreamRef.current = screenStream;
-        hasLiveStream = true;
-        console.log('getDisplayMedia succeeded - live screen sharing active');
-
-        const pc = new RTCPeerConnection(webrtcConfig);
-        screenSharePCRef.current = pc;
-
-        screenStream.getTracks().forEach(track => pc.addTrack(track, screenStream));
-
-        pc.onicecandidate = async (event) => {
-          if (event.candidate) {
-            try {
-              await fetch(`${API_URL}/api/screen-share/ice-candidate`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-                body: JSON.stringify({ target_user_id: 1, candidate: event.candidate.candidate, sdp_mid: event.candidate.sdpMid, sdp_m_line_index: event.candidate.sdpMLineIndex })
-              });
-            } catch (e) {}
-          }
-        };
-
-        pc.oniceconnectionstatechange = () => {
-          console.log('Screen share ICE state:', pc.iceConnectionState);
-          if (pc.iceConnectionState === 'failed') pc.restartIce();
-        };
-
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-
-        await fetch(`${API_URL}/api/screen-share/offer`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-          body: JSON.stringify({ sdp: offer.sdp, exam_type: isFinalExam ? 'final' : 'chapter', chapter_id: currentChapter?.id || null })
-        });
-
-        const pollAnswer = setInterval(async () => {
-          if (!screenSharePCRef.current) { clearInterval(pollAnswer); return; }
-          try {
-            const res = await fetch(`${API_URL}/api/screen-share/check-answer`, {
-              headers: { 'Authorization': `Bearer ${authToken}` }
-            });
-            if (res.ok) {
-              const data = await res.json();
-              if (data.has_answer && data.sdp) {
-                clearInterval(pollAnswer);
-                await screenSharePCRef.current.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: data.sdp }));
-              }
-            }
-          } catch (e) {}
-        }, 2000);
-        setTimeout(() => clearInterval(pollAnswer), 120000);
-
-        screenStream.getVideoTracks()[0].onended = () => {
-          console.log('Screen share stopped by user');
-          stopScreenSharing();
-        };
-      } catch (e) {
-        console.log('getDisplayMedia not available, using screenshot fallback:', e);
-        hasLiveStream = false;
-      }
-
       const interval = setInterval(async () => {
+        if (!screenShareActiveRef.current) return;
         try {
-          if (!hasLiveStream) {
-            await captureAndSendScreenshot();
+          if (!screenShareStreamRef.current && screenViewRef.current) {
+            try {
+              const uri = await captureRef(screenViewRef.current, { format: 'jpg', quality: 0.3, result: 'base64' });
+              await fetch(`${API_URL}/api/exam/screen-share/screenshot`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ screenshot: uri, current_question: currentQuestion + 1, total_questions: totalQ, timestamp: new Date().toISOString() })
+              });
+            } catch (captureErr) {
+              console.log('Screenshot capture failed:', captureErr);
+            }
           }
           await fetch(`${API_URL}/api/exam/screen-share/update`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-            body: JSON.stringify({ current_question: currentQuestion + 1, total_questions: isFinalExam ? finalExamMCQ.length : (currentChapter?.questions?.length || 10), is_active: true })
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ current_question: currentQuestion + 1, total_questions: totalQ, is_active: true })
           });
           const forceCheckResponse = await fetch(`${API_URL}/api/exam/check-force-submit`, {
-            headers: { 'Authorization': `Bearer ${authToken}` }
+            headers: { 'Authorization': `Bearer ${token}` }
           });
           if (forceCheckResponse.ok) {
             const forceData = await forceCheckResponse.json();
@@ -6743,12 +6698,71 @@ export default function App() {
               setScreenShareInterval(null);
               setIsMonitoring(false);
               setIsScreenSharing(false);
+              screenShareActiveRef.current = false;
               Alert.alert('EXAM AUTO-SUBMITTED', forceData.message || 'You have been noticing that you are cheating. Please try without cheating.', [{ text: 'OK', onPress: () => { setScreen('home'); setCurrentQuestion(0); setScore(0); setSelectedOption(null); }}], { cancelable: false });
             }
           }
         } catch (e) { console.log('Screen share update error:', e); }
       }, 3000);
       setScreenShareInterval(interval);
+
+      setTimeout(async () => {
+        try {
+          const screenStream = await mediaDevices.getDisplayMedia({ video: { width: 720, height: 1280, frameRate: 10 }, audio: false });
+          if (!screenShareActiveRef.current) { screenStream.getTracks().forEach(t => t.stop()); return; }
+          screenShareStreamRef.current = screenStream;
+          console.log('getDisplayMedia succeeded - live screen sharing active');
+
+          const pc = new RTCPeerConnection(webrtcConfig);
+          screenSharePCRef.current = pc;
+          screenStream.getTracks().forEach(track => pc.addTrack(track, screenStream));
+
+          pc.onicecandidate = async (event) => {
+            if (event.candidate) {
+              try {
+                await fetch(`${API_URL}/api/screen-share/ice-candidate`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                  body: JSON.stringify({ target_user_id: 1, candidate: event.candidate.candidate, sdp_mid: event.candidate.sdpMid, sdp_m_line_index: event.candidate.sdpMLineIndex })
+                });
+              } catch (e) {}
+            }
+          };
+          pc.oniceconnectionstatechange = () => {
+            if (pc.iceConnectionState === 'failed') pc.restartIce();
+          };
+
+          const offer = await pc.createOffer();
+          await pc.setLocalDescription(offer);
+          await fetch(`${API_URL}/api/screen-share/offer`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ sdp: offer.sdp, exam_type: examType, chapter_id: chapterId })
+          });
+
+          const pollAnswer = setInterval(async () => {
+            if (!screenSharePCRef.current) { clearInterval(pollAnswer); return; }
+            try {
+              const res = await fetch(`${API_URL}/api/screen-share/check-answer`, { headers: { 'Authorization': `Bearer ${token}` } });
+              if (res.ok) {
+                const data = await res.json();
+                if (data.has_answer && data.sdp) {
+                  clearInterval(pollAnswer);
+                  await screenSharePCRef.current.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: data.sdp }));
+                }
+              }
+            } catch (e) {}
+          }, 2000);
+          setTimeout(() => clearInterval(pollAnswer), 120000);
+
+          screenStream.getVideoTracks()[0].onended = () => {
+            console.log('Screen share stopped by user');
+            stopScreenSharing();
+          };
+        } catch (e) {
+          console.log('getDisplayMedia not available, screenshots will continue:', e);
+        }
+      }, 500);
     } catch (e) {
       console.log('Screen share start error:', e);
     }
@@ -6757,6 +6771,7 @@ export default function App() {
   const stopScreenSharing = async () => {
     try {
       setIsScreenSharing(false);
+      screenShareActiveRef.current = false;
       if (screenShareInterval) { clearInterval(screenShareInterval); setScreenShareInterval(null); }
       if (screenShareStreamRef.current) {
         screenShareStreamRef.current.getTracks().forEach(t => t.stop());
