@@ -5870,7 +5870,7 @@ export default function App() {
             await fetch(`${API_URL}/api/webrtc/candidate`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-              body: JSON.stringify({ target_user_id: callData.callerId, candidate: JSON.stringify(event.candidate), call_id: callData.callId || '' })
+              body: JSON.stringify({ target_user_id: callData.callerId, candidate: event.candidate.candidate, sdp_mid: event.candidate.sdpMid || '0', sdp_m_line_index: event.candidate.sdpMLineIndex || 0 })
             });
           } catch (e) { console.log('ICE send error:', e); }
         }
@@ -5897,22 +5897,25 @@ export default function App() {
       const pollICE = setInterval(async () => {
         if (!peerConnectionRef.current) { clearInterval(pollICE); return; }
         try {
-          const res = await fetch(`${API_URL}/api/webrtc/pending-calls?check_candidates=true&from_user=${callData.callerId}`, {
+          const res = await fetch(`${API_URL}/api/notifications`, {
             headers: { 'Authorization': `Bearer ${authToken}` }
           });
           if (res.ok) {
-            const data = await res.json();
-            if (data.candidates) {
-              for (const c of data.candidates) {
-                try {
-                  const parsed = typeof c === 'string' ? JSON.parse(c) : c;
-                  await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(parsed));
-                } catch (e) {}
+            const notifications = await res.json();
+            for (const notif of notifications) {
+              if (notif.notification_type === 'ice_candidate' && !notif.is_read) {
+                const data = JSON.parse(notif.message);
+                if (data.from_user_id === callData.callerId) {
+                  try {
+                    await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate({ candidate: data.candidate, sdpMid: data.sdp_mid, sdpMLineIndex: data.sdp_m_line_index }));
+                  } catch (e) {}
+                  try { await fetch(`${API_URL}/api/notifications/${notif.id}/read`, { method: 'POST', headers: { 'Authorization': `Bearer ${authToken}` } }); } catch (e) {}
+                }
               }
             }
           }
         } catch (e) {}
-      }, 2000);
+      }, 1000);
       setTimeout(() => clearInterval(pollICE), 120000);
 
     } catch (e) {
@@ -8480,7 +8483,7 @@ export default function App() {
             await fetch(`${API_URL}/api/webrtc/candidate`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-              body: JSON.stringify({ target_user_id: user.id, candidate: JSON.stringify(event.candidate), call_id: '' })
+              body: JSON.stringify({ target_user_id: user.id, candidate: event.candidate.candidate, sdp_mid: event.candidate.sdpMid || '0', sdp_m_line_index: event.candidate.sdpMLineIndex || 0 })
             });
           } catch (e) { console.log('ICE send error:', e); }
         }
@@ -8499,29 +8502,36 @@ export default function App() {
       const offerData = await offerRes.json();
       const callId = offerData.call_id || '';
 
+      let answerReceived = false;
       const pollAnswer = setInterval(async () => {
         if (!peerConnectionRef.current) { clearInterval(pollAnswer); return; }
         try {
-          const res = await fetch(`${API_URL}/api/webrtc/pending-calls`, {
+          const res = await fetch(`${API_URL}/api/notifications`, {
             headers: { 'Authorization': `Bearer ${authToken}` }
           });
           if (res.ok) {
-            const data = await res.json();
-            if (data.answer_sdp) {
-              clearInterval(pollAnswer);
-              await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: data.answer_sdp }));
-            }
-            if (data.candidates) {
-              for (const c of data.candidates) {
+            const notifications = await res.json();
+            for (const notif of notifications) {
+              if (notif.notification_type === 'call_answered' && !notif.is_read && !answerReceived) {
+                const data = JSON.parse(notif.message);
+                answerReceived = true;
+                await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: data.sdp }));
+                try { await fetch(`${API_URL}/api/notifications/${notif.id}/read`, { method: 'POST', headers: { 'Authorization': `Bearer ${authToken}` } }); } catch (e) {}
+              } else if (notif.notification_type === 'ice_candidate' && !notif.is_read) {
+                const data = JSON.parse(notif.message);
                 try {
-                  const parsed = typeof c === 'string' ? JSON.parse(c) : c;
-                  await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(parsed));
+                  await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate({ candidate: data.candidate, sdpMid: data.sdp_mid, sdpMLineIndex: data.sdp_m_line_index }));
                 } catch (e) {}
+                try { await fetch(`${API_URL}/api/notifications/${notif.id}/read`, { method: 'POST', headers: { 'Authorization': `Bearer ${authToken}` } }); } catch (e) {}
+              } else if (notif.notification_type === 'call_ended' && !notif.is_read) {
+                clearInterval(pollAnswer);
+                endNativeCall();
+                try { await fetch(`${API_URL}/api/notifications/${notif.id}/read`, { method: 'POST', headers: { 'Authorization': `Bearer ${authToken}` } }); } catch (e) {}
               }
             }
           }
         } catch (e) {}
-      }, 2000);
+      }, 1000);
       setTimeout(() => clearInterval(pollAnswer), 120000);
 
       setCallingUser(null);
