@@ -425,6 +425,10 @@ async def google_login(request: GoogleLoginRequest, req: Request):
 class NameUpdate(BaseModel):
     name: str
 
+class PasswordChange(BaseModel):
+    old_password: str
+    new_password: str
+
 @app.post("/api/user/update-name")
 async def update_user_name(name_data: NameUpdate, user: dict = Depends(get_current_user)):
     """Update user's name"""
@@ -435,6 +439,21 @@ async def update_user_name(name_data: NameUpdate, user: dict = Depends(get_curre
         await db.execute("UPDATE users SET name = ? WHERE id = ?", (safe_name, user["id"]))
         await db.commit()
         return {"status": "success", "message": "Name updated successfully"}
+
+@app.post("/api/user/change-password")
+async def change_password(pwd_data: PasswordChange, user: dict = Depends(get_current_user)):
+    if len(pwd_data.new_password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        cursor = await db.execute("SELECT * FROM users WHERE id = ?", (user["id"],))
+        db_user = await cursor.fetchone()
+        if not db_user or not verify_password(pwd_data.old_password, db_user["password"]):
+            raise HTTPException(status_code=400, detail="Current password is incorrect")
+        new_hash = hash_password(pwd_data.new_password)
+        await db.execute("UPDATE users SET password = ? WHERE id = ?", (new_hash, user["id"]))
+        await db.commit()
+        return {"status": "success", "message": "Password updated successfully"}
 
 @app.get("/api/progress")
 async def get_progress(user: dict = Depends(get_current_user)):

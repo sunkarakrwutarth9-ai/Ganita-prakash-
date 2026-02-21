@@ -6466,6 +6466,22 @@ function saveProfileChanges() {
     var userData = JSON.parse(localStorage.getItem('userData') || '{}');
     userData.name = newName;
     localStorage.setItem('userData', JSON.stringify(userData));
+    fetch(API_URL + '/api/user/update-name', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + appState.authToken },
+        body: JSON.stringify({ name: newName })
+    }).catch(function(e) { console.log('Name sync error:', e); });
+    var newPassword = document.getElementById('edit-new-password');
+    var oldPassword = document.getElementById('edit-old-password');
+    if (newPassword && oldPassword && newPassword.value.trim()) {
+        fetch(API_URL + '/api/user/change-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + appState.authToken },
+            body: JSON.stringify({ old_password: oldPassword.value, new_password: newPassword.value.trim() })
+        }).then(function(r) { return r.json(); }).then(function(d) {
+            if (d.detail) alert(d.detail);
+        }).catch(function(e) { console.log('Password change error:', e); });
+    }
     var modal = document.getElementById('profile-editor-modal');
     if (modal) modal.remove();
     showMainApp();

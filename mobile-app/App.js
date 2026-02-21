@@ -8976,14 +8976,22 @@ export default function App() {
               </TouchableOpacity>
               <TouchableOpacity style={[styles.primaryBtn, {flex: 1}]} onPress={async () => {
                 if (editName.trim()) {
-                  setStudentName(editName.trim());
-                  await AsyncStorage.setItem('studentName', editName.trim());
+                  const newName = editName.trim();
+                  setStudentName(newName);
+                  await AsyncStorage.setItem('studentName', newName);
                   const ud = await AsyncStorage.getItem('userData');
                   if (ud) {
                     const parsed = JSON.parse(ud);
-                    parsed.name = editName.trim();
+                    parsed.name = newName;
                     await AsyncStorage.setItem('userData', JSON.stringify(parsed));
                   }
+                  try {
+                    await fetch(`${API_URL}/api/user/update-name`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+                      body: JSON.stringify({ name: newName })
+                    });
+                  } catch (e) { console.log('Name sync error:', e); }
                   setShowProfileModal(false);
                 }
               }}>
