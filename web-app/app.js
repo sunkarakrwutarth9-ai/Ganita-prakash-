@@ -6152,30 +6152,13 @@ async function handleGoogleLogin() {
         const loadingModal = document.getElementById('google-loading-modal');
         if (loadingModal) loadingModal.remove();
         
-        // Handle specific errors
         if (error.code === 'auth/popup-closed-by-user') {
-            // User closed the popup, no need to show error
             return;
-        } else if (error.code === 'auth/popup-blocked') {
-            // Popup was blocked, try redirect method
-            alert('Popup was blocked. Redirecting to Google Sign-In...');
-            await firebaseAuth.signInWithRedirect(googleProvider);
-            return;
-        } else if (error.code === 'auth/unauthorized-domain') {
-            // Domain not authorized in Firebase Console
-            alert('This domain is not authorized for Google Sign-In.\n\nPlease add this domain to Firebase Console:\nAuthentication > Settings > Authorized domains\n\nOr use Email/Password login instead.');
-            return;
-        } else if (error.code === 'auth/operation-not-allowed') {
-            // Google Sign-In not enabled in Firebase Console
-            alert('Google Sign-In is not enabled.\n\nPlease enable it in Firebase Console:\nAuthentication > Sign-in method > Google\n\nOr use Email/Password login instead.');
-            return;
-        }
-        
-        // Show error with fallback option
-        const useEmailFallback = confirm('Google Sign-In failed: ' + (error.message || 'Unknown error') + '\n\nWould you like to enter your Google email manually instead?');
-        if (useEmailFallback) {
+        } else if (error.code === 'auth/popup-blocked' || error.code === 'auth/unauthorized-domain' || error.code === 'auth/operation-not-allowed') {
             showGoogleEmailModal();
+            return;
         }
+        showGoogleEmailModal();
     }
 }
 
