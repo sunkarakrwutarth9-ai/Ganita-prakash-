@@ -19,6 +19,7 @@ import {
   BackHandler,
   Vibration,
   AppState,
+  PermissionsAndroid,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Sharing from 'expo-sharing';
@@ -6792,21 +6793,41 @@ export default function App() {
     } catch (e) { console.log('Screen share stop error:', e); }
   };
 
+  const requestExamPermissions = async () => {
+    try {
+      const { status: camStatus } = await Camera.requestCameraPermissionsAsync();
+      console.log('Exam camera permission:', camStatus);
+      const { status: micStatus } = await Camera.requestMicrophonePermissionsAsync();
+      console.log('Exam microphone permission:', micStatus);
+      await Audio.requestPermissionsAsync();
+      console.log('Exam audio permission granted');
+      if (Platform.OS === 'android') {
+        await PermissionsAndroid.requestMultiple([
+          PermissionsAndroid.PERMISSIONS.CAMERA,
+          PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+        ]);
+      }
+      return true;
+    } catch (e) {
+      console.log('Exam permission request error:', e);
+      return false;
+    }
+  };
+
   const startQuiz = () => {
-    // Show exam proctoring instructions first with screen sharing permission request
     Alert.alert(
-      'Screen Sharing Permission Required',
-      'GANITA PRAKASH needs to monitor your screen during the exam to ensure fair assessment.\n\nIMPORTANT RULES:\n\n1. Your screen will be monitored during the exam\n2. If you leave the app, your exam will be auto-submitted\n3. Any cheating will result in automatic submission\n4. You have limited time to complete\n5. Make sure you are in a quiet place\n\nBy clicking "Allow & Start", you agree to screen monitoring.',
+      'Camera, Microphone & Screen Permission Required',
+      'GANITA PRAKASH needs access to your camera, microphone, and screen during the exam to ensure fair assessment.\n\nIMPORTANT RULES:\n\n1. Your camera, microphone & screen will be monitored\n2. If you leave the app, your exam will be auto-submitted\n3. Any cheating will result in automatic submission\n4. You have limited time to complete\n5. Make sure you are in a quiet, well-lit place\n\nBy clicking "Allow & Start", you agree to camera, microphone & screen monitoring.',
       [
         { text: 'Cancel', style: 'cancel' },
         { 
           text: 'Allow & Start Exam', 
-          onPress: () => {
-            // Start screen sharing and monitoring
+          onPress: async () => {
+            await requestExamPermissions();
             startScreenSharing();
             Alert.alert(
-              'Screen Monitoring Active',
-              'Your screen is now being monitored and visible to admin. Do not switch apps or minimize during the exam.',
+              'Monitoring Active',
+              'Your camera, microphone, and screen are now being monitored. Do not switch apps or minimize during the exam.',
               [{ text: 'OK', onPress: () => {
                 setIsMonitoring(true);
                 setCurrentQuestion(0);
@@ -6828,20 +6849,19 @@ export default function App() {
       Alert.alert('Locked', 'Complete all 10 chapters first!');
       return;
     }
-    // Show screen sharing permission request first
     Alert.alert(
-      'Screen & Camera Permission Required',
-      'GANITA PRAKASH needs to monitor your screen and camera during the Final Exam to ensure fair assessment.\n\nIMPORTANT RULES:\n\n1. Your screen and camera will be monitored\n2. If you leave the app, your exam will be auto-submitted\n3. Any cheating will result in automatic submission and failure\n4. This exam has MCQ and Written sections\n5. You need 80% to pass\n6. Make sure you are in a quiet, well-lit place\n\nBy clicking "Allow & Start", you agree to screen and camera monitoring.',
+      'Camera, Microphone & Screen Permission Required',
+      'GANITA PRAKASH needs access to your camera, microphone, and screen during the Final Exam to ensure fair assessment.\n\nIMPORTANT RULES:\n\n1. Your camera, microphone & screen will be monitored\n2. If you leave the app, your exam will be auto-submitted\n3. Any cheating will result in automatic submission and failure\n4. This exam has MCQ and Written sections\n5. You need 80% to pass\n6. Make sure you are in a quiet, well-lit place\n\nBy clicking "Allow & Start", you agree to camera, microphone & screen monitoring.',
       [
         { text: 'Cancel', style: 'cancel' },
         { 
           text: 'Allow & Start Final Exam', 
-          onPress: () => {
-            // Start screen sharing and monitoring
+          onPress: async () => {
+            await requestExamPermissions();
             startScreenSharing();
             Alert.alert(
               'Monitoring Active',
-              'Your screen and camera are now being monitored and visible to admin. Do not switch apps or minimize during the exam.',
+              'Your camera, microphone, and screen are now being monitored. Do not switch apps or minimize during the exam.',
               [{ text: 'OK', onPress: () => {
                 setIsMonitoring(true);
                 setCurrentQuestion(0);

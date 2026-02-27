@@ -5245,33 +5245,46 @@ function backToChapters() {
 }
 
 // Start quiz with screen sharing permission request
+async function requestExamPermissions() {
+    try {
+        var stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        appState.examCameraStream = stream;
+        return true;
+    } catch (e) {
+        console.log('Camera/mic permission denied or unavailable:', e);
+        return false;
+    }
+}
+
 async function startQuiz(chapterId) {
     const chapter = chapters.find(c => c.id === chapterId);
     
-    // Show screen sharing permission request first
     var confirmed = confirm(
-        'SCREEN SHARING PERMISSION REQUIRED\n\n' +
-        'GANITA PRAKASH needs to monitor your screen during the exam to ensure fair assessment.\n\n' +
+        'CAMERA, MICROPHONE & SCREEN PERMISSION REQUIRED\n\n' +
+        'GANITA PRAKASH needs access to your camera, microphone, and screen during the exam to ensure fair assessment.\n\n' +
         'IMPORTANT RULES:\n\n' +
-        '1. Your screen will be monitored during the exam\n' +
+        '1. Your camera, microphone & screen will be monitored\n' +
         '2. If you leave the app, your exam will be auto-submitted\n' +
         '3. Any cheating will result in automatic submission\n' +
         '4. You have limited time to complete\n' +
-        '5. Make sure you are in a quiet place\n\n' +
-        'By clicking OK, you agree to screen monitoring.\n\n' +
+        '5. Make sure you are in a quiet, well-lit place\n\n' +
+        'By clicking OK, you agree to camera, microphone & screen monitoring.\n\n' +
         'Click OK to Allow & Start Exam or Cancel to go back.'
     );
     
     if (!confirmed) return;
     
-    // Start screen sharing
+    var permsGranted = await requestExamPermissions();
+    if (!permsGranted) {
+        alert('Camera and microphone access is required for the exam. Please allow access and try again.');
+    }
+    
     var screenShareStarted = await startScreenSharing();
     if (!screenShareStarted) {
         alert('Screen sharing is required for the exam. Please allow screen sharing to continue.');
     }
     
-    // Show screen monitoring active notification
-    alert('SCREEN MONITORING ACTIVE\n\nYour screen is now being monitored. Do not switch apps or minimize during the exam.');
+    alert('MONITORING ACTIVE\n\nYour camera, microphone, and screen are now being monitored. Do not switch apps or minimize during the exam.');
     
     appState.currentQuiz = chapter;
     appState.currentQuestion = 0;
@@ -5561,31 +5574,33 @@ let finalExamState = {
 };
 
 async function startFinalExam() {
-    // Show screen and camera permission request first
     var confirmed = confirm(
-        'SCREEN & CAMERA PERMISSION REQUIRED\n\n' +
-        'GANITA PRAKASH needs to monitor your screen and camera during the Final Exam to ensure fair assessment.\n\n' +
+        'CAMERA, MICROPHONE & SCREEN PERMISSION REQUIRED\n\n' +
+        'GANITA PRAKASH needs access to your camera, microphone, and screen during the Final Exam to ensure fair assessment.\n\n' +
         'IMPORTANT RULES FOR FINAL EXAM:\n\n' +
-        '1. Your screen and camera will be monitored\n' +
+        '1. Your camera, microphone & screen will be monitored\n' +
         '2. If you leave the app, your exam will be auto-submitted\n' +
         '3. Any cheating will result in automatic submission and failure\n' +
         '4. This exam has MCQ and Written sections\n' +
         '5. You need 80% to pass\n' +
         '6. Make sure you are in a quiet, well-lit place\n\n' +
-        'By clicking OK, you agree to screen and camera monitoring.\n\n' +
+        'By clicking OK, you agree to camera, microphone & screen monitoring.\n\n' +
         'Click OK to Allow & Start Final Exam or Cancel to go back.'
     );
     
     if (!confirmed) return;
     
-    // Start screen sharing
+    var permsGranted = await requestExamPermissions();
+    if (!permsGranted) {
+        alert('Camera and microphone access is required for the Final Exam. Please allow access and try again.');
+    }
+    
     var screenShareStarted = await startScreenSharing();
     if (!screenShareStarted) {
         alert('Screen sharing is required for the Final Exam. Please allow screen sharing to continue.');
     }
     
-    // Show monitoring active notification
-    alert('MONITORING ACTIVE\n\nYour screen and camera are now being monitored. Do not switch apps or minimize during the exam.');
+    alert('MONITORING ACTIVE\n\nYour camera, microphone, and screen are now being monitored. Do not switch apps or minimize during the exam.');
     
     appState.isMonitoring = true;
     finalExamState = {
