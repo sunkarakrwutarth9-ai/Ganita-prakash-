@@ -1406,3 +1406,114 @@ async def get_exam_violations(admin: dict = Depends(get_admin_user)):
         ''')
         violations = [dict(v) for v in await cursor.fetchall()]
         return {"violations": violations}
+
+# Exam submission storage
+class ExamSubmission(BaseModel):
+    exam_type: str
+    chapter_id: Optional[int] = None
+    score: int
+    total: int
+    answers: list
+    photos: Optional[list] = []
+
+@app.post("/api/exam/submit")
+async def submit_exam(data: ExamSubmission, user: dict = Depends(get_current_user)):
+    """Submit completed exam with answers and optional photo attachments"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute('''
+            CREATE TABLE IF NOT EXISTS exam_submissions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                user_name TEXT,
+                exam_type TEXT NOT NULL,
+                chapter_id INTEGER,
+                score INTEGER NOT NULL,
+                total INTEGER NOT NULL,
+                answers TEXT NOT NULL,
+                photos TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            )
+        ''')
+        import json
+        await db.execute('''
+            INSERT INTO exam_submissions (user_id, user_name, exam_type, chapter_id, score, total, answers, photos)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (user["id"], user["name"], data.exam_type, data.chapter_id, data.score, data.total,
+              json.dumps(data.answers), json.dumps(data.photos or [])))
+        await db.commit()
+    return {"status": "success", "message": "Exam submitted successfully"}
+
+@app.get("/api/admin/exam-papers")
+async def get_exam_papers(admin: dict = Depends(get_admin_user)):
+    """Admin gets all submitted exam papers"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute('''
+            CREATE TABLE IF NOT EXISTS exam_submissions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                user_name TEXT,
+                exam_type TEXT NOT NULL,
+                chapter_id INTEGER,
+                score INTEGER NOT NULL,
+                total INTEGER NOT NULL,
+                answers TEXT NOT NULL,
+                photos TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            )
+        ''')
+        db.row_factory = aiosqlite.Row
+        cursor = await db.execute('''
+            SELECT * FROM exam_submissions ORDER BY created_at DESC LIMIT 200
+        ''')
+        papers = [dict(p) for p in await cursor.fetchall()]
+        return {"papers": papers}
+
+@app.post("/api/exam/ai-review/{submission_id}")
+async def ai_review_exam(submission_id: int, user: dict = Depends(get_current_user)):
+    """AI reviews a submitted exam paper and provides feedback"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        cursor = await db.execute('SELECT * FROM exam_submissions WHERE id = ?', (submission_id,))
+        paper = await cursor.fetchone()
+        if not paper:
+            raise HTTPException(status_code=404, detail="Paper not found")
+        import json
+        answers = json.loads(paper['answers']) if isinstance(paper['answers'], str) else paper['answers']
+        wrong = [a for a in answers if a.get('selected') != a.get('correct')]
+        prompt = f"Student scored {paper['score']}/{paper['total']}. They got {len(wrong)} wrong: "
+        for w in wrong[:5]:
+            prompt += f"Q: {w.get('question','')} (chose option {w.get('selected','?')}, correct was {w.get('correct','?')}). "
+        prompt += "Give brief encouraging feedback and tips to improve. Max 3 lines."
+        try:
+            async with httpx.AsyncClient() as client:
+                resp = await client.post("https://api.groq.com/openai/v1/chat/completions",
+                    headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
+                    json={"model": "llama-3.3-70b-versatile", "messages": [
+                        {"role": "system", "content": "You are a helpful math tutor for Class 6 students."},
+                        {"role": "user", "content": prompt}
+                    ], "max_tokens": 256, "temperature": 0.7}, timeout=15.0)
+                if resp.status_code == 200:
+                    return {"review": resp.json()["choices"][0]["message"]["content"]}
+        except Exception:
+            pass
+        return {"review": f"You scored {paper['score']}/{paper['total']}. Keep practicing the topics you found difficult!"}
+
+@app.get("/api/admin/exam-papers/{submission_id}")
+async def get_exam_paper_detail(submission_id: int, admin: dict = Depends(get_admin_user)):
+    """Admin gets a specific exam paper detail"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        cursor = await db.execute('SELECT * FROM exam_submissions WHERE id = ?', (submission_id,))
+        paper = await cursor.fetchone()
+        if not paper:
+            raise HTTPException(status_code=404, detail="Paper not found")
+        paper_dict = dict(paper)
+        import json
+        try:
+            paper_dict['answers'] = json.loads(paper_dict.get('answers', '[]'))
+            paper_dict['photos'] = json.loads(paper_dict.get('photos', '[]'))
+        except Exception:
+            pass
+        return paper_dict

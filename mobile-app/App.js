@@ -37,6 +37,7 @@ import { captureRef } from 'react-native-view-shot';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import auth from '@react-native-firebase/auth';
 import { Camera } from 'expo-camera';
+import * as ImagePicker from 'expo-image-picker';
 import {
   RTCPeerConnection,
   RTCSessionDescription,
@@ -69,131 +70,151 @@ const CLAUDE_API_KEY = process.env.CLAUDE_API_KEY || 'YOUR_API_KEY_HERE';
 const generate3DModelHTML = (modelType, modelName) => {
   const shapes = {
     'spiral': `
-      const geometry = new THREE.TorusKnotGeometry(1, 0.3, 100, 16);
-      const material = new THREE.MeshPhongMaterial({ color: 0x8B5CF6, shininess: 100 });
-      const mesh = new THREE.Mesh(geometry, material);
+      const points = [];
+      for (let i = 0; i < 200; i++) {
+        const angle = i * 0.15;
+        const radius = 0.08 * Math.sqrt(i);
+        points.push(new THREE.Vector3(Math.cos(angle) * radius, i * 0.01 - 1, Math.sin(angle) * radius));
+      }
+      const curve = new THREE.CatmullRomCurve3(points);
+      const geometry = new THREE.TubeGeometry(curve, 200, 0.06, 12, false);
+      const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0x00BCD4, metalness: 0.5, roughness: 0.2 }));
+      mesh.castShadow = true;
       scene.add(mesh);
     `,
     'fibonacci': `
       const points = [];
-      for (let i = 0; i < 100; i++) {
-        const angle = i * 0.1;
-        const radius = 0.1 * Math.sqrt(i);
-        points.push(new THREE.Vector3(Math.cos(angle) * radius, Math.sin(angle) * radius, i * 0.02));
+      for (let i = 0; i < 200; i++) {
+        const angle = i * 0.15;
+        const radius = 0.08 * Math.sqrt(i);
+        points.push(new THREE.Vector3(Math.cos(angle) * radius, i * 0.01 - 1, Math.sin(angle) * radius));
       }
       const curve = new THREE.CatmullRomCurve3(points);
-      const geometry = new THREE.TubeGeometry(curve, 100, 0.05, 8, false);
-      const material = new THREE.MeshPhongMaterial({ color: 0xF59E0B, shininess: 100 });
-      const mesh = new THREE.Mesh(geometry, material);
+      const geometry = new THREE.TubeGeometry(curve, 200, 0.06, 12, false);
+      const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0xFFD700, metalness: 0.5, roughness: 0.2 }));
+      mesh.castShadow = true;
       scene.add(mesh);
     `,
     'cube': `
-      const geometry = new THREE.BoxGeometry(1.5, 1.5, 1.5);
-      const material = new THREE.MeshPhongMaterial({ color: 0x14B8A6, shininess: 100 });
-      const mesh = new THREE.Mesh(geometry, material);
-      scene.add(mesh);
+      const geometry = new THREE.BoxGeometry(2, 2, 2);
+      const materials = [
+        new THREE.MeshStandardMaterial({ color: 0xE94560, metalness: 0.3, roughness: 0.4 }),
+        new THREE.MeshStandardMaterial({ color: 0x0F3460, metalness: 0.3, roughness: 0.4 }),
+        new THREE.MeshStandardMaterial({ color: 0x533483, metalness: 0.3, roughness: 0.4 }),
+        new THREE.MeshStandardMaterial({ color: 0x16213E, metalness: 0.3, roughness: 0.4 }),
+        new THREE.MeshStandardMaterial({ color: 0xE94560, metalness: 0.3, roughness: 0.4 }),
+        new THREE.MeshStandardMaterial({ color: 0x0F3460, metalness: 0.3, roughness: 0.4 })
+      ];
+      const mesh = new THREE.Mesh(geometry, materials);
+      mesh.castShadow = true;
       const edges = new THREE.EdgesGeometry(geometry);
-      const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xffffff }));
-      scene.add(line);
+      mesh.add(new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.5, transparent: true })));
+      scene.add(mesh);
     `,
     'pyramid': `
-      const geometry = new THREE.ConeGeometry(1, 1.5, 4);
-      const material = new THREE.MeshPhongMaterial({ color: 0xEF4444, shininess: 100 });
-      const mesh = new THREE.Mesh(geometry, material);
+      const geometry = new THREE.ConeGeometry(1.5, 2.5, 4);
+      const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0xFFD700, metalness: 0.5, roughness: 0.3, flatShading: true }));
+      mesh.castShadow = true;
+      mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geometry), new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.5, transparent: true })));
       scene.add(mesh);
     `,
     'grid': `
       for (let x = -2; x <= 2; x++) {
         for (let y = -2; y <= 2; y++) {
           const geometry = new THREE.BoxGeometry(0.4, 0.4, 0.4);
-          const material = new THREE.MeshPhongMaterial({ color: Math.random() * 0xffffff, shininess: 100 });
+          const hue = Math.random();
+          const material = new THREE.MeshStandardMaterial({ color: new THREE.Color().setHSL(hue, 0.7, 0.5), metalness: 0.3, roughness: 0.4 });
           const mesh = new THREE.Mesh(geometry, material);
           mesh.position.set(x * 0.5, y * 0.5, 0);
+          mesh.castShadow = true;
           scene.add(mesh);
         }
       }
     `,
     'sphere': `
-      const geometry = new THREE.SphereGeometry(1, 32, 32);
-      const material = new THREE.MeshPhongMaterial({ color: 0x8B5CF6, shininess: 100 });
-      const mesh = new THREE.Mesh(geometry, material);
+      const geometry = new THREE.SphereGeometry(1.5, 64, 64);
+      const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0x2196F3, metalness: 0.7, roughness: 0.1 }));
+      mesh.castShadow = true;
       scene.add(mesh);
     `,
     'cylinder': `
-      const geometry = new THREE.CylinderGeometry(0.8, 0.8, 2, 32);
-      const material = new THREE.MeshPhongMaterial({ color: 0x14B8A6, shininess: 100 });
-      const mesh = new THREE.Mesh(geometry, material);
+      const geometry = new THREE.CylinderGeometry(1, 1, 2.5, 32);
+      const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0x9C27B0, metalness: 0.4, roughness: 0.3 }));
+      mesh.castShadow = true;
+      mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geometry), new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.3, transparent: true })));
       scene.add(mesh);
     `,
     'torus': `
-      const geometry = new THREE.TorusGeometry(1, 0.4, 16, 100);
-      const material = new THREE.MeshPhongMaterial({ color: 0xF59E0B, shininess: 100 });
-      const mesh = new THREE.Mesh(geometry, material);
+      const geometry = new THREE.TorusGeometry(1.2, 0.5, 32, 100);
+      const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0xFF5722, metalness: 0.6, roughness: 0.2 }));
+      mesh.castShadow = true;
       scene.add(mesh);
     `,
     'dodecahedron': `
-      const geometry = new THREE.DodecahedronGeometry(1);
-      const material = new THREE.MeshPhongMaterial({ color: 0xEF4444, shininess: 100 });
-      const mesh = new THREE.Mesh(geometry, material);
+      const geometry = new THREE.DodecahedronGeometry(1.5);
+      const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0xE94560, metalness: 0.4, roughness: 0.3, flatShading: true }));
+      mesh.castShadow = true;
+      mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geometry), new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.5, transparent: true })));
       scene.add(mesh);
     `,
     'icosahedron': `
-      const geometry = new THREE.IcosahedronGeometry(1);
-      const material = new THREE.MeshPhongMaterial({ color: 0x8B5CF6, shininess: 100 });
-      const mesh = new THREE.Mesh(geometry, material);
+      const geometry = new THREE.IcosahedronGeometry(1.5);
+      const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0x8B5CF6, metalness: 0.4, roughness: 0.3, flatShading: true }));
+      mesh.castShadow = true;
+      mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geometry), new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.5, transparent: true })));
       scene.add(mesh);
     `,
     'octahedron': `
-      const geometry = new THREE.OctahedronGeometry(1);
-      const material = new THREE.MeshPhongMaterial({ color: 0x14B8A6, shininess: 100 });
-      const mesh = new THREE.Mesh(geometry, material);
+      const geometry = new THREE.OctahedronGeometry(1.5);
+      const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0x14B8A6, metalness: 0.4, roughness: 0.3, flatShading: true }));
+      mesh.castShadow = true;
+      mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geometry), new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.5, transparent: true })));
       scene.add(mesh);
     `,
     'tetrahedron': `
-      const geometry = new THREE.TetrahedronGeometry(1);
-      const material = new THREE.MeshPhongMaterial({ color: 0xF59E0B, shininess: 100 });
-      const mesh = new THREE.Mesh(geometry, material);
+      const geometry = new THREE.TetrahedronGeometry(1.5);
+      const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0xF59E0B, metalness: 0.4, roughness: 0.3, flatShading: true }));
+      mesh.castShadow = true;
+      mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geometry), new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.5, transparent: true })));
       scene.add(mesh);
     `,
     'pie': `
-      const slices = 8;
-      for (let i = 0; i < slices; i++) {
-        const geometry = new THREE.CylinderGeometry(1, 1, 0.3, 32, 1, false, i * Math.PI * 2 / slices, Math.PI * 2 / slices - 0.05);
-        const material = new THREE.MeshPhongMaterial({ color: i % 2 === 0 ? 0x8B5CF6 : 0x14B8A6, shininess: 100 });
-        const mesh = new THREE.Mesh(geometry, material);
+      const sliceColors = [0xE94560, 0x2196F3, 0x4CAF50, 0xFFC107, 0x9C27B0, 0xFF5722, 0x00BCD4, 0x8BC34A];
+      for (let i = 0; i < 8; i++) {
+        const geometry = new THREE.CylinderGeometry(1.5, 1.5, 0.4, 32, 1, false, i * Math.PI * 2 / 8, Math.PI * 2 / 8 - 0.03);
+        const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: sliceColors[i], metalness: 0.3, roughness: 0.4 }));
         mesh.rotation.x = Math.PI / 2;
+        mesh.castShadow = true;
         scene.add(mesh);
       }
     `,
     'protractor': `
-      const geometry = new THREE.CircleGeometry(1.5, 32, 0, Math.PI);
-      const material = new THREE.MeshPhongMaterial({ color: 0xF59E0B, side: THREE.DoubleSide, shininess: 100 });
-      const mesh = new THREE.Mesh(geometry, material);
+      const geometry = new THREE.CircleGeometry(2, 64, 0, Math.PI);
+      const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0xFFC107, metalness: 0.2, roughness: 0.5, side: THREE.DoubleSide }));
       scene.add(mesh);
       for (let i = 0; i <= 180; i += 10) {
         const angle = i * Math.PI / 180;
+        const len = i % 30 === 0 ? 1.9 : 1.7;
         const lineGeom = new THREE.BufferGeometry().setFromPoints([
-          new THREE.Vector3(0, 0, 0.01),
-          new THREE.Vector3(Math.cos(angle) * 1.4, Math.sin(angle) * 1.4, 0.01)
+          new THREE.Vector3(0, 0, 0.02),
+          new THREE.Vector3(Math.cos(angle) * len, Math.sin(angle) * len, 0.02)
         ]);
-        const line = new THREE.Line(lineGeom, new THREE.LineBasicMaterial({ color: 0x000000 }));
-        scene.add(line);
+        scene.add(new THREE.Line(lineGeom, new THREE.LineBasicMaterial({ color: 0x333333 })));
       }
     `,
     'symmetry': `
-      const geometry = new THREE.BoxGeometry(0.8, 1.5, 0.3);
-      const material = new THREE.MeshPhongMaterial({ color: 0x8B5CF6, shininess: 100 });
-      const mesh1 = new THREE.Mesh(geometry, material);
-      mesh1.position.x = -0.5;
+      const mat1 = new THREE.MeshStandardMaterial({ color: 0x8B5CF6, metalness: 0.3, roughness: 0.4 });
+      const mat2 = new THREE.MeshStandardMaterial({ color: 0x14B8A6, metalness: 0.3, roughness: 0.4 });
+      const mesh1 = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 0.5), mat1);
+      mesh1.position.x = -0.6;
+      mesh1.castShadow = true;
       scene.add(mesh1);
-      const mesh2 = new THREE.Mesh(geometry, material.clone());
-      mesh2.material.color.setHex(0x14B8A6);
-      mesh2.position.x = 0.5;
+      const mesh2 = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 0.5), mat2);
+      mesh2.position.x = 0.6;
+      mesh2.castShadow = true;
       scene.add(mesh2);
-      const planeGeom = new THREE.PlaneGeometry(0.02, 2);
-      const planeMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
-      const plane = new THREE.Mesh(planeGeom, planeMat);
-      scene.add(plane);
+      const mirrorPlane = new THREE.Mesh(new THREE.PlaneGeometry(0.05, 2.5), new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide }));
+      scene.add(mirrorPlane);
     `,
   };
 
@@ -213,63 +234,58 @@ const generate3DModelHTML = (modelType, modelName) => {
     <body>
       <div id="info">Drag to rotate | Pinch to zoom</div>
       <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
       <script>
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x1A1A2E);
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.z = 4;
+        scene.background = new THREE.Color(0x0a0a1a);
+        scene.fog = new THREE.FogExp2(0x0a0a1a, 0.04);
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(3, 3, 5);
         
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.2;
         document.body.appendChild(renderer.domElement);
         
-        // Lighting
-        const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
+        const ambientLight = new THREE.AmbientLight(0x404060, 0.6);
         scene.add(ambientLight);
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-        directionalLight.position.set(5, 5, 5);
-        scene.add(directionalLight);
-        const pointLight = new THREE.PointLight(0xffffff, 0.5);
-        pointLight.position.set(-5, -5, 5);
-        scene.add(pointLight);
+        const mainLight = new THREE.DirectionalLight(0xffffff, 1.0);
+        mainLight.position.set(5, 8, 5);
+        mainLight.castShadow = true;
+        mainLight.shadow.mapSize.width = 512;
+        mainLight.shadow.mapSize.height = 512;
+        scene.add(mainLight);
+        const fillLight = new THREE.DirectionalLight(0x4488ff, 0.4);
+        fillLight.position.set(-5, 3, -5);
+        scene.add(fillLight);
+        const rimLight = new THREE.PointLight(0xE94560, 0.8, 20);
+        rimLight.position.set(0, -3, 5);
+        scene.add(rimLight);
         
-        // Add 3D model
+        const gridHelper = new THREE.GridHelper(10, 20, 0x00ffff, 0x111133);
+        gridHelper.position.y = -2.5;
+        gridHelper.material.opacity = 0.3;
+        gridHelper.material.transparent = true;
+        scene.add(gridHelper);
+        
         ${shapeCode}
         
-        // Mouse/touch controls
-        let isDragging = false;
-        let previousMousePosition = { x: 0, y: 0 };
-        let rotationSpeed = { x: 0.005, y: 0.005 };
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.08;
+        controls.autoRotate = true;
+        controls.autoRotateSpeed = 2.0;
+        controls.enableZoom = true;
+        controls.minDistance = 2;
+        controls.maxDistance = 15;
         
-        document.addEventListener('mousedown', () => isDragging = true);
-        document.addEventListener('mouseup', () => isDragging = false);
-        document.addEventListener('mousemove', (e) => {
-          if (isDragging) {
-            scene.rotation.y += (e.clientX - previousMousePosition.x) * rotationSpeed.x;
-            scene.rotation.x += (e.clientY - previousMousePosition.y) * rotationSpeed.y;
-          }
-          previousMousePosition = { x: e.clientX, y: e.clientY };
-        });
-        
-        document.addEventListener('touchstart', (e) => {
-          isDragging = true;
-          previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-        });
-        document.addEventListener('touchend', () => isDragging = false);
-        document.addEventListener('touchmove', (e) => {
-          if (isDragging && e.touches.length === 1) {
-            scene.rotation.y += (e.touches[0].clientX - previousMousePosition.x) * rotationSpeed.x;
-            scene.rotation.x += (e.touches[0].clientY - previousMousePosition.y) * rotationSpeed.y;
-            previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-          }
-        });
-        
-        // Auto-rotate
         function animate() {
           requestAnimationFrame(animate);
-          if (!isDragging) {
-            scene.rotation.y += 0.005;
-          }
+          controls.update();
           renderer.render(scene, camera);
         }
         animate();
@@ -5396,6 +5412,9 @@ export default function App() {
   const [examPhase, setExamPhase] = useState('mcq');
   const [penPaperAnswers, setPenPaperAnswers] = useState({});
   const [mcqScore, setMcqScore] = useState(0);
+  const [examPhotos, setExamPhotos] = useState([]);
+  const [examAnswerLog, setExamAnswerLog] = useState([]);
+  const [showAnswerReview, setShowAnswerReview] = useState(false);
 
   // Auth state
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -6884,10 +6903,48 @@ export default function App() {
     setSelectedOption(index);
   };
 
+  const captureExamPhoto = async () => {
+    try {
+      const result = await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.7 });
+      if (!result.canceled && result.assets && result.assets[0]) {
+        setExamPhotos([...examPhotos, { question: currentQuestion, photo: result.assets[0].uri }]);
+        Alert.alert('Photo Attached', 'Your paper answer photo has been attached to this question.');
+      }
+    } catch (e) {
+      try {
+        const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.7 });
+        if (!result.canceled && result.assets && result.assets[0]) {
+          setExamPhotos([...examPhotos, { question: currentQuestion, photo: result.assets[0].uri }]);
+          Alert.alert('Photo Attached', 'Your paper answer photo has been attached.');
+        }
+      } catch (e2) { console.log('Photo capture error:', e2); }
+    }
+  };
+
+  const submitExamToBackend = async (finalScore, totalQ) => {
+    try {
+      await fetch(API_URL + '/api/exam/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
+        body: JSON.stringify({
+          exam_type: isFinalExam ? 'final' : 'chapter',
+          chapter_id: currentChapter ? currentChapter.id : null,
+          score: finalScore,
+          total: totalQ,
+          answers: examAnswerLog,
+          photos: examPhotos
+        })
+      });
+    } catch (e) { console.log('Exam submit error:', e); }
+  };
+
   const submitAnswer = () => {
     const questions = isFinalExam ? finalExamMCQ : currentChapter.questions;
     const question = questions[currentQuestion];
     
+    const newLog = [...examAnswerLog, { selected: selectedOption, correct: question.answer, question: question.q, options: question.options }];
+    setExamAnswerLog(newLog);
+
     let newScore = score;
     if (selectedOption === question.answer) {
       newScore = score + (isFinalExam ? 2 : 1);
@@ -6901,6 +6958,7 @@ export default function App() {
         setCurrentQuestion(0);
         setSelectedOption(null);
       } else {
+        submitExamToBackend(newScore, questions.length);
         showResults(newScore, questions.length);
       }
     } else {
@@ -7505,6 +7563,8 @@ export default function App() {
     const question = questions[currentQuestion];
     const total = questions.length;
 
+    const hasPhoto = examPhotos.some(p => p.question === currentQuestion);
+
     return (
       <View ref={screenViewRef} collapsable={false} style={{flex: 1}}>
       <ScrollView style={styles.container}>
@@ -7523,6 +7583,14 @@ export default function App() {
           </Text>
           <Text style={styles.questionText}>{question.q}</Text>
 
+          <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(33,150,243,0.1)', padding: 10, borderRadius: 8, marginVertical: 10, borderWidth: 1, borderColor: 'rgba(33,150,243,0.3)'}}>
+            <Text style={{color: '#aaa', fontSize: 12, flex: 1}}>Select option below <Text style={{color: '#fff', fontWeight: 'bold'}}>OR</Text> submit on paper</Text>
+            <TouchableOpacity onPress={captureExamPhoto} style={{backgroundColor: '#2196F3', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 4}}>
+              <Text style={{color: '#fff', fontSize: 13}}>📷 Photo</Text>
+            </TouchableOpacity>
+            {hasPhoto && <Text style={{color: '#4CAF50', fontSize: 11, marginLeft: 6}}>Attached</Text>}
+          </View>
+
           {question.options.map((option, index) => (
             <TouchableOpacity
               key={index}
@@ -7535,9 +7603,9 @@ export default function App() {
         </View>
 
         <TouchableOpacity
-          style={[styles.primaryBtn, selectedOption === null && styles.btnDisabled]}
+          style={[styles.primaryBtn, (selectedOption === null && !hasPhoto) && styles.btnDisabled]}
           onPress={submitAnswer}
-          disabled={selectedOption === null}
+          disabled={selectedOption === null && !hasPhoto}
         >
           <Text style={styles.primaryBtnText}>
             {currentQuestion === total - 1 ? (isFinalExam ? 'Next: Pen-Paper Section' : 'Finish') : 'Next Question'}
@@ -9038,10 +9106,46 @@ export default function App() {
                   'Congratulations! You passed!\nYou can now proceed to the next chapter.') :
                 'Keep trying! You need 35 out of 40 to pass.\nReview the chapter and try again.'}
             </Text>
+            <TouchableOpacity style={{backgroundColor: '#2196F3', padding: 14, borderRadius: 10, marginBottom: 10, width: '100%', alignItems: 'center'}} onPress={() => setShowAnswerReview(true)}>
+              <Text style={styles.primaryBtnText}>View Answers</Text>
+            </TouchableOpacity>
             <TouchableOpacity style={styles.primaryBtn} onPress={closeResult}>
               <Text style={styles.primaryBtnText}>Continue</Text>
             </TouchableOpacity>
           </View>
+        </View>
+      </Modal>
+
+      <Modal visible={showAnswerReview} transparent animationType="slide">
+        <View style={{flex: 1, backgroundColor: 'rgba(0,0,0,0.95)'}}>
+          <ScrollView style={{flex: 1, padding: 20}}>
+            <Text style={{color: '#E94560', fontSize: 22, fontWeight: 'bold', marginBottom: 10}}>Answer Review</Text>
+            <Text style={{color: '#aaa', marginBottom: 15}}>Score: {resultData.score}/{resultData.total}</Text>
+            {examAnswerLog.map((a, i) => {
+              const isCorrect = a.selected === a.correct;
+              return (
+                <View key={i} style={{padding: 15, marginBottom: 12, backgroundColor: 'rgba(255,255,255,0.05)', borderLeftWidth: 4, borderLeftColor: isCorrect ? '#4CAF50' : '#f44336', borderRadius: 8}}>
+                  <Text style={{color: '#fff', fontWeight: 'bold', marginBottom: 8}}>Q{i+1}. {a.question}</Text>
+                  {a.options.map((opt, j) => {
+                    let optColor = '#aaa';
+                    let optBg = 'transparent';
+                    let label = '';
+                    if (j === a.correct) { optColor = '#4CAF50'; optBg = 'rgba(76,175,80,0.15)'; label = ' (Correct)'; }
+                    if (j === a.selected && !isCorrect) { optColor = '#f44336'; optBg = 'rgba(244,67,54,0.15)'; label = ' (Your Answer)'; }
+                    if (j === a.selected && isCorrect) { label = ' (Your Answer)'; }
+                    return (
+                      <View key={j} style={{padding: 8, marginVertical: 2, borderRadius: 5, backgroundColor: optBg}}>
+                        <Text style={{color: optColor}}>{String.fromCharCode(65+j)}. {opt}{label}</Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              );
+            })}
+            <TouchableOpacity onPress={() => setShowAnswerReview(false)} style={{backgroundColor: '#E94560', padding: 14, borderRadius: 10, alignItems: 'center', marginVertical: 20}}>
+              <Text style={{color: '#fff', fontWeight: 'bold', fontSize: 16}}>Close Review</Text>
+            </TouchableOpacity>
+          </ScrollView>
         </View>
       </Modal>
 

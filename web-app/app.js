@@ -5299,11 +5299,35 @@ async function startQuiz(chapterId) {
 }
 
 // Render quiz question
+var examPhotos = [];
+
+function captureExamPhoto() {
+    var input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.capture = 'environment';
+    input.onchange = function(e) {
+        var file = e.target.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function(ev) {
+            examPhotos.push({ question: appState.currentQuestion, photo: ev.target.result });
+            var photoBtn = document.getElementById('photo-status');
+            if (photoBtn) photoBtn.textContent = 'Photo Attached';
+            var submitBtn = document.getElementById('submit-btn');
+            if (submitBtn) submitBtn.disabled = false;
+        };
+        reader.readAsDataURL(file);
+    };
+    input.click();
+}
+
 function renderQuizQuestion() {
     const quiz = appState.currentQuiz;
     const question = quiz.questions[appState.currentQuestion];
     const total = quiz.questions.length;
     
+    var hasPhoto = examPhotos.some(function(p) { return p.question === appState.currentQuestion; });
     document.getElementById('quiz-container').innerHTML = `
         <h2 class="section-title">Chapter ${quiz.number} Quiz: ${quiz.title}</h2>
         
@@ -5315,6 +5339,17 @@ function renderQuizQuestion() {
         <div class="question-card">
             <div class="question-number">Question ${appState.currentQuestion + 1}</div>
             <div class="question-text">${question.q}</div>
+            
+            <div style="margin: 15px 0 10px; padding: 10px 15px; background: rgba(33,150,243,0.1); border-radius: 8px; border: 1px solid rgba(33,150,243,0.3); display: flex; justify-content: space-between; align-items: center;">
+                <span style="color: #aaa; font-size: 13px;">Select an option below <strong style="color:#fff;">OR</strong> submit your answer on paper</span>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <button onclick="captureExamPhoto()" style="background: linear-gradient(135deg, #2196F3, #1565C0); color: #fff; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 13px;">
+                        📷 Photo Answer
+                    </button>
+                    <span id="photo-status" style="color: #4CAF50; font-size: 12px;">${hasPhoto ? 'Photo Attached' : ''}</span>
+                </div>
+            </div>
+            
             <div class="options">
                 ${question.options.map((opt, i) => `
                     <div class="option" onclick="selectOption(${i})" id="option-${i}">
@@ -5332,7 +5367,6 @@ function renderQuizQuestion() {
     `;
 }
 
-// Select option
 let selectedOption = null;
 function selectOption(index) {
     selectedOption = index;
@@ -5343,12 +5377,11 @@ function selectOption(index) {
     document.getElementById('submit-btn').disabled = false;
 }
 
-// Submit answer
 function submitAnswer() {
     const quiz = appState.currentQuiz;
     const question = quiz.questions[appState.currentQuestion];
     
-    appState.answers.push(selectedOption);
+    appState.answers.push({ selected: selectedOption, correct: question.answer, question: question.q, options: question.options });
     if (selectedOption === question.answer) {
         appState.score++;
     }
@@ -5357,24 +5390,41 @@ function submitAnswer() {
     selectedOption = null;
     
     if (appState.currentQuestion >= quiz.questions.length) {
+        submitExamToBackend();
         showQuizResult();
     } else {
         renderQuizQuestion();
     }
 }
 
+async function submitExamToBackend() {
+    try {
+        await fetch(API_URL + '/api/exam/submit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + appState.authToken },
+            body: JSON.stringify({
+                exam_type: 'chapter',
+                chapter_id: appState.currentQuiz.id,
+                score: appState.score,
+                total: appState.currentQuiz.questions.length,
+                answers: appState.answers,
+                photos: examPhotos
+            })
+        });
+    } catch (e) { console.log('Exam submit error:', e); }
+    examPhotos = [];
+}
+
 // Show quiz result
 function showQuizResult() {
-    // Stop screen sharing and monitoring
     appState.isMonitoring = false;
     stopScreenSharing();
     
     const quiz = appState.currentQuiz;
     const total = quiz.questions.length;
     const percentage = Math.round((appState.score / total) * 100);
-    const passed = appState.score >= 35; // Pass if 35+ out of 40 correct
+    const passed = appState.score >= 35;
     
-    // Save progress
     if (passed) {
         appState.chapterProgress[quiz.id] = 'completed';
         appState.chapterScores[quiz.id] = percentage;
@@ -5394,19 +5444,59 @@ function showQuizResult() {
                 '<span style="color: #4CAF50; font-size: 1.2em;">Be ready for Science Curiosity - Thanks!</span><br><br>' +
                 'You have completed all chapters! Take the Final Exam now.' : 
                 'You can now proceed to the next chapter.'}
+            <br><br>
+            <button onclick="showAnswerReview()" style="background: linear-gradient(135deg, #2196F3, #1565C0); color: #fff; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 15px;">View Answers</button>
         `;
-        
-        // Generate chapter certificate
         generateChapterCertificate(quiz, percentage);
     } else {
         document.getElementById('result-message').innerHTML = `
             <strong>Keep Trying!</strong><br>
             You need 35 out of 40 to pass.<br>
             Review the chapter and try again.
+            <br><br>
+            <button onclick="showAnswerReview()" style="background: linear-gradient(135deg, #2196F3, #1565C0); color: #fff; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 15px;">View Answers</button>
         `;
     }
     
     modal.classList.add('active');
+}
+
+function showAnswerReview() {
+    var quiz = appState.currentQuiz;
+    var answers = appState.answers;
+    var reviewHtml = '<h2 style="color: #E94560; margin-bottom: 20px;">Answer Review - Chapter ' + quiz.number + ': ' + quiz.title + '</h2>';
+    reviewHtml += '<p style="color: #aaa; margin-bottom: 15px;">Score: ' + appState.score + '/' + answers.length + '</p>';
+    
+    for (var i = 0; i < answers.length; i++) {
+        var a = answers[i];
+        var isCorrect = a.selected === a.correct;
+        var borderColor = isCorrect ? '#4CAF50' : '#f44336';
+        reviewHtml += '<div style="padding: 15px; margin-bottom: 12px; background: rgba(255,255,255,0.05); border-left: 4px solid ' + borderColor + '; border-radius: 8px;">';
+        reviewHtml += '<div style="font-weight: bold; color: #fff; margin-bottom: 8px;">Q' + (i + 1) + '. ' + a.question + '</div>';
+        for (var j = 0; j < a.options.length; j++) {
+            var optColor = '#aaa';
+            var optBg = 'transparent';
+            var optLabel = '';
+            if (j === a.correct) { optColor = '#4CAF50'; optBg = 'rgba(76, 175, 80, 0.15)'; optLabel = ' (Correct)'; }
+            if (j === a.selected && !isCorrect) { optColor = '#f44336'; optBg = 'rgba(244, 67, 54, 0.15)'; optLabel = ' (Your Answer)'; }
+            if (j === a.selected && isCorrect) { optLabel = ' (Your Answer)'; }
+            reviewHtml += '<div style="padding: 8px 12px; margin: 4px 0; border-radius: 5px; color: ' + optColor + '; background: ' + optBg + ';">' + String.fromCharCode(65 + j) + '. ' + a.options[j] + optLabel + '</div>';
+        }
+        reviewHtml += '</div>';
+    }
+    
+    reviewHtml += '<div style="text-align: center; margin-top: 20px;"><button onclick="closeAnswerReview()" style="background: #E94560; color: #fff; border: none; padding: 12px 30px; border-radius: 8px; cursor: pointer; font-size: 15px;">Close Review</button></div>';
+    
+    var overlay = document.createElement('div');
+    overlay.id = 'answer-review-overlay';
+    overlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.95); z-index: 10000; overflow-y: auto; padding: 30px;';
+    overlay.innerHTML = reviewHtml;
+    document.body.appendChild(overlay);
+}
+
+function closeAnswerReview() {
+    var overlay = document.getElementById('answer-review-overlay');
+    if (overlay) overlay.remove();
 }
 
 // Generate chapter certificate (Case 1)
@@ -8216,224 +8306,225 @@ function viewModel(id, name, type, description) {
         current3DRenderer.dispose();
     }
     
-    // Create real interactive 3D model using Three.js
     var modelContainer = document.getElementById('model-icon-display');
     modelContainer.innerHTML = '';
-    modelContainer.style.cssText = 'width: 300px; height: 300px; margin: 20px auto; display: flex; align-items: center; justify-content: center;';
+    modelContainer.style.cssText = 'width: 100%; height: 450px; margin: 0 auto; display: block; position: relative;';
     
-    // Check if Three.js is available
     if (typeof THREE !== 'undefined') {
-        // Create Three.js scene
         var scene = new THREE.Scene();
-        var camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
-        var renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-        renderer.setSize(280, 280);
-        renderer.setClearColor(0x000000, 0);
+        scene.background = new THREE.Color(0x0a0a1a);
+        scene.fog = new THREE.FogExp2(0x0a0a1a, 0.05);
+        var camera = new THREE.PerspectiveCamera(60, modelContainer.clientWidth / 450, 0.1, 1000);
+        var renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(modelContainer.clientWidth || 600, 450);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.2;
         modelContainer.appendChild(renderer.domElement);
         
         current3DScene = scene;
         current3DRenderer = renderer;
         
-        // Add lighting
-        var ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        var ambientLight = new THREE.AmbientLight(0x404060, 0.6);
         scene.add(ambientLight);
-        var directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-        directionalLight.position.set(5, 5, 5);
-        scene.add(directionalLight);
-        var pointLight = new THREE.PointLight(0xE94560, 0.5);
-        pointLight.position.set(-5, -5, 5);
-        scene.add(pointLight);
+        var mainLight = new THREE.DirectionalLight(0xffffff, 1.0);
+        mainLight.position.set(5, 8, 5);
+        mainLight.castShadow = true;
+        mainLight.shadow.mapSize.width = 1024;
+        mainLight.shadow.mapSize.height = 1024;
+        scene.add(mainLight);
+        var fillLight = new THREE.DirectionalLight(0x4488ff, 0.4);
+        fillLight.position.set(-5, 3, -5);
+        scene.add(fillLight);
+        var rimLight = new THREE.PointLight(0xE94560, 0.8, 20);
+        rimLight.position.set(0, -3, 5);
+        scene.add(rimLight);
+        var topLight = new THREE.SpotLight(0x00ffff, 0.3, 30, Math.PI / 4);
+        topLight.position.set(0, 10, 0);
+        scene.add(topLight);
+        
+        var gridHelper = new THREE.GridHelper(10, 20, 0x00ffff, 0x111133);
+        gridHelper.position.y = -2.5;
+        gridHelper.material.opacity = 0.3;
+        gridHelper.material.transparent = true;
+        scene.add(gridHelper);
         
         var mesh;
         
         if (type === 'cube' || type === 'blocks' || type === 'tiles') {
-            // Create a real 3D cube with colored faces
             var geometry = new THREE.BoxGeometry(2, 2, 2);
             var materials = [
-                new THREE.MeshPhongMaterial({ color: 0xE94560, shininess: 100 }),
-                new THREE.MeshPhongMaterial({ color: 0x0F3460, shininess: 100 }),
-                new THREE.MeshPhongMaterial({ color: 0x533483, shininess: 100 }),
-                new THREE.MeshPhongMaterial({ color: 0x16213E, shininess: 100 }),
-                new THREE.MeshPhongMaterial({ color: 0xE94560, shininess: 100 }),
-                new THREE.MeshPhongMaterial({ color: 0x0F3460, shininess: 100 })
+                new THREE.MeshStandardMaterial({ color: 0xE94560, metalness: 0.3, roughness: 0.4 }),
+                new THREE.MeshStandardMaterial({ color: 0x0F3460, metalness: 0.3, roughness: 0.4 }),
+                new THREE.MeshStandardMaterial({ color: 0x533483, metalness: 0.3, roughness: 0.4 }),
+                new THREE.MeshStandardMaterial({ color: 0x16213E, metalness: 0.3, roughness: 0.4 }),
+                new THREE.MeshStandardMaterial({ color: 0xE94560, metalness: 0.3, roughness: 0.4 }),
+                new THREE.MeshStandardMaterial({ color: 0x0F3460, metalness: 0.3, roughness: 0.4 })
             ];
             mesh = new THREE.Mesh(geometry, materials);
-            // Add edges for better visibility
+            mesh.castShadow = true;
             var edges = new THREE.EdgesGeometry(geometry);
-            var line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xffffff }));
-            mesh.add(line);
+            mesh.add(new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.5 })));
         } else if (type === 'pyramid' || type === 'factortree') {
-            // Create a real 3D pyramid (tetrahedron)
             var geometry = new THREE.ConeGeometry(1.5, 2.5, 4);
-            var material = new THREE.MeshPhongMaterial({ 
-                color: 0xE94560, 
-                shininess: 100,
-                flatShading: true
-            });
-            mesh = new THREE.Mesh(geometry, material);
-            // Add edges
-            var edges = new THREE.EdgesGeometry(geometry);
-            var line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xffffff }));
-            mesh.add(line);
+            mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0xFFD700, metalness: 0.5, roughness: 0.3, flatShading: true }));
+            mesh.castShadow = true;
+            mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geometry), new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.5, transparent: true })));
         } else if (type === 'sphere' || type === 'circles') {
-            // Create a real 3D sphere
-            var geometry = new THREE.SphereGeometry(1.5, 32, 32);
-            var material = new THREE.MeshPhongMaterial({ 
-                color: 0xE94560, 
-                shininess: 100,
-                specular: 0x444444
-            });
-            mesh = new THREE.Mesh(geometry, material);
-        } else if (type === 'cylinder' || type === 'prism') {
-            // Create a 3D cylinder
+            var geometry = new THREE.SphereGeometry(1.5, 64, 64);
+            mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0x2196F3, metalness: 0.7, roughness: 0.1 }));
+            mesh.castShadow = true;
+        } else if (type === 'cylinder' || type === 'prism' || type === 'bars') {
             var geometry = new THREE.CylinderGeometry(1, 1, 2.5, 32);
-            var material = new THREE.MeshPhongMaterial({ 
-                color: 0x533483, 
-                shininess: 100
-            });
-            mesh = new THREE.Mesh(geometry, material);
-            var edges = new THREE.EdgesGeometry(geometry);
-            var line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xffffff }));
-            mesh.add(line);
+            mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0x9C27B0, metalness: 0.4, roughness: 0.3 }));
+            mesh.castShadow = true;
+            mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geometry), new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.3, transparent: true })));
         } else if (type === 'torus' || type === 'ring') {
-            // Create a 3D torus (donut)
-            var geometry = new THREE.TorusGeometry(1.2, 0.5, 16, 100);
-            var material = new THREE.MeshPhongMaterial({ 
-                color: 0x0F3460, 
-                shininess: 100
-            });
-            mesh = new THREE.Mesh(geometry, material);
-        } else if (type === 'octahedron') {
-            // Create a 3D octahedron
-            var geometry = new THREE.OctahedronGeometry(1.5);
-            var material = new THREE.MeshPhongMaterial({ 
-                color: 0x16213E, 
-                shininess: 100,
-                flatShading: true
-            });
-            mesh = new THREE.Mesh(geometry, material);
-            var edges = new THREE.EdgesGeometry(geometry);
-            var line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xffffff }));
-            mesh.add(line);
-        } else if (type === 'dodecahedron') {
-            // Create a 3D dodecahedron
-            var geometry = new THREE.DodecahedronGeometry(1.5);
-            var material = new THREE.MeshPhongMaterial({ 
-                color: 0xE94560, 
-                shininess: 100,
-                flatShading: true
-            });
-            mesh = new THREE.Mesh(geometry, material);
-            var edges = new THREE.EdgesGeometry(geometry);
-            var line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xffffff }));
-            mesh.add(line);
-        } else if (type === 'icosahedron') {
-            // Create a 3D icosahedron
-            var geometry = new THREE.IcosahedronGeometry(1.5);
-            var material = new THREE.MeshPhongMaterial({ 
-                color: 0x533483, 
-                shininess: 100,
-                flatShading: true
-            });
-            mesh = new THREE.Mesh(geometry, material);
-            var edges = new THREE.EdgesGeometry(geometry);
-            var line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xffffff }));
-            mesh.add(line);
-        } else {
-            // Default: Create a combined shape (cube + sphere)
+            var geometry = new THREE.TorusGeometry(1.2, 0.5, 32, 100);
+            mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0xFF5722, metalness: 0.6, roughness: 0.2 }));
+            mesh.castShadow = true;
+        } else if (type === 'spiral' || type === 'fibonacci') {
             var group = new THREE.Group();
-            
+            var points = [];
+            for (var si = 0; si < 200; si++) {
+                var angle = si * 0.15;
+                var radius = 0.08 * Math.sqrt(si);
+                points.push(new THREE.Vector3(Math.cos(angle) * radius, si * 0.01 - 1, Math.sin(angle) * radius));
+            }
+            var curve = new THREE.CatmullRomCurve3(points);
+            var tubeGeom = new THREE.TubeGeometry(curve, 200, 0.06, 12, false);
+            var tubeMat = new THREE.MeshStandardMaterial({ color: type === 'fibonacci' ? 0xFFD700 : 0x00BCD4, metalness: 0.5, roughness: 0.2 });
+            group.add(new THREE.Mesh(tubeGeom, tubeMat));
+            mesh = group;
+            mesh.castShadow = true;
+        } else if (type === 'protractor' || type === 'angles') {
+            var group = new THREE.Group();
+            var semicircle = new THREE.Mesh(
+                new THREE.CircleGeometry(2, 64, 0, Math.PI),
+                new THREE.MeshStandardMaterial({ color: 0xFFC107, metalness: 0.2, roughness: 0.5, side: THREE.DoubleSide })
+            );
+            group.add(semicircle);
+            for (var ai = 0; ai <= 180; ai += 10) {
+                var ang = ai * Math.PI / 180;
+                var len = ai % 30 === 0 ? 1.9 : 1.7;
+                var lineG = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0.02), new THREE.Vector3(Math.cos(ang) * len, Math.sin(ang) * len, 0.02)]);
+                group.add(new THREE.Line(lineG, new THREE.LineBasicMaterial({ color: 0x333333 })));
+            }
+            mesh = group;
+        } else if (type === 'grid' || type === 'area') {
+            var group = new THREE.Group();
+            for (var gx = -2; gx <= 2; gx++) {
+                for (var gy = -2; gy <= 2; gy++) {
+                    var boxG = new THREE.BoxGeometry(0.4, 0.4, 0.4);
+                    var boxM = new THREE.MeshStandardMaterial({ color: new THREE.Color().setHSL(Math.random(), 0.7, 0.5), metalness: 0.3, roughness: 0.4 });
+                    var box = new THREE.Mesh(boxG, boxM);
+                    box.position.set(gx * 0.5, gy * 0.5, 0);
+                    box.castShadow = true;
+                    group.add(box);
+                }
+            }
+            mesh = group;
+        } else if (type === 'symmetry' || type === 'linesym' || type === 'mirror') {
+            var group = new THREE.Group();
+            var half1 = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 0.5), new THREE.MeshStandardMaterial({ color: 0x8B5CF6, metalness: 0.3, roughness: 0.4 }));
+            half1.position.x = -0.6;
+            group.add(half1);
+            var half2 = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 0.5), new THREE.MeshStandardMaterial({ color: 0x14B8A6, metalness: 0.3, roughness: 0.4 }));
+            half2.position.x = 0.6;
+            group.add(half2);
+            var mirrorPlane = new THREE.Mesh(new THREE.PlaneGeometry(0.05, 2.5), new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide }));
+            group.add(mirrorPlane);
+            mesh = group;
+        } else if (type === 'lines' || type === 'perpendicular' || type === 'segments' || type === 'parallel') {
+            var group = new THREE.Group();
+            var l1 = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-2, 0, 0), new THREE.Vector3(2, 0, 0)]);
+            group.add(new THREE.Line(l1, new THREE.LineBasicMaterial({ color: 0x00ffff, linewidth: 2 })));
+            if (type === 'perpendicular') {
+                var l2 = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, -2, 0), new THREE.Vector3(0, 2, 0)]);
+                group.add(new THREE.Line(l2, new THREE.LineBasicMaterial({ color: 0xff00ff })));
+            } else {
+                var l2 = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-2, 1, 0), new THREE.Vector3(2, 1, 0)]);
+                group.add(new THREE.Line(l2, new THREE.LineBasicMaterial({ color: 0xff00ff })));
+            }
+            var dot1 = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 16), new THREE.MeshStandardMaterial({ color: 0xE94560, emissive: 0xE94560, emissiveIntensity: 0.5 }));
+            group.add(dot1);
+            mesh = group;
+        } else if (type === 'piechart' || type === 'pie') {
+            var group = new THREE.Group();
+            var sliceColors = [0xE94560, 0x2196F3, 0x4CAF50, 0xFFC107, 0x9C27B0, 0xFF5722, 0x00BCD4, 0x8BC34A];
+            var numSlices = 8;
+            for (var pi = 0; pi < numSlices; pi++) {
+                var sliceGeom = new THREE.CylinderGeometry(1.5, 1.5, 0.4, 32, 1, false, pi * Math.PI * 2 / numSlices, Math.PI * 2 / numSlices - 0.03);
+                var sliceMat = new THREE.MeshStandardMaterial({ color: sliceColors[pi], metalness: 0.3, roughness: 0.4 });
+                var slice = new THREE.Mesh(sliceGeom, sliceMat);
+                slice.rotation.x = Math.PI / 2;
+                group.add(slice);
+            }
+            mesh = group;
+        } else if (type === 'bargraph') {
+            var group = new THREE.Group();
+            var barColors = [0xE94560, 0x2196F3, 0x4CAF50, 0xFFC107, 0x9C27B0];
+            for (var bi = 0; bi < 5; bi++) {
+                var h = 0.5 + Math.random() * 2;
+                var bar = new THREE.Mesh(new THREE.BoxGeometry(0.5, h, 0.5), new THREE.MeshStandardMaterial({ color: barColors[bi], metalness: 0.3, roughness: 0.4 }));
+                bar.position.set(bi * 0.7 - 1.4, h / 2 - 1, 0);
+                bar.castShadow = true;
+                group.add(bar);
+            }
+            mesh = group;
+        } else {
+            var group = new THREE.Group();
             var cubeGeom = new THREE.BoxGeometry(1.5, 1.5, 1.5);
-            var cubeMat = new THREE.MeshPhongMaterial({ color: 0xE94560, shininess: 100, transparent: true, opacity: 0.8 });
+            var cubeMat = new THREE.MeshStandardMaterial({ color: 0xE94560, metalness: 0.4, roughness: 0.3, transparent: true, opacity: 0.85 });
             var cube = new THREE.Mesh(cubeGeom, cubeMat);
-            var cubeEdges = new THREE.EdgesGeometry(cubeGeom);
-            var cubeLine = new THREE.LineSegments(cubeEdges, new THREE.LineBasicMaterial({ color: 0xffffff }));
-            cube.add(cubeLine);
+            cube.castShadow = true;
+            cube.add(new THREE.LineSegments(new THREE.EdgesGeometry(cubeGeom), new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.5, transparent: true })));
             group.add(cube);
-            
-            var sphereGeom = new THREE.SphereGeometry(1.1, 32, 32);
-            var sphereMat = new THREE.MeshPhongMaterial({ color: 0x0F3460, shininess: 100, transparent: true, opacity: 0.6 });
-            var sphere = new THREE.Mesh(sphereGeom, sphereMat);
-            group.add(sphere);
-            
+            var sphereGeom = new THREE.SphereGeometry(1.1, 48, 48);
+            var sphereMat = new THREE.MeshStandardMaterial({ color: 0x0F3460, metalness: 0.6, roughness: 0.2, transparent: true, opacity: 0.6 });
+            group.add(new THREE.Mesh(sphereGeom, sphereMat));
             mesh = group;
         }
         
         scene.add(mesh);
-        camera.position.z = 5;
+        camera.position.set(3, 3, 5);
+        camera.lookAt(0, 0, 0);
         
-        // Mouse interaction for rotation
-        var isDragging = false;
-        var previousMousePosition = { x: 0, y: 0 };
-        var rotationSpeed = { x: 0.005, y: 0.01 };
+        var controls = null;
+        if (typeof THREE.OrbitControls !== 'undefined') {
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.08;
+            controls.autoRotate = true;
+            controls.autoRotateSpeed = 2.0;
+            controls.enableZoom = true;
+            controls.minDistance = 2;
+            controls.maxDistance = 15;
+        }
         
-        renderer.domElement.addEventListener('mousedown', function(e) {
-            isDragging = true;
-            previousMousePosition = { x: e.clientX, y: e.clientY };
-        });
-        
-        renderer.domElement.addEventListener('mousemove', function(e) {
-            if (isDragging) {
-                var deltaMove = {
-                    x: e.clientX - previousMousePosition.x,
-                    y: e.clientY - previousMousePosition.y
-                };
-                mesh.rotation.y += deltaMove.x * 0.01;
-                mesh.rotation.x += deltaMove.y * 0.01;
-                previousMousePosition = { x: e.clientX, y: e.clientY };
-            }
-        });
-        
-        renderer.domElement.addEventListener('mouseup', function() {
-            isDragging = false;
-        });
-        
-        renderer.domElement.addEventListener('mouseleave', function() {
-            isDragging = false;
-        });
-        
-        // Touch support for mobile
-        renderer.domElement.addEventListener('touchstart', function(e) {
-            isDragging = true;
-            previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-        });
-        
-        renderer.domElement.addEventListener('touchmove', function(e) {
-            if (isDragging) {
-                var deltaMove = {
-                    x: e.touches[0].clientX - previousMousePosition.x,
-                    y: e.touches[0].clientY - previousMousePosition.y
-                };
-                mesh.rotation.y += deltaMove.x * 0.01;
-                mesh.rotation.x += deltaMove.y * 0.01;
-                previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-            }
-        });
-        
-        renderer.domElement.addEventListener('touchend', function() {
-            isDragging = false;
-        });
-        
-        // Animation loop
         function animate() {
             current3DAnimationId = requestAnimationFrame(animate);
-            if (!isDragging) {
-                mesh.rotation.x += rotationSpeed.x;
-                mesh.rotation.y += rotationSpeed.y;
+            if (controls) {
+                controls.update();
+            } else {
+                mesh.rotation.x += 0.005;
+                mesh.rotation.y += 0.01;
             }
             renderer.render(scene, camera);
         }
         animate();
         
-    } else {
-        // Fallback if Three.js is not available - use CSS 3D
-        var shape3D = document.createElement('div');
-        shape3D.className = 'shape-3d';
-        shape3D.id = 'rotating-shape';
-        shape3D.style.cssText = 'width: 150px; height: 150px; background: linear-gradient(135deg, #E94560, #0F3460); border-radius: 10px; animation: rotateCube 4s infinite linear; margin: 50px auto; display: flex; align-items: center; justify-content: center; color: white; font-size: 48px; font-weight: bold; transform-style: preserve-3d; box-shadow: 0 0 30px rgba(233,69,96,0.5);';
-        shape3D.innerHTML = '<span style="font-size: 60px;">&#9632;</span>';
-        modelContainer.appendChild(shape3D);
+        window.addEventListener('resize', function() {
+            var w = modelContainer.clientWidth || 600;
+            camera.aspect = w / 450;
+            camera.updateProjectionMatrix();
+            renderer.setSize(w, 450);
+        });
         
+    } else {
+        modelContainer.innerHTML = '<div style="width:100%;height:450px;background:linear-gradient(135deg,#E94560,#0F3460);display:flex;align-items:center;justify-content:center;color:#fff;font-size:48px;animation:rotateCube 4s infinite linear;transform-style:preserve-3d;">&#9632;</div>';
         if (!document.getElementById('model-animations')) {
             var style = document.createElement('style');
             style.id = 'model-animations';
@@ -8442,7 +8533,7 @@ function viewModel(id, name, type, description) {
         }
     }
     
-    document.getElementById('model-text').textContent = 'Drag to rotate (Interactive 3D Model)';
+    document.getElementById('model-text').textContent = 'Drag to rotate | Scroll to zoom | Real 3D Model';
 }
 
 function backToChapterDetail() {
@@ -8820,6 +8911,22 @@ renderAdminDashboard = function(data) {
             }).join('') + '</div>' :
             '<p style="color:#888;text-align:center;padding:20px;">No students currently taking exams. When students start exams with screen sharing enabled, they will appear here.</p>');
     
+    // Add Papers Section
+    var papersSection = document.getElementById('admin-papers-section');
+    if (!papersSection) {
+        papersSection = document.createElement('div');
+        papersSection.id = 'admin-papers-section';
+        papersSection.style.cssText = 'margin-top:20px;padding:20px;background:rgba(33,150,243,0.1);border-radius:15px;border:1px solid rgba(33,150,243,0.3);';
+        var screenSection = document.getElementById('screen-monitor-section');
+        if (screenSection && screenSection.parentNode) {
+            screenSection.parentNode.insertBefore(papersSection, screenSection.nextSibling);
+        }
+    }
+    papersSection.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">' +
+        '<h3 style="color:#2196F3;display:flex;align-items:center;gap:10px;margin:0;"><span>📝</span> Exam Papers</h3>' +
+        '<button onclick="loadAdminPapers()" style="padding:8px 18px;background:linear-gradient(135deg,#2196F3,#1565C0);border:none;border-radius:8px;color:#fff;cursor:pointer;font-size:0.85em;">Load Papers</button></div>' +
+        '<div id="admin-papers-list"><p style="color:#888;text-align:center;padding:15px;">Click "Load Papers" to see submitted exam papers.</p></div>';
+
     // Add Remove All Accounts button
     var removeAllDiv = document.getElementById('remove-all-accounts-section');
     if (!removeAllDiv) {
@@ -8865,6 +8972,92 @@ function selectUserForReply(userId, userName) {
     }
     var msgInput = document.getElementById('admin-message');
     if (msgInput) msgInput.focus();
+}
+
+async function loadAdminPapers() {
+    var papersDiv = document.getElementById('admin-papers-list');
+    if (!papersDiv) return;
+    papersDiv.innerHTML = '<p style="color:#aaa;text-align:center;padding:20px;">Loading papers...</p>';
+    try {
+        var resp = await fetch(API_URL + '/api/admin/exam-papers', {
+            headers: { 'Authorization': 'Bearer ' + appState.authToken }
+        });
+        var data = await resp.json();
+        if (!data.papers || data.papers.length === 0) {
+            papersDiv.innerHTML = '<p style="color:#888;text-align:center;padding:30px;">No exam papers submitted yet. Papers will appear here when students complete exams.</p>';
+            return;
+        }
+        papersDiv.innerHTML = data.papers.map(function(p) {
+            var answers = [];
+            try { answers = JSON.parse(p.answers); } catch(e) {}
+            var scoreColor = (p.score / p.total >= 0.875) ? '#4CAF50' : '#f44336';
+            return '<div style="padding:15px;background:rgba(255,255,255,0.05);border-radius:10px;margin-bottom:10px;border-left:4px solid ' + scoreColor + ';">' +
+                '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+                '<div><span style="color:#fff;font-weight:bold;">' + (p.user_name || 'Student') + '</span>' +
+                '<span style="color:#aaa;margin-left:10px;font-size:0.85em;">' + p.exam_type + (p.chapter_id ? ' - Chapter ' + p.chapter_id : '') + '</span></div>' +
+                '<div style="display:flex;gap:10px;align-items:center;">' +
+                '<span style="color:' + scoreColor + ';font-weight:bold;font-size:1.1em;">' + p.score + '/' + p.total + '</span>' +
+                '<button onclick="viewPaperDetail(' + p.id + ')" style="padding:6px 14px;background:linear-gradient(135deg,#2196F3,#1565C0);border:none;border-radius:6px;color:#fff;cursor:pointer;font-size:0.85em;">View</button></div></div>' +
+                '<div style="color:#888;font-size:0.8em;margin-top:5px;">' + new Date(p.created_at).toLocaleString() + '</div></div>';
+        }).join('');
+    } catch(e) {
+        papersDiv.innerHTML = '<p style="color:#f44336;text-align:center;">Failed to load papers.</p>';
+    }
+}
+
+async function viewPaperDetail(paperId) {
+    try {
+        var resp = await fetch(API_URL + '/api/admin/exam-papers/' + paperId, {
+            headers: { 'Authorization': 'Bearer ' + appState.authToken }
+        });
+        var paper = await resp.json();
+        var answers = [];
+        try { answers = JSON.parse(paper.answers); } catch(e) {}
+        var photos = [];
+        try { photos = JSON.parse(paper.photos || '[]'); } catch(e) {}
+        
+        var html = '<h2 style="color:#E94560;margin-bottom:10px;">Exam Paper - ' + (paper.user_name || 'Student') + '</h2>';
+        html += '<p style="color:#aaa;">Type: ' + paper.exam_type + (paper.chapter_id ? ' | Chapter: ' + paper.chapter_id : '') + ' | Score: <span style="color:#fff;font-weight:bold;">' + paper.score + '/' + paper.total + '</span> | Date: ' + new Date(paper.created_at).toLocaleString() + '</p>';
+        
+        for (var i = 0; i < answers.length; i++) {
+            var a = answers[i];
+            if (!a || !a.options) continue;
+            var isCorrect = a.selected === a.correct;
+            var borderColor = isCorrect ? '#4CAF50' : '#f44336';
+            html += '<div style="padding:12px;margin:10px 0;background:rgba(255,255,255,0.05);border-left:4px solid ' + borderColor + ';border-radius:8px;">';
+            html += '<div style="color:#fff;font-weight:bold;margin-bottom:6px;">Q' + (i+1) + '. ' + a.question + '</div>';
+            for (var j = 0; j < a.options.length; j++) {
+                var optColor = '#aaa', optBg = 'transparent', optLabel = '';
+                if (j === a.correct) { optColor = '#4CAF50'; optBg = 'rgba(76,175,80,0.15)'; optLabel = ' (Correct)'; }
+                if (j === a.selected && !isCorrect) { optColor = '#f44336'; optBg = 'rgba(244,67,54,0.15)'; optLabel = ' (Student Answer - Wrong)'; }
+                if (j === a.selected && isCorrect) { optLabel = ' (Student Answer)'; }
+                html += '<div style="padding:6px 10px;margin:3px 0;border-radius:4px;color:' + optColor + ';background:' + optBg + ';">' + String.fromCharCode(65+j) + '. ' + a.options[j] + optLabel + '</div>';
+            }
+            html += '</div>';
+        }
+        
+        if (photos.length > 0) {
+            html += '<h3 style="color:#2196F3;margin-top:20px;">Paper Photos</h3>';
+            for (var k = 0; k < photos.length; k++) {
+                html += '<img src="' + photos[k].photo + '" style="max-width:100%;border-radius:8px;margin:10px 0;" />';
+            }
+        }
+        
+        html += '<div style="text-align:center;margin-top:20px;"><button onclick="closePaperDetail()" style="background:#E94560;color:#fff;border:none;padding:12px 30px;border-radius:8px;cursor:pointer;font-size:15px;">Close</button></div>';
+        
+        var overlay = document.createElement('div');
+        overlay.id = 'paper-detail-overlay';
+        overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.95);z-index:10000;overflow-y:auto;padding:30px;';
+        overlay.innerHTML = html;
+        document.body.appendChild(overlay);
+    } catch(e) {
+        alert('Failed to load paper details');
+    }
+}
+
+function closePaperDetail() {
+    var overlay = document.getElementById('paper-detail-overlay');
+    if (overlay) overlay.remove();
 }
 
 // View user screen during exam (screen sharing monitoring)
