@@ -5256,6 +5256,26 @@ async function requestExamPermissions() {
     }
 }
 
+var examPhases = ['mcq', 'caseBased', 'veryShort', 'short', 'long'];
+var examPhaseLabels = { mcq: 'Section A: MCQ', caseBased: 'Section B: Case-Based', veryShort: 'Section C: Very Short Answer', short: 'Section D: Short Answer', long: 'Section E: Long Answer' };
+var examPhaseDescriptions = { mcq: 'Select the correct option for each question.', caseBased: 'Read the scenario and select the correct option.', veryShort: 'Write your answer on paper and take a photo.', short: 'Write your answer on paper and take a photo.', long: 'Write a detailed answer on paper and take a photo.' };
+
+function getExamPhaseQuestions(quiz) {
+    var qs = quiz.questions;
+    var perGroup = Math.floor(qs.length / 5);
+    return {
+        mcq: qs.slice(0, perGroup),
+        caseBased: qs.slice(perGroup, perGroup * 2),
+        veryShort: qs.slice(perGroup * 2, perGroup * 3),
+        short: qs.slice(perGroup * 3, perGroup * 4),
+        long: qs.slice(perGroup * 4)
+    };
+}
+
+var currentExamPhase = 'mcq';
+var examPhaseIndex = 0;
+var examPhaseQuestionIndex = 0;
+
 async function startQuiz(chapterId) {
     const chapter = chapters.find(c => c.id === chapterId);
     
@@ -5268,7 +5288,12 @@ async function startQuiz(chapterId) {
         '3. Any cheating will result in automatic submission\n' +
         '4. You have limited time to complete\n' +
         '5. Make sure you are in a quiet, well-lit place\n\n' +
-        'By clicking OK, you agree to camera, microphone & screen monitoring.\n\n' +
+        'EXAM FORMAT:\n' +
+        '- Section A: MCQ (Select option)\n' +
+        '- Section B: Case-Based (Select option)\n' +
+        '- Section C: Very Short Answer (Write on paper + Photo)\n' +
+        '- Section D: Short Answer (Write on paper + Photo)\n' +
+        '- Section E: Long Answer (Write on paper + Photo)\n\n' +
         'Click OK to Allow & Start Exam or Cancel to go back.'
     );
     
@@ -5291,10 +5316,40 @@ async function startQuiz(chapterId) {
     appState.score = 0;
     appState.answers = [];
     appState.isMonitoring = true;
+    currentExamPhase = 'mcq';
+    examPhaseIndex = 0;
+    examPhaseQuestionIndex = 0;
     
     document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
     document.getElementById('quiz-section').classList.add('active');
     
+    showExamPhaseIntro();
+}
+
+function showExamPhaseIntro() {
+    var phase = examPhases[examPhaseIndex];
+    var phaseQuestions = getExamPhaseQuestions(appState.currentQuiz)[phase];
+    var isWritten = (phase === 'veryShort' || phase === 'short' || phase === 'long');
+    document.getElementById('quiz-container').innerHTML = `
+        <h2 class="section-title">Chapter ${appState.currentQuiz.number} Quiz: ${appState.currentQuiz.title}</h2>
+        <div style="text-align: center; padding: 40px 20px;">
+            <div style="font-size: 3em; margin-bottom: 15px;">${isWritten ? '📝' : '📋'}</div>
+            <h3 style="color: #E94560; font-size: 22px; margin-bottom: 10px;">${examPhaseLabels[phase]}</h3>
+            <p style="color: #aaa; margin-bottom: 10px;">${examPhaseDescriptions[phase]}</p>
+            <p style="color: #fff; font-size: 16px; margin-bottom: 5px;"><strong>${phaseQuestions.length} Questions</strong></p>
+            ${isWritten ? '<p style="color: #2196F3; font-size: 14px; margin-bottom: 20px;">Write your answer on paper, then use the camera to take a photo of your work.</p>' : '<p style="color: #4CAF50; font-size: 14px; margin-bottom: 20px;">Select the correct answer from the given options.</p>'}
+            <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; margin: 15px auto; max-width: 350px;">
+                <p style="font-size: 13px; color: #888;">Section ${examPhaseIndex + 1} of 5</p>
+            </div>
+            <button class="btn btn-primary" onclick="startExamPhase()" style="margin-top: 15px;">
+                Start ${examPhaseLabels[phase]}
+            </button>
+        </div>
+    `;
+}
+
+function startExamPhase() {
+    examPhaseQuestionIndex = 0;
     renderQuizQuestion();
 }
 
@@ -5311,7 +5366,8 @@ function captureExamPhoto() {
         if (!file) return;
         var reader = new FileReader();
         reader.onload = function(ev) {
-            examPhotos.push({ question: appState.currentQuestion, photo: ev.target.result });
+            var globalIdx = appState.currentQuestion;
+            examPhotos.push({ question: globalIdx, phase: currentExamPhase, photo: ev.target.result });
             var photoBtn = document.getElementById('photo-status');
             if (photoBtn) photoBtn.textContent = 'Photo Attached';
             var submitBtn = document.getElementById('submit-btn');
@@ -5323,48 +5379,99 @@ function captureExamPhoto() {
 }
 
 function renderQuizQuestion() {
-    const quiz = appState.currentQuiz;
-    const question = quiz.questions[appState.currentQuestion];
-    const total = quiz.questions.length;
+    var quiz = appState.currentQuiz;
+    var phase = examPhases[examPhaseIndex];
+    currentExamPhase = phase;
+    var phaseQuestions = getExamPhaseQuestions(quiz)[phase];
+    var question = phaseQuestions[examPhaseQuestionIndex];
+    var total = phaseQuestions.length;
+    var isWritten = (phase === 'veryShort' || phase === 'short' || phase === 'long');
+    var globalIdx = 0;
+    var phaseGroups = getExamPhaseQuestions(quiz);
+    for (var pi = 0; pi < examPhaseIndex; pi++) { globalIdx += phaseGroups[examPhases[pi]].length; }
+    globalIdx += examPhaseQuestionIndex;
+    appState.currentQuestion = globalIdx;
     
-    var hasPhoto = examPhotos.some(function(p) { return p.question === appState.currentQuestion; });
-    document.getElementById('quiz-container').innerHTML = `
-        <h2 class="section-title">Chapter ${quiz.number} Quiz: ${quiz.title}</h2>
-        
-        <div class="progress-container">
-            <div class="progress-bar" style="width: ${((appState.currentQuestion) / total) * 100}%"></div>
-        </div>
-        <div class="progress-text">Question ${appState.currentQuestion + 1} of ${total}</div>
-        
-        <div class="question-card">
-            <div class="question-number">Question ${appState.currentQuestion + 1}</div>
-            <div class="question-text">${question.q}</div>
+    var hasPhoto = examPhotos.some(function(p) { return p.question === globalIdx; });
+    
+    var isLastInPhase = (examPhaseQuestionIndex === total - 1);
+    var isLastPhase = (examPhaseIndex === examPhases.length - 1);
+    var nextBtnText = isLastInPhase ? (isLastPhase ? 'Finish Exam' : 'Next Section') : 'Next Question';
+    
+    if (isWritten) {
+        document.getElementById('quiz-container').innerHTML = `
+            <h2 class="section-title">${examPhaseLabels[phase]}</h2>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                <span style="color: #E94560; font-size: 13px; font-weight: bold;">${examPhaseLabels[phase]}</span>
+                <span style="color: #888; font-size: 12px;">Section ${examPhaseIndex + 1}/5</span>
+            </div>
+            <div class="progress-container">
+                <div class="progress-bar" style="width: ${(examPhaseQuestionIndex / total) * 100}%"></div>
+            </div>
+            <div class="progress-text">Question ${examPhaseQuestionIndex + 1} of ${total}</div>
             
-            <div style="margin: 15px 0 10px; padding: 10px 15px; background: rgba(33,150,243,0.1); border-radius: 8px; border: 1px solid rgba(33,150,243,0.3); display: flex; justify-content: space-between; align-items: center;">
-                <span style="color: #aaa; font-size: 13px;">Select an option below <strong style="color:#fff;">OR</strong> submit your answer on paper</span>
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <button onclick="captureExamPhoto()" style="background: linear-gradient(135deg, #2196F3, #1565C0); color: #fff; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 13px;">
-                        📷 Photo Answer
+            <div class="question-card" style="border-left: 4px solid #FF9800;">
+                <div class="question-number" style="color: #FF9800;">Question ${examPhaseQuestionIndex + 1} (${phase === 'long' ? 'Long Answer' : phase === 'short' ? 'Short Answer' : 'Very Short Answer'})</div>
+                <div class="question-text" style="font-size: 17px; line-height: 1.6; margin-bottom: 20px;">${question.q}</div>
+                
+                <div style="background: rgba(255,152,0,0.1); border: 2px dashed rgba(255,152,0,0.4); border-radius: 12px; padding: 25px; text-align: center; margin: 15px 0;">
+                    <p style="color: #FF9800; font-size: 15px; margin-bottom: 15px; font-weight: bold;">Write your answer on paper</p>
+                    <p style="color: #aaa; font-size: 13px; margin-bottom: 20px;">Then take a photo of your handwritten work</p>
+                    <button onclick="captureExamPhoto()" style="background: linear-gradient(135deg, #FF9800, #F57C00); color: #fff; border: none; padding: 14px 28px; border-radius: 10px; cursor: pointer; font-size: 15px; font-weight: bold;">
+                        📷 Take Photo of Your Answer
                     </button>
-                    <span id="photo-status" style="color: #4CAF50; font-size: 12px;">${hasPhoto ? 'Photo Attached' : ''}</span>
+                    <div id="photo-status" style="color: #4CAF50; font-size: 14px; margin-top: 12px; font-weight: bold;">${hasPhoto ? 'Photo Attached' : ''}</div>
                 </div>
             </div>
             
-            <div class="options">
-                ${question.options.map((opt, i) => `
-                    <div class="option" onclick="selectOption(${i})" id="option-${i}">
-                        ${String.fromCharCode(65 + i)}. ${opt}
-                    </div>
-                `).join('')}
+            <div class="btn-group">
+                <button class="btn btn-primary" onclick="submitAnswer()" id="submit-btn" ${hasPhoto ? '' : 'disabled'}>
+                    ${nextBtnText}
+                </button>
             </div>
-        </div>
-        
-        <div class="btn-group">
-            <button class="btn btn-primary" onclick="submitAnswer()" id="submit-btn" disabled>
-                ${appState.currentQuestion === total - 1 ? 'Finish Quiz' : 'Next Question'}
-            </button>
-        </div>
-    `;
+        `;
+    } else {
+        document.getElementById('quiz-container').innerHTML = `
+            <h2 class="section-title">${examPhaseLabels[phase]}</h2>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                <span style="color: #4CAF50; font-size: 13px; font-weight: bold;">${examPhaseLabels[phase]}</span>
+                <span style="color: #888; font-size: 12px;">Section ${examPhaseIndex + 1}/5</span>
+            </div>
+            <div class="progress-container">
+                <div class="progress-bar" style="width: ${(examPhaseQuestionIndex / total) * 100}%"></div>
+            </div>
+            <div class="progress-text">Question ${examPhaseQuestionIndex + 1} of ${total}</div>
+            
+            <div class="question-card">
+                <div class="question-number">Question ${examPhaseQuestionIndex + 1} (${phase === 'mcq' ? 'MCQ' : 'Case-Based'})</div>
+                <div class="question-text">${question.q}</div>
+                
+                <div style="margin: 15px 0 10px; padding: 10px 15px; background: rgba(33,150,243,0.1); border-radius: 8px; border: 1px solid rgba(33,150,243,0.3); display: flex; justify-content: space-between; align-items: center;">
+                    <span style="color: #aaa; font-size: 13px;">Select an option below <strong style="color:#fff;">OR</strong> submit your answer on paper</span>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <button onclick="captureExamPhoto()" style="background: linear-gradient(135deg, #2196F3, #1565C0); color: #fff; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 13px;">
+                            📷 Photo Answer
+                        </button>
+                        <span id="photo-status" style="color: #4CAF50; font-size: 12px;">${hasPhoto ? 'Photo Attached' : ''}</span>
+                    </div>
+                </div>
+                
+                <div class="options">
+                    ${question.options.map((opt, i) => `
+                        <div class="option" onclick="selectOption(${i})" id="option-${i}">
+                            ${String.fromCharCode(65 + i)}. ${opt}
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+            
+            <div class="btn-group">
+                <button class="btn btn-primary" onclick="submitAnswer()" id="submit-btn" disabled>
+                    ${nextBtnText}
+                </button>
+            </div>
+        `;
+    }
 }
 
 let selectedOption = null;
@@ -5378,20 +5485,33 @@ function selectOption(index) {
 }
 
 function submitAnswer() {
-    const quiz = appState.currentQuiz;
-    const question = quiz.questions[appState.currentQuestion];
+    var quiz = appState.currentQuiz;
+    var phase = examPhases[examPhaseIndex];
+    var phaseQuestions = getExamPhaseQuestions(quiz)[phase];
+    var question = phaseQuestions[examPhaseQuestionIndex];
+    var isWritten = (phase === 'veryShort' || phase === 'short' || phase === 'long');
     
-    appState.answers.push({ selected: selectedOption, correct: question.answer, question: question.q, options: question.options });
-    if (selectedOption === question.answer) {
+    if (isWritten) {
+        appState.answers.push({ selected: -1, correct: question.answer, question: question.q, options: question.options || [], type: phase, photoSubmitted: true });
         appState.score++;
+    } else {
+        appState.answers.push({ selected: selectedOption, correct: question.answer, question: question.q, options: question.options, type: phase });
+        if (selectedOption === question.answer) {
+            appState.score++;
+        }
     }
     
-    appState.currentQuestion++;
+    examPhaseQuestionIndex++;
     selectedOption = null;
     
-    if (appState.currentQuestion >= quiz.questions.length) {
-        submitExamToBackend();
-        showQuizResult();
+    if (examPhaseQuestionIndex >= phaseQuestions.length) {
+        examPhaseIndex++;
+        if (examPhaseIndex >= examPhases.length) {
+            submitExamToBackend();
+            showQuizResult();
+        } else {
+            showExamPhaseIntro();
+        }
     } else {
         renderQuizQuestion();
     }
@@ -5467,22 +5587,39 @@ function showAnswerReview() {
     var reviewHtml = '<h2 style="color: #E94560; margin-bottom: 20px;">Answer Review - Chapter ' + quiz.number + ': ' + quiz.title + '</h2>';
     reviewHtml += '<p style="color: #aaa; margin-bottom: 15px;">Score: ' + appState.score + '/' + answers.length + '</p>';
     
+    var typeLabels = { mcq: 'MCQ', caseBased: 'Case-Based', veryShort: 'Very Short Answer', short: 'Short Answer', long: 'Long Answer' };
+    var lastType = '';
+    
     for (var i = 0; i < answers.length; i++) {
         var a = answers[i];
-        var isCorrect = a.selected === a.correct;
-        var borderColor = isCorrect ? '#4CAF50' : '#f44336';
-        reviewHtml += '<div style="padding: 15px; margin-bottom: 12px; background: rgba(255,255,255,0.05); border-left: 4px solid ' + borderColor + '; border-radius: 8px;">';
-        reviewHtml += '<div style="font-weight: bold; color: #fff; margin-bottom: 8px;">Q' + (i + 1) + '. ' + a.question + '</div>';
-        for (var j = 0; j < a.options.length; j++) {
-            var optColor = '#aaa';
-            var optBg = 'transparent';
-            var optLabel = '';
-            if (j === a.correct) { optColor = '#4CAF50'; optBg = 'rgba(76, 175, 80, 0.15)'; optLabel = ' (Correct)'; }
-            if (j === a.selected && !isCorrect) { optColor = '#f44336'; optBg = 'rgba(244, 67, 54, 0.15)'; optLabel = ' (Your Answer)'; }
-            if (j === a.selected && isCorrect) { optLabel = ' (Your Answer)'; }
-            reviewHtml += '<div style="padding: 8px 12px; margin: 4px 0; border-radius: 5px; color: ' + optColor + '; background: ' + optBg + ';">' + String.fromCharCode(65 + j) + '. ' + a.options[j] + optLabel + '</div>';
+        var qType = a.type || 'mcq';
+        if (qType !== lastType) {
+            var sectionLabel = typeLabels[qType] || qType;
+            reviewHtml += '<h3 style="color: #FF9800; margin: 25px 0 10px; border-bottom: 1px solid rgba(255,152,0,0.3); padding-bottom: 8px;">' + sectionLabel + '</h3>';
+            lastType = qType;
         }
-        reviewHtml += '</div>';
+        var isWritten = (qType === 'veryShort' || qType === 'short' || qType === 'long');
+        if (isWritten) {
+            reviewHtml += '<div style="padding: 15px; margin-bottom: 12px; background: rgba(255,255,255,0.05); border-left: 4px solid #FF9800; border-radius: 8px;">';
+            reviewHtml += '<div style="font-weight: bold; color: #fff; margin-bottom: 8px;">Q' + (i + 1) + '. ' + a.question + '</div>';
+            reviewHtml += '<div style="padding: 10px; background: rgba(255,152,0,0.1); border-radius: 6px; color: #FF9800;">Photo Answer Submitted</div>';
+            reviewHtml += '</div>';
+        } else {
+            var isCorrect = a.selected === a.correct;
+            var borderColor = isCorrect ? '#4CAF50' : '#f44336';
+            reviewHtml += '<div style="padding: 15px; margin-bottom: 12px; background: rgba(255,255,255,0.05); border-left: 4px solid ' + borderColor + '; border-radius: 8px;">';
+            reviewHtml += '<div style="font-weight: bold; color: #fff; margin-bottom: 8px;">Q' + (i + 1) + '. ' + a.question + '</div>';
+            for (var j = 0; j < a.options.length; j++) {
+                var optColor = '#aaa';
+                var optBg = 'transparent';
+                var optLabel = '';
+                if (j === a.correct) { optColor = '#4CAF50'; optBg = 'rgba(76, 175, 80, 0.15)'; optLabel = ' (Correct)'; }
+                if (j === a.selected && !isCorrect) { optColor = '#f44336'; optBg = 'rgba(244, 67, 54, 0.15)'; optLabel = ' (Your Answer)'; }
+                if (j === a.selected && isCorrect) { optLabel = ' (Your Answer)'; }
+                reviewHtml += '<div style="padding: 8px 12px; margin: 4px 0; border-radius: 5px; color: ' + optColor + '; background: ' + optBg + ';">' + String.fromCharCode(65 + j) + '. ' + a.options[j] + optLabel + '</div>';
+            }
+            reviewHtml += '</div>';
+        }
     }
     
     reviewHtml += '<div style="text-align: center; margin-top: 20px;"><button onclick="closeAnswerReview()" style="background: #E94560; color: #fff; border: none; padding: 12px 30px; border-radius: 8px; cursor: pointer; font-size: 15px;">Close Review</button></div>';

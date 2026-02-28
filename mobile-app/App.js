@@ -5415,6 +5415,20 @@ export default function App() {
   const [examPhotos, setExamPhotos] = useState([]);
   const [examAnswerLog, setExamAnswerLog] = useState([]);
   const [showAnswerReview, setShowAnswerReview] = useState(false);
+  const [examPhaseIndex, setExamPhaseIndex] = useState(0);
+  const [examPhaseQuestionIndex, setExamPhaseQuestionIndex] = useState(0);
+  const [showPhaseIntro, setShowPhaseIntro] = useState(false);
+
+  const examPhasesList = ['mcq', 'caseBased', 'veryShort', 'short', 'long'];
+  const examPhaseLabels = { mcq: 'Section A: MCQ', caseBased: 'Section B: Case-Based', veryShort: 'Section C: Very Short Answer', short: 'Section D: Short Answer', long: 'Section E: Long Answer' };
+  const examPhaseDescs = { mcq: 'Select the correct option.', caseBased: 'Read the scenario and select the correct option.', veryShort: 'Write answer on paper and take a photo.', short: 'Write answer on paper and take a photo.', long: 'Write a detailed answer on paper and take a photo.' };
+
+  const getPhaseQuestions = (ch) => {
+    if (!ch || !ch.questions) return { mcq: [], caseBased: [], veryShort: [], short: [], long: [] };
+    const qs = ch.questions;
+    const pg = Math.floor(qs.length / 5);
+    return { mcq: qs.slice(0, pg), caseBased: qs.slice(pg, pg*2), veryShort: qs.slice(pg*2, pg*3), short: qs.slice(pg*3, pg*4), long: qs.slice(pg*4) };
+  };
 
   // Auth state
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -6638,6 +6652,11 @@ export default function App() {
     setScore(0);
     setSelectedOption(null);
     setIsFinalExam(false);
+    setExamPhaseIndex(0);
+    setExamPhaseQuestionIndex(0);
+    setShowPhaseIntro(true);
+    setExamPhotos([]);
+    setExamAnswerLog([]);
     setScreen('quiz');
   };
 
@@ -6836,7 +6855,7 @@ export default function App() {
   const startQuiz = () => {
     Alert.alert(
       'Camera, Microphone & Screen Permission Required',
-      'GANITA PRAKASH needs access to your camera, microphone, and screen during the exam to ensure fair assessment.\n\nIMPORTANT RULES:\n\n1. Your camera, microphone & screen will be monitored\n2. If you leave the app, your exam will be auto-submitted\n3. Any cheating will result in automatic submission\n4. You have limited time to complete\n5. Make sure you are in a quiet, well-lit place\n\nBy clicking "Allow & Start", you agree to camera, microphone & screen monitoring.',
+      'GANITA PRAKASH needs access to your camera, microphone, and screen during the exam.\n\nEXAM FORMAT:\n- Section A: MCQ (Select option)\n- Section B: Case-Based (Select option)\n- Section C: Very Short Answer (Write + Photo)\n- Section D: Short Answer (Write + Photo)\n- Section E: Long Answer (Write + Photo)\n\nBy clicking "Allow & Start", you agree to monitoring.',
       [
         { text: 'Cancel', style: 'cancel' },
         { 
@@ -6853,6 +6872,11 @@ export default function App() {
                 setScore(0);
                 setSelectedOption(null);
                 setIsFinalExam(false);
+                setExamPhaseIndex(0);
+                setExamPhaseQuestionIndex(0);
+                setShowPhaseIntro(true);
+                setExamPhotos([]);
+                setExamAnswerLog([]);
                 setScreen('quiz');
               }}]
             );
@@ -6904,17 +6928,19 @@ export default function App() {
   };
 
   const captureExamPhoto = async () => {
+    const phase = isFinalExam ? 'finalMcq' : examPhasesList[examPhaseIndex];
+    const qIdx = isFinalExam ? currentQuestion : examPhaseQuestionIndex;
     try {
       const result = await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.7 });
       if (!result.canceled && result.assets && result.assets[0]) {
-        setExamPhotos([...examPhotos, { question: currentQuestion, photo: result.assets[0].uri }]);
+        setExamPhotos([...examPhotos, { question: qIdx, phase: phase, photo: result.assets[0].uri }]);
         Alert.alert('Photo Attached', 'Your paper answer photo has been attached to this question.');
       }
     } catch (e) {
       try {
         const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.7 });
         if (!result.canceled && result.assets && result.assets[0]) {
-          setExamPhotos([...examPhotos, { question: currentQuestion, photo: result.assets[0].uri }]);
+          setExamPhotos([...examPhotos, { question: qIdx, phase: phase, photo: result.assets[0].uri }]);
           Alert.alert('Photo Attached', 'Your paper answer photo has been attached.');
         }
       } catch (e2) { console.log('Photo capture error:', e2); }
@@ -6939,30 +6965,62 @@ export default function App() {
   };
 
   const submitAnswer = () => {
-    const questions = isFinalExam ? finalExamMCQ : currentChapter.questions;
-    const question = questions[currentQuestion];
-    
-    const newLog = [...examAnswerLog, { selected: selectedOption, correct: question.answer, question: question.q, options: question.options }];
-    setExamAnswerLog(newLog);
-
-    let newScore = score;
-    if (selectedOption === question.answer) {
-      newScore = score + (isFinalExam ? 2 : 1);
-      setScore(newScore);
-    }
-
-    if (currentQuestion + 1 >= questions.length) {
-      if (isFinalExam) {
+    if (isFinalExam) {
+      const questions = finalExamMCQ;
+      const question = questions[currentQuestion];
+      const newLog = [...examAnswerLog, { selected: selectedOption, correct: question.answer, question: question.q, options: question.options }];
+      setExamAnswerLog(newLog);
+      let newScore = score;
+      if (selectedOption === question.answer) {
+        newScore = score + 2;
+        setScore(newScore);
+      }
+      if (currentQuestion + 1 >= questions.length) {
         setMcqScore(newScore);
         setExamPhase('penPaper');
         setCurrentQuestion(0);
         setSelectedOption(null);
       } else {
-        submitExamToBackend(newScore, questions.length);
-        showResults(newScore, questions.length);
+        setCurrentQuestion(currentQuestion + 1);
+        setSelectedOption(null);
+      }
+      return;
+    }
+
+    const phase = examPhasesList[examPhaseIndex];
+    const phaseQs = getPhaseQuestions(currentChapter)[phase];
+    const question = phaseQs[examPhaseQuestionIndex];
+    const isWritten = (phase === 'veryShort' || phase === 'short' || phase === 'long');
+
+    let newScore = score;
+    if (isWritten) {
+      newScore = score + 1;
+      setScore(newScore);
+      const newLog = [...examAnswerLog, { selected: -1, correct: question.answer, question: question.q, options: question.options || [], type: phase, photoSubmitted: true }];
+      setExamAnswerLog(newLog);
+    } else {
+      if (selectedOption === question.answer) {
+        newScore = score + 1;
+        setScore(newScore);
+      }
+      const newLog = [...examAnswerLog, { selected: selectedOption, correct: question.answer, question: question.q, options: question.options, type: phase }];
+      setExamAnswerLog(newLog);
+    }
+
+    const nextQIdx = examPhaseQuestionIndex + 1;
+    if (nextQIdx >= phaseQs.length) {
+      const nextPhaseIdx = examPhaseIndex + 1;
+      if (nextPhaseIdx >= examPhasesList.length) {
+        submitExamToBackend(newScore, currentChapter.questions.length);
+        showResults(newScore, currentChapter.questions.length);
+      } else {
+        setExamPhaseIndex(nextPhaseIdx);
+        setExamPhaseQuestionIndex(0);
+        setSelectedOption(null);
+        setShowPhaseIntro(true);
       }
     } else {
-      setCurrentQuestion(currentQuestion + 1);
+      setExamPhaseQuestionIndex(nextQIdx);
       setSelectedOption(null);
     }
   };
@@ -7534,23 +7592,13 @@ export default function App() {
         <ScrollView style={styles.container}>
           <Text style={styles.sectionTitle}>Final Exam - Pen and Paper Section</Text>
           <Text style={styles.examInfo}>MCQ Score: {mcqScore}/50 | Pen-Paper: 50 marks (5 questions x 10 marks)</Text>
-
           {finalExamPenPaper.map((question, index) => (
             <View key={index} style={styles.questionCard}>
               <Text style={styles.questionNumber}>Question {index + 1} ({question.marks} marks)</Text>
               <Text style={styles.questionText}>{question.q}</Text>
-              <TextInput
-                style={styles.textArea}
-                multiline
-                numberOfLines={4}
-                placeholder="Write your answer here..."
-                placeholderTextColor="#888"
-                value={penPaperAnswers[index] || ''}
-                onChangeText={(text) => submitPenPaperAnswer(index, text)}
-              />
+              <TextInput style={styles.textArea} multiline numberOfLines={4} placeholder="Write your answer here..." placeholderTextColor="#888" value={penPaperAnswers[index] || ''} onChangeText={(text) => submitPenPaperAnswer(index, text)} />
             </View>
           ))}
-
           <TouchableOpacity style={styles.primaryBtn} onPress={submitFinalExam}>
             <Text style={styles.primaryBtnText}>Submit Final Exam</Text>
           </TouchableOpacity>
@@ -7559,57 +7607,139 @@ export default function App() {
       );
     }
 
-    const questions = isFinalExam ? finalExamMCQ : currentChapter.questions;
-    const question = questions[currentQuestion];
-    const total = questions.length;
+    if (isFinalExam) {
+      const questions = finalExamMCQ;
+      const question = questions[currentQuestion];
+      const total = questions.length;
+      const hasPhoto = examPhotos.some(p => p.question === currentQuestion);
+      return (
+        <View ref={screenViewRef} collapsable={false} style={{flex: 1}}>
+        <ScrollView style={styles.container}>
+          <Text style={styles.sectionTitle}>Final Exam - MCQ Section (25 x 2 = 50 marks)</Text>
+          <View style={styles.progressContainer}>
+            <View style={[styles.progressBar, { width: ((currentQuestion / total) * 100) + '%' }]} />
+          </View>
+          <Text style={styles.progressText}>Question {currentQuestion + 1} of {total}</Text>
+          <View style={styles.questionCard}>
+            <Text style={styles.questionNumber}>Question {currentQuestion + 1} (2 marks)</Text>
+            <Text style={styles.questionText}>{question.q}</Text>
+            <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(33,150,243,0.1)', padding: 10, borderRadius: 8, marginVertical: 10, borderWidth: 1, borderColor: 'rgba(33,150,243,0.3)'}}>
+              <Text style={{color: '#aaa', fontSize: 12, flex: 1}}>Select option OR submit on paper</Text>
+              <TouchableOpacity onPress={captureExamPhoto} style={{backgroundColor: '#2196F3', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8}}>
+                <Text style={{color: '#fff', fontSize: 13}}>📷 Photo</Text>
+              </TouchableOpacity>
+              {hasPhoto && <Text style={{color: '#4CAF50', fontSize: 11, marginLeft: 6}}>Attached</Text>}
+            </View>
+            {question.options.map((option, idx) => (
+              <TouchableOpacity key={idx} style={[styles.option, selectedOption === idx && styles.optionSelected]} onPress={() => selectOption(idx)}>
+                <Text style={styles.optionText}>{String.fromCharCode(65 + idx)}. {option}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <TouchableOpacity style={[styles.primaryBtn, (selectedOption === null && !hasPhoto) && styles.btnDisabled]} onPress={submitAnswer} disabled={selectedOption === null && !hasPhoto}>
+            <Text style={styles.primaryBtnText}>{currentQuestion === total - 1 ? 'Next: Pen-Paper Section' : 'Next Question'}</Text>
+          </TouchableOpacity>
+        </ScrollView>
+        </View>
+      );
+    }
 
-    const hasPhoto = examPhotos.some(p => p.question === currentQuestion);
+    const phase = examPhasesList[examPhaseIndex];
+    const phaseQs = getPhaseQuestions(currentChapter)[phase];
+    const isWritten = (phase === 'veryShort' || phase === 'short' || phase === 'long');
+
+    if (showPhaseIntro) {
+      return (
+        <View ref={screenViewRef} collapsable={false} style={{flex: 1}}>
+        <ScrollView style={styles.container} contentContainerStyle={{alignItems: 'center', paddingVertical: 40}}>
+          <Text style={{fontSize: 50, marginBottom: 15}}>{isWritten ? '📝' : '📋'}</Text>
+          <Text style={{color: '#E94560', fontSize: 22, fontWeight: 'bold', marginBottom: 10}}>{examPhaseLabels[phase]}</Text>
+          <Text style={{color: '#aaa', fontSize: 14, marginBottom: 10, textAlign: 'center', paddingHorizontal: 20}}>{examPhaseDescs[phase]}</Text>
+          <Text style={{color: '#fff', fontSize: 16, fontWeight: 'bold', marginBottom: 5}}>{phaseQs.length} Questions</Text>
+          {isWritten ? (
+            <Text style={{color: '#2196F3', fontSize: 14, marginBottom: 20, textAlign: 'center', paddingHorizontal: 30}}>Write your answer on paper, then use the camera to take a photo of your work.</Text>
+          ) : (
+            <Text style={{color: '#4CAF50', fontSize: 14, marginBottom: 20, textAlign: 'center'}}>Select the correct answer from the given options.</Text>
+          )}
+          <View style={{backgroundColor: 'rgba(255,255,255,0.05)', padding: 15, borderRadius: 10, marginBottom: 15}}>
+            <Text style={{fontSize: 13, color: '#888'}}>Section {examPhaseIndex + 1} of 5</Text>
+          </View>
+          <TouchableOpacity style={styles.primaryBtn} onPress={() => { setShowPhaseIntro(false); setExamPhaseQuestionIndex(0); }}>
+            <Text style={styles.primaryBtnText}>Start {examPhaseLabels[phase]}</Text>
+          </TouchableOpacity>
+        </ScrollView>
+        </View>
+      );
+    }
+
+    const question = phaseQs[examPhaseQuestionIndex];
+    const total = phaseQs.length;
+    const hasPhoto = examPhotos.some(p => p.question === examPhaseQuestionIndex && p.phase === phase);
+    const isLastInPhase = (examPhaseQuestionIndex === total - 1);
+    const isLastPhase = (examPhaseIndex === examPhasesList.length - 1);
+    const nextBtnText = isLastInPhase ? (isLastPhase ? 'Finish Exam' : 'Next Section') : 'Next Question';
+
+    if (isWritten) {
+      return (
+        <View ref={screenViewRef} collapsable={false} style={{flex: 1}}>
+        <ScrollView style={styles.container}>
+          <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10}}>
+            <Text style={{color: '#FF9800', fontSize: 13, fontWeight: 'bold'}}>{examPhaseLabels[phase]}</Text>
+            <Text style={{color: '#888', fontSize: 12}}>Section {examPhaseIndex + 1}/5</Text>
+          </View>
+          <View style={styles.progressContainer}>
+            <View style={[styles.progressBar, { width: ((examPhaseQuestionIndex / total) * 100) + '%', backgroundColor: '#FF9800' }]} />
+          </View>
+          <Text style={styles.progressText}>Question {examPhaseQuestionIndex + 1} of {total}</Text>
+          <View style={[styles.questionCard, {borderLeftWidth: 4, borderLeftColor: '#FF9800'}]}>
+            <Text style={[styles.questionNumber, {color: '#FF9800'}]}>Question {examPhaseQuestionIndex + 1} ({phase === 'long' ? 'Long Answer' : phase === 'short' ? 'Short Answer' : 'Very Short Answer'})</Text>
+            <Text style={[styles.questionText, {fontSize: 17, lineHeight: 26, marginBottom: 20}]}>{question.q}</Text>
+            <View style={{backgroundColor: 'rgba(255,152,0,0.1)', borderWidth: 2, borderStyle: 'dashed', borderColor: 'rgba(255,152,0,0.4)', borderRadius: 12, padding: 25, alignItems: 'center', marginVertical: 15}}>
+              <Text style={{color: '#FF9800', fontSize: 15, fontWeight: 'bold', marginBottom: 15}}>Write your answer on paper</Text>
+              <Text style={{color: '#aaa', fontSize: 13, marginBottom: 20}}>Then take a photo of your handwritten work</Text>
+              <TouchableOpacity onPress={captureExamPhoto} style={{backgroundColor: '#FF9800', paddingHorizontal: 28, paddingVertical: 14, borderRadius: 10}}>
+                <Text style={{color: '#fff', fontSize: 15, fontWeight: 'bold'}}>📷 Take Photo of Your Answer</Text>
+              </TouchableOpacity>
+              {hasPhoto && <Text style={{color: '#4CAF50', fontSize: 14, fontWeight: 'bold', marginTop: 12}}>Photo Attached</Text>}
+            </View>
+          </View>
+          <TouchableOpacity style={[styles.primaryBtn, !hasPhoto && styles.btnDisabled]} onPress={submitAnswer} disabled={!hasPhoto}>
+            <Text style={styles.primaryBtnText}>{nextBtnText}</Text>
+          </TouchableOpacity>
+        </ScrollView>
+        </View>
+      );
+    }
 
     return (
       <View ref={screenViewRef} collapsable={false} style={{flex: 1}}>
       <ScrollView style={styles.container}>
-        <Text style={styles.sectionTitle}>
-          {isFinalExam ? 'Final Exam - MCQ Section (25 x 2 = 50 marks)' : 'Chapter ' + currentChapter.number + ' Quiz'}
-        </Text>
-
-        <View style={styles.progressContainer}>
-          <View style={[styles.progressBar, { width: ((currentQuestion / total) * 100) + '%' }]} />
+        <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10}}>
+          <Text style={{color: '#4CAF50', fontSize: 13, fontWeight: 'bold'}}>{examPhaseLabels[phase]}</Text>
+          <Text style={{color: '#888', fontSize: 12}}>Section {examPhaseIndex + 1}/5</Text>
         </View>
-        <Text style={styles.progressText}>Question {currentQuestion + 1} of {total}</Text>
-
+        <View style={styles.progressContainer}>
+          <View style={[styles.progressBar, { width: ((examPhaseQuestionIndex / total) * 100) + '%' }]} />
+        </View>
+        <Text style={styles.progressText}>Question {examPhaseQuestionIndex + 1} of {total}</Text>
         <View style={styles.questionCard}>
-          <Text style={styles.questionNumber}>
-            Question {currentQuestion + 1} {isFinalExam ? '(2 marks)' : ''}
-          </Text>
+          <Text style={styles.questionNumber}>Question {examPhaseQuestionIndex + 1} ({phase === 'mcq' ? 'MCQ' : 'Case-Based'})</Text>
           <Text style={styles.questionText}>{question.q}</Text>
-
           <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(33,150,243,0.1)', padding: 10, borderRadius: 8, marginVertical: 10, borderWidth: 1, borderColor: 'rgba(33,150,243,0.3)'}}>
-            <Text style={{color: '#aaa', fontSize: 12, flex: 1}}>Select option below <Text style={{color: '#fff', fontWeight: 'bold'}}>OR</Text> submit on paper</Text>
-            <TouchableOpacity onPress={captureExamPhoto} style={{backgroundColor: '#2196F3', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 4}}>
+            <Text style={{color: '#aaa', fontSize: 12, flex: 1}}>Select option <Text style={{color: '#fff', fontWeight: 'bold'}}>OR</Text> submit on paper</Text>
+            <TouchableOpacity onPress={captureExamPhoto} style={{backgroundColor: '#2196F3', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8}}>
               <Text style={{color: '#fff', fontSize: 13}}>📷 Photo</Text>
             </TouchableOpacity>
             {hasPhoto && <Text style={{color: '#4CAF50', fontSize: 11, marginLeft: 6}}>Attached</Text>}
           </View>
-
-          {question.options.map((option, index) => (
-            <TouchableOpacity
-              key={index}
-              style={[styles.option, selectedOption === index && styles.optionSelected]}
-              onPress={() => selectOption(index)}
-            >
-              <Text style={styles.optionText}>{String.fromCharCode(65 + index)}. {option}</Text>
+          {question.options.map((option, idx) => (
+            <TouchableOpacity key={idx} style={[styles.option, selectedOption === idx && styles.optionSelected]} onPress={() => selectOption(idx)}>
+              <Text style={styles.optionText}>{String.fromCharCode(65 + idx)}. {option}</Text>
             </TouchableOpacity>
           ))}
         </View>
-
-        <TouchableOpacity
-          style={[styles.primaryBtn, (selectedOption === null && !hasPhoto) && styles.btnDisabled]}
-          onPress={submitAnswer}
-          disabled={selectedOption === null && !hasPhoto}
-        >
-          <Text style={styles.primaryBtnText}>
-            {currentQuestion === total - 1 ? (isFinalExam ? 'Next: Pen-Paper Section' : 'Finish') : 'Next Question'}
-          </Text>
+        <TouchableOpacity style={[styles.primaryBtn, (selectedOption === null && !hasPhoto) && styles.btnDisabled]} onPress={submitAnswer} disabled={selectedOption === null && !hasPhoto}>
+          <Text style={styles.primaryBtnText}>{nextBtnText}</Text>
         </TouchableOpacity>
       </ScrollView>
       </View>
