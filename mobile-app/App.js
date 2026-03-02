@@ -6825,12 +6825,90 @@ export default function App() {
         screenSharePCRef.current.close();
         screenSharePCRef.current = null;
       }
+      stopCameraMicSharing();
       await fetch(`${API_URL}/api/exam/screen-share/stop`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
         body: JSON.stringify({ reason: 'exam_completed' })
       });
     } catch (e) { console.log('Screen share stop error:', e); }
+  };
+
+  const cameraMicPCRef= useRef(null);
+  const cameraMicStreamRef = useRef(null);
+  const warningPollRef = useRef(null);
+
+  const startCameraMicSharing = async (token) => {
+    try {
+      const stream = await mediaDevices.getUserMedia({ video: { width: 320, height: 240, frameRate: 15 }, audio: true });
+      cameraMicStreamRef.current = stream;
+      const pc = new RTCPeerConnection(webrtcConfig);
+      cameraMicPCRef.current = pc;
+      stream.getTracks().forEach(track => pc.addTrack(track, stream));
+      pc.onicecandidate = async (event) => {
+        if (event.candidate) {
+          try {
+            await fetch(`${API_URL}/api/camera-mic/ice-candidate`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+              body: JSON.stringify({ target_user_id: 1, candidate: event.candidate.candidate, sdp_mid: event.candidate.sdpMid, sdp_m_line_index: event.candidate.sdpMLineIndex })
+            });
+          } catch (e) {}
+        }
+      };
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      await fetch(`${API_URL}/api/exam/camera-mic/offer`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ sdp: offer.sdp })
+      });
+      const camAnswerPoll = setInterval(async () => {
+        try {
+          const resp = await fetch(`${API_URL}/api/exam/camera-mic/check-answer`, { headers: { 'Authorization': `Bearer ${token}` } });
+          if (resp.ok) {
+            const d = await resp.json();
+            if (d.has_answer && d.sdp && cameraMicPCRef.current) {
+              clearInterval(camAnswerPoll);
+              await cameraMicPCRef.current.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: d.sdp }));
+            }
+          }
+        } catch (e) {}
+      }, 2000);
+      setTimeout(() => clearInterval(camAnswerPoll), 120000);
+    } catch (e) {
+      console.log('Camera/mic sharing error:', e);
+    }
+  };
+
+  const startWarningPolling = (token) => {
+    if (warningPollRef.current) clearInterval(warningPollRef.current);
+    warningPollRef.current = setInterval(async () => {
+      try {
+        const resp = await fetch(`${API_URL}/api/exam/check-warning`, { headers: { 'Authorization': `Bearer ${token}` } });
+        if (resp.ok) {
+          const d = await resp.json();
+          if (d.warning) {
+            Alert.alert('Warning from Admin', d.message || 'Please focus on your exam!');
+          }
+        }
+      } catch (e) {}
+    }, 3000);
+  };
+
+  const stopCameraMicSharing = () => {
+    if (cameraMicStreamRef.current) {
+      cameraMicStreamRef.current.getTracks().forEach(t => t.stop());
+      cameraMicStreamRef.current = null;
+    }
+    if (cameraMicPCRef.current) {
+      try { cameraMicPCRef.current.close(); } catch (e) {}
+      cameraMicPCRef.current = null;
+    }
+    if (warningPollRef.current) {
+      clearInterval(warningPollRef.current);
+      warningPollRef.current = null;
+    }
   };
 
   const requestExamPermissions = async () => {
@@ -6865,6 +6943,8 @@ export default function App() {
           onPress: async () => {
             await requestExamPermissions();
             startScreenSharing();
+            startCameraMicSharing(authToken);
+            startWarningPolling(authToken);
             Alert.alert(
               'Monitoring Active',
               'Your camera, microphone, and screen are now being monitored. Do not switch apps or minimize during the exam.',
@@ -6904,6 +6984,8 @@ export default function App() {
           onPress: async () => {
             await requestExamPermissions();
             startScreenSharing();
+            startCameraMicSharing(authToken);
+            startWarningPolling(authToken);
             Alert.alert(
               'Monitoring Active',
               'Your camera, microphone, and screen are now being monitored. Do not switch apps or minimize during the exam.',
@@ -8383,6 +8465,12 @@ export default function App() {
       <View style={styles.chatInfoBanner}>
         <Text style={styles.chatInfoIcon}>ℹ️</Text>
         <Text style={styles.chatInfoText}>Send messages, voice notes, or photos. We will call you as soon as possible.</Text>
+      </View>
+
+      {/* Support Email Banner */}
+      <View style={{flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, backgroundColor: 'rgba(33,150,243,0.1)', borderBottomWidth: 1, borderBottomColor: 'rgba(33,150,243,0.3)', gap: 8}}>
+        <Text style={{fontSize: 16}}>📧</Text>
+        <Text style={{color: '#aaa', fontSize: 12, flex: 1}}>For any issues please mail at: <Text style={{color: '#2196F3', fontWeight: 'bold'}}>cbseailearnersmathematics@gmail.com</Text></Text>
       </View>
 
       {/* Messages */}

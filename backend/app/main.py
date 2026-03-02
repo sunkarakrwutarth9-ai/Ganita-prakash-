@@ -1500,6 +1500,94 @@ async def ai_review_exam(submission_id: int, user: dict = Depends(get_current_us
             pass
         return {"review": f"You scored {paper['score']}/{paper['total']}. Keep practicing the topics you found difficult!"}
 
+# Camera+Mic WebRTC signaling for exam monitoring
+camera_mic_offers: Dict[int, dict] = {}
+camera_mic_ice_candidates: Dict[int, List[dict]] = {}
+
+class CameraMicOffer(BaseModel):
+    sdp: str
+
+class CameraMicAnswer(BaseModel):
+    user_id: int
+    sdp: str
+
+class CameraMicICE(BaseModel):
+    target_user_id: int
+    candidate: str
+    sdp_mid: Optional[str] = None
+    sdp_m_line_index: Optional[int] = None
+
+@app.post("/api/exam/camera-mic/offer")
+async def camera_mic_offer(data: CameraMicOffer, user: dict = Depends(get_current_user)):
+    camera_mic_offers[user["id"]] = {
+        "user_id": user["id"],
+        "user_name": user["name"],
+        "sdp": data.sdp,
+        "status": "pending",
+        "created_at": datetime.utcnow().isoformat()
+    }
+    return {"status": "success"}
+
+@app.get("/api/admin/camera-mic-offers")
+async def get_camera_mic_offers(admin: dict = Depends(get_admin_user)):
+    offers = [o for o in camera_mic_offers.values() if o["status"] == "pending"]
+    return {"offers": offers}
+
+@app.post("/api/admin/camera-mic-answer")
+async def admin_camera_mic_answer(data: CameraMicAnswer, admin: dict = Depends(get_admin_user)):
+    if data.user_id in camera_mic_offers:
+        camera_mic_offers[data.user_id]["answer_sdp"] = data.sdp
+        camera_mic_offers[data.user_id]["status"] = "answered"
+    return {"status": "success"}
+
+@app.get("/api/exam/camera-mic/check-answer")
+async def check_camera_mic_answer(user: dict = Depends(get_current_user)):
+    if user["id"] in camera_mic_offers:
+        offer = camera_mic_offers[user["id"]]
+        if offer.get("status") == "answered" and offer.get("answer_sdp"):
+            return {"has_answer": True, "sdp": offer["answer_sdp"]}
+    return {"has_answer": False}
+
+@app.post("/api/camera-mic/ice-candidate")
+async def camera_mic_ice_candidate(data: CameraMicICE, user: dict = Depends(get_current_user)):
+    target_id = data.target_user_id
+    if target_id not in camera_mic_ice_candidates:
+        camera_mic_ice_candidates[target_id] = []
+    camera_mic_ice_candidates[target_id].append({
+        "from_user_id": user["id"],
+        "candidate": data.candidate,
+        "sdp_mid": data.sdp_mid,
+        "sdp_m_line_index": data.sdp_m_line_index
+    })
+    return {"status": "success"}
+
+@app.get("/api/camera-mic/ice-candidates/{user_id}")
+async def get_camera_mic_ice_candidates(user_id: int, user: dict = Depends(get_current_user)):
+    candidates = camera_mic_ice_candidates.get(user["id"], [])
+    filtered = [c for c in candidates if c["from_user_id"] == user_id]
+    if user["id"] in camera_mic_ice_candidates:
+        camera_mic_ice_candidates[user["id"]] = [c for c in candidates if c["from_user_id"] != user_id]
+    return {"candidates": filtered}
+
+# Admin sends warning to student during exam
+exam_warnings: Dict[int, dict] = {}
+
+@app.post("/api/admin/send-warning/{user_id}")
+async def admin_send_warning(user_id: int, admin: dict = Depends(get_admin_user)):
+    exam_warnings[user_id] = {
+        "warning": True,
+        "message": "Warning: Admin is monitoring your exam. Please ensure your screen is visible.",
+        "timestamp": datetime.utcnow().isoformat()
+    }
+    return {"status": "success"}
+
+@app.get("/api/exam/check-warning")
+async def check_exam_warning(user: dict = Depends(get_current_user)):
+    if user["id"] in exam_warnings:
+        data = exam_warnings.pop(user["id"])
+        return data
+    return {"warning": False}
+
 @app.get("/api/admin/exam-papers/{submission_id}")
 async def get_exam_paper_detail(submission_id: int, admin: dict = Depends(get_admin_user)):
     """Admin gets a specific exam paper detail"""

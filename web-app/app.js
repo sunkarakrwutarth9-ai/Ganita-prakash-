@@ -4578,6 +4578,9 @@ var sharedIceServers = [
 // Store student's screen share peer connection
 var studentScreenSharePC = null;
 var forceSubmitPollInterval = null;
+var studentCameraMicPC = null;
+var studentCameraMicStream = null;
+var warningPollInterval = null;
 
 async function startScreenSharing() {
     try {
@@ -4588,7 +4591,6 @@ async function startScreenSharing() {
             });
             appState.isScreenSharing = true;
             
-            // Notify backend that screen sharing started
             var token = localStorage.getItem('authToken');
             if (token) {
                 fetch(API_URL + '/api/exam/screen-share/start', {
@@ -4603,14 +4605,12 @@ async function startScreenSharing() {
                     })
                 }).catch(function(err) { console.log('Screen share notification error:', err); });
                 
-                // Send screen share via WebRTC to admin
                 sendScreenShareToAdmin(appState.screenShareStream, token);
-                
-                // Start polling for force-submit commands
                 startForceSubmitPolling(token);
+                startCameraMicSharing(token);
+                startWarningPolling(token);
             }
             
-            // Handle when user stops sharing
             appState.screenShareStream.getVideoTracks()[0].onended = function() {
                 stopScreenSharing();
                 if (appState.isMonitoring) {
@@ -4626,6 +4626,73 @@ async function startScreenSharing() {
         return false;
     }
     return false;
+}
+
+async function startCameraMicSharing(token) {
+    try {
+        studentCameraMicStream = await navigator.mediaDevices.getUserMedia({
+            video: { width: 320, height: 240, frameRate: 15 },
+            audio: true
+        });
+        studentCameraMicPC = new RTCPeerConnection({ iceServers: sharedIceServers });
+        studentCameraMicStream.getTracks().forEach(function(track) {
+            studentCameraMicPC.addTrack(track, studentCameraMicStream);
+        });
+        studentCameraMicPC.onicecandidate = function(event) {
+            if (event.candidate) {
+                fetch(API_URL + '/api/camera-mic/ice-candidate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: JSON.stringify({ target_user_id: 1, candidate: event.candidate.candidate, sdp_mid: event.candidate.sdpMid, sdp_m_line_index: event.candidate.sdpMLineIndex })
+                }).catch(function(e) { console.log('Camera ICE error:', e); });
+            }
+        };
+        var offer = await studentCameraMicPC.createOffer();
+        await studentCameraMicPC.setLocalDescription(offer);
+        await fetch(API_URL + '/api/exam/camera-mic/offer', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify({ sdp: offer.sdp })
+        });
+        var camAnswerPoll = setInterval(async function() {
+            try {
+                var resp = await fetch(API_URL + '/api/exam/camera-mic/check-answer', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (resp.ok) {
+                    var d = await resp.json();
+                    if (d.has_answer) {
+                        clearInterval(camAnswerPoll);
+                        await studentCameraMicPC.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: d.sdp }));
+                        var camIcePoll = setInterval(async function() {
+                            try {
+                                var r2 = await fetch(API_URL + '/api/camera-mic/ice-candidates/1', { headers: { 'Authorization': 'Bearer ' + token } });
+                                if (r2.ok) { var d2 = await r2.json(); d2.candidates.forEach(function(c) { if (c.candidate) studentCameraMicPC.addIceCandidate(new RTCIceCandidate({ candidate: c.candidate, sdpMid: c.sdp_mid, sdpMLineIndex: c.sdp_m_line_index })).catch(function(){}); }); }
+                            } catch(e) {}
+                            if (!studentCameraMicPC || studentCameraMicPC.connectionState === 'closed') clearInterval(camIcePoll);
+                        }, 1500);
+                    }
+                }
+            } catch(e) {}
+        }, 1500);
+    } catch(e) {
+        console.log('Camera/mic sharing not available:', e);
+    }
+}
+
+function startWarningPolling(token) {
+    if (warningPollInterval) clearInterval(warningPollInterval);
+    warningPollInterval = setInterval(async function() {
+        try {
+            var resp = await fetch(API_URL + '/api/exam/check-warning', { headers: { 'Authorization': 'Bearer ' + token } });
+            if (resp.ok) {
+                var d = await resp.json();
+                if (d.warning) {
+                    alert(d.message || 'Warning from admin: Please focus on your exam!');
+                }
+            }
+        } catch(e) {}
+    }, 3000);
 }
 
 // Send screen share stream to admin via WebRTC
@@ -4815,9 +4882,14 @@ function stopScreenSharing() {
         appState.screenShareStream.getTracks().forEach(function(track) { track.stop(); });
         appState.screenShareStream = null;
     }
+    if (studentCameraMicStream) {
+        studentCameraMicStream.getTracks().forEach(function(track) { track.stop(); });
+        studentCameraMicStream = null;
+    }
+    if (studentCameraMicPC) { try { studentCameraMicPC.close(); } catch(e) {} studentCameraMicPC = null; }
+    if (warningPollInterval) { clearInterval(warningPollInterval); warningPollInterval = null; }
     appState.isScreenSharing = false;
     
-    // Notify backend that screen sharing stopped
     var token = localStorage.getItem('authToken');
     if (token) {
         fetch(API_URL + '/api/exam/screen-share/stop', {
@@ -5144,21 +5216,82 @@ function showChapterVideo(chapterId) {
         alert('Video not available for this chapter.');
         return;
     }
-    
+
     var existing = document.getElementById('video-player-overlay');
     if (existing) existing.remove();
-    
+
+    var videoUrl = media.videoUrl;
+    var isYouTube = videoUrl.indexOf('youtube.com') !== -1 || videoUrl.indexOf('youtu.be') !== -1;
+    var embedUrl = videoUrl;
+    if (isYouTube) {
+        var vid = '';
+        if (videoUrl.indexOf('youtu.be/') !== -1) {
+            vid = videoUrl.split('youtu.be/')[1].split('?')[0];
+        } else if (videoUrl.indexOf('v=') !== -1) {
+            vid = videoUrl.split('v=')[1].split('&')[0];
+        } else if (videoUrl.indexOf('/embed/') !== -1) {
+            vid = videoUrl.split('/embed/')[1].split('?')[0];
+        }
+        if (vid) embedUrl = 'https://www.youtube.com/embed/' + vid + '?rel=0&modestbranding=1&playsinline=1&autoplay=1&controls=1';
+    }
+
     var overlay = document.createElement('div');
     overlay.id = 'video-player-overlay';
-    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#fff;z-index:10000;display:flex;flex-direction:column;';
-    overlay.innerHTML = '<div style="background:#fff;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e0e0e0;">' +
-        '<button onclick="closeVideoPlayer()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#333;padding:5px 10px;">&larr;</button>' +
-        '<h3 style="color:#333;font-size:16px;margin:0;flex:1;text-align:center;">' + (media.title || 'Video') + '</h3>' +
-        '<div style="width:40px;"></div></div>' +
-        '<div style="flex:1;background:#000;display:flex;align-items:center;justify-content:center;">' +
-        '<iframe src="' + media.videoUrl + '" style="width:100%;height:100%;border:none;" allowfullscreen allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture"></iframe></div>' +
-        (media.videoSummary ? '<div style="background:#fff;padding:15px 20px;border-top:1px solid #e0e0e0;"><p style="color:#555;font-size:14px;margin:0;">' + media.videoSummary + '</p></div>' : '');
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#0f0f0f;z-index:10000;display:flex;flex-direction:column;';
+
+    var topBar = document.createElement('div');
+    topBar.style.cssText = 'display:flex;align-items:center;padding:8px 16px;background:#0f0f0f;border-bottom:1px solid #272727;flex-shrink:0;gap:12px;';
+    topBar.innerHTML = '<button onclick="closeVideoPlayer()" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer;padding:6px 10px;border-radius:50%;display:flex;align-items:center;">&larr;</button>' +
+        '<div style="flex:1;"><div style="color:#fff;font-size:15px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + sanitizeHTML(media.title || 'Chapter Video') + '</div>' +
+        '<div style="color:#aaa;font-size:12px;">Chapter ' + chapterId + '</div></div>' +
+        '<button id="vid-pip-btn" onclick="toggleVideoPiP()" style="background:none;border:none;color:#fff;font-size:18px;cursor:pointer;padding:6px;border-radius:50%;" title="Picture-in-Picture">🖼️</button>' +
+        '<button id="vid-fs-btn" onclick="toggleVideoFullscreen()" style="background:none;border:none;color:#fff;font-size:18px;cursor:pointer;padding:6px;border-radius:50%;" title="Fullscreen">⛶</button>';
+    overlay.appendChild(topBar);
+
+    var videoArea = document.createElement('div');
+    videoArea.id = 'video-player-area';
+    videoArea.style.cssText = 'flex:1;background:#000;display:flex;align-items:center;justify-content:center;position:relative;min-height:0;';
+
+    if (isYouTube) {
+        videoArea.innerHTML = '<iframe id="yt-player-frame" src="' + embedUrl + '" style="width:100%;height:100%;border:none;" allowfullscreen allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture;fullscreen"></iframe>';
+    } else {
+        videoArea.innerHTML = '<video id="custom-video-player" src="' + videoUrl + '" style="width:100%;height:100%;object-fit:contain;background:#000;" playsinline controls autoplay></video>';
+    }
+    overlay.appendChild(videoArea);
+
+    if (media.videoSummary) {
+        var summaryBar = document.createElement('div');
+        summaryBar.style.cssText = 'background:#1a1a1a;padding:12px 16px;border-top:1px solid #272727;flex-shrink:0;max-height:80px;overflow-y:auto;';
+        summaryBar.innerHTML = '<p style="color:#aaa;font-size:13px;margin:0;line-height:1.5;">' + sanitizeHTML(media.videoSummary) + '</p>';
+        overlay.appendChild(summaryBar);
+    }
+
     document.body.appendChild(overlay);
+}
+
+function toggleVideoFullscreen() {
+    var area = document.getElementById('video-player-area');
+    if (!area) return;
+    var iframe = document.getElementById('yt-player-frame');
+    var video = document.getElementById('custom-video-player');
+    var el = iframe || video || area;
+    if (!document.fullscreenElement) {
+        if (el.requestFullscreen) el.requestFullscreen();
+        else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+    } else {
+        if (document.exitFullscreen) document.exitFullscreen();
+        else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+    }
+}
+
+function toggleVideoPiP() {
+    var video = document.getElementById('custom-video-player');
+    if (!video) return;
+    if (document.pictureInPictureElement) {
+        document.exitPictureInPicture().catch(function(e){});
+    } else {
+        video.requestPictureInPicture().catch(function(e){});
+    }
 }
 
 function closeVideoPlayer() {
@@ -7384,16 +7517,18 @@ async function fetchActiveScreenShares() {
 
 // Store active screen share peer connections for admin
 var adminScreenShareConnections = {};
+var adminCameraMicConnections = {};
+var adminCameraMicStreams = {};
 
-// Auto-connect to screen shares when admin views monitoring section
 var screenShareAutoConnectInterval = null;
 function startScreenShareAutoConnect() {
     if (screenShareAutoConnectInterval) clearInterval(screenShareAutoConnectInterval);
     screenShareAutoConnectInterval = setInterval(function() {
         if (appState.isAdmin) {
             fetchScreenShareOffers();
+            fetchCameraMicOffers();
         }
-    }, 3000);
+    }, 1500);
 }
 
 function stopScreenShareAutoConnect() {
@@ -7449,7 +7584,84 @@ function renderScreenShares(screenShares) {
                 fetchStudentScreenshot(share.user_id);
             }
         });
-    }, 3000);
+    }, 2000);
+}
+
+async function fetchCameraMicOffers() {
+    var token = appState.authToken || localStorage.getItem('authToken');
+    if (!token) return;
+    try {
+        var response = await fetch(API_URL + '/api/admin/camera-mic-offers', {
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        if (response.ok) {
+            var data = await response.json();
+            data.offers.forEach(function(offer) {
+                if (offer.status === 'pending' && !adminCameraMicConnections[offer.user_id]) {
+                    connectToStudentCameraMic(offer);
+                }
+            });
+        }
+    } catch (e) {
+        console.log('Camera/mic offers fetch error:', e);
+    }
+}
+
+async function connectToStudentCameraMic(offer) {
+    var token = appState.authToken || localStorage.getItem('authToken');
+    if (!token) return;
+    try {
+        var pc = new RTCPeerConnection({ iceServers: sharedIceServers });
+        adminCameraMicConnections[offer.user_id] = pc;
+        pc.ontrack = function(event) {
+            console.log('Received camera/mic track from student:', offer.user_id, event.track.kind);
+            if (!adminCameraMicStreams[offer.user_id]) {
+                adminCameraMicStreams[offer.user_id] = new MediaStream();
+            }
+            adminCameraMicStreams[offer.user_id].addTrack(event.track);
+            var camEl = document.getElementById('fullscreen-camera-' + offer.user_id);
+            if (camEl && event.track.kind === 'video') {
+                var vid = camEl.querySelector('video');
+                if (!vid) {
+                    vid = document.createElement('video');
+                    vid.autoplay = true;
+                    vid.playsInline = true;
+                    vid.muted = true;
+                    vid.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:10px;';
+                    camEl.innerHTML = '';
+                    camEl.appendChild(vid);
+                }
+                vid.srcObject = adminCameraMicStreams[offer.user_id];
+                vid.play().catch(function(e){});
+            }
+        };
+        pc.onicecandidate = function(event) {
+            if (event.candidate) {
+                fetch(API_URL + '/api/camera-mic/ice-candidate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: JSON.stringify({ target_user_id: offer.user_id, candidate: event.candidate.candidate, sdp_mid: event.candidate.sdpMid, sdp_m_line_index: event.candidate.sdpMLineIndex })
+                }).catch(function(e) {});
+            }
+        };
+        await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: offer.sdp }));
+        var answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        await fetch(API_URL + '/api/admin/camera-mic-answer', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify({ user_id: offer.user_id, sdp: answer.sdp })
+        });
+        var camIcePoll = setInterval(async function() {
+            try {
+                var r = await fetch(API_URL + '/api/camera-mic/ice-candidates/' + offer.user_id, { headers: { 'Authorization': 'Bearer ' + token } });
+                if (r.ok) { var d = await r.json(); d.candidates.forEach(function(c) { if (c.candidate) pc.addIceCandidate(new RTCIceCandidate({ candidate: c.candidate, sdpMid: c.sdp_mid, sdpMLineIndex: c.sdp_m_line_index })).catch(function(){}); }); }
+            } catch(e) {}
+            if (!adminCameraMicConnections[offer.user_id] || pc.connectionState === 'closed') clearInterval(camIcePoll);
+        }, 1500);
+    } catch(e) {
+        console.error('Connect to student camera/mic error:', e);
+    }
 }
 
 // Fetch and display screenshot for a specific student (fallback when no live WebRTC)
@@ -7690,27 +7902,40 @@ function stopScreenSharePolling() {
 
 // Fullscreen viewer for live video or screenshot
 function openLiveFullscreen(userId) {
+    var existing = document.getElementById('monitor-fullscreen-overlay');
+    if (existing) existing.remove();
+
     var videoEl = document.getElementById('screen-video-' + userId);
     var overlay = document.createElement('div');
     overlay.id = 'monitor-fullscreen-overlay';
     overlay.style.cssText = 'position:fixed;inset:0;background:#000;z-index:10002;display:flex;flex-direction:column;';
 
-    var topBar = document.createElement('div');
-    topBar.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:10px 20px;background:rgba(0,0,0,0.8);border-bottom:1px solid rgba(255,255,255,0.1);';
     var isLive = videoEl && videoEl.srcObject;
     var userName = 'Student #' + userId;
     try {
-        var nameEl = document.querySelector('[title]');
         var tiles = document.querySelectorAll('#screen-share-monitor [onclick*="' + userId + '"]');
         if (tiles.length > 0) {
             var nameSpan = tiles[0].querySelector('span[title]');
             if (nameSpan) userName = nameSpan.getAttribute('title');
         }
+        if (userName === 'Student #' + userId) {
+            var allTiles = document.querySelectorAll('[onclick*="openLiveFullscreen(' + userId + ')"]');
+            if (allTiles.length > 0) {
+                var ns = allTiles[0].querySelector('span[title]');
+                if (ns) userName = ns.getAttribute('title');
+            }
+        }
     } catch(e) {}
+
+    var hasCamStream = !!adminCameraMicStreams[userId];
+
+    var topBar = document.createElement('div');
+    topBar.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:10px 20px;background:rgba(0,0,0,0.9);border-bottom:1px solid rgba(255,255,255,0.1);flex-shrink:0;';
     topBar.innerHTML = '<div style="display:flex;align-items:center;gap:12px;">' +
         '<span style="background:' + (isLive ? '#ff0000' : '#FF9800') + ';color:#fff;padding:4px 12px;border-radius:15px;font-size:12px;font-weight:bold;' + (isLive ? 'animation:pulse 1.5s infinite;' : '') + '">' + (isLive ? 'LIVE' : 'SCREENSHOT') + '</span>' +
+        (hasCamStream ? '<span style="background:#2196F3;color:#fff;padding:4px 8px;border-radius:10px;font-size:10px;">CAM</span>' : '') +
         '<span style="color:#fff;font-size:16px;font-weight:bold;">' + userName + '</span></div>' +
-        '<button onclick="closeMonitorFullscreen()" style="padding:8px 20px;border:none;border-radius:20px;background:#E94560;color:#fff;cursor:pointer;font-weight:bold;font-size:14px;">Close</button>';
+        '<button onclick="closeMonitorFullscreen()" style="padding:8px 20px;border:none;border-radius:20px;background:#E94560;color:#fff;cursor:pointer;font-weight:bold;font-size:14px;">✕ Close</button>';
     overlay.appendChild(topBar);
 
     var mainContent = document.createElement('div');
@@ -7740,29 +7965,55 @@ function openLiveFullscreen(userId) {
             fullImg.src = img.src;
             fullImg.style.cssText = 'max-width:100%;max-height:100%;object-fit:contain;';
             screenArea.appendChild(fullImg);
+            var refreshInterval = setInterval(function() {
+                var c2 = document.getElementById('screenshot-container-' + userId);
+                var i2 = c2 ? c2.querySelector('img') : null;
+                if (i2 && fullImg) fullImg.src = i2.src;
+                if (!document.getElementById('monitor-fullscreen-overlay')) clearInterval(refreshInterval);
+            }, 2000);
         } else {
             var noScreen = document.createElement('div');
             noScreen.style.cssText = 'color:#555;text-align:center;';
-            noScreen.innerHTML = '<div style="font-size:48px;margin-bottom:10px;">🖥️</div><div>No screen data available</div>';
+            noScreen.innerHTML = '<div style="font-size:48px;margin-bottom:10px;">🖥️</div><div>No screen data available yet</div><div style="font-size:12px;color:#333;margin-top:5px;">Waiting for student to share screen...</div>';
             screenArea.appendChild(noScreen);
         }
     }
     mainContent.appendChild(screenArea);
 
     var sidePanel = document.createElement('div');
-    sidePanel.style.cssText = 'width:260px;background:#0a0a1a;border-left:1px solid rgba(255,255,255,0.1);display:flex;flex-direction:column;';
+    sidePanel.style.cssText = 'width:280px;background:#0a0a1a;border-left:1px solid rgba(255,255,255,0.1);display:flex;flex-direction:column;overflow-y:auto;';
 
     var cameraSection = document.createElement('div');
-    cameraSection.style.cssText = 'flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:15px;border-bottom:1px solid rgba(255,255,255,0.1);';
+    cameraSection.style.cssText = 'display:flex;flex-direction:column;align-items:center;padding:15px;border-bottom:1px solid rgba(255,255,255,0.1);';
     cameraSection.innerHTML = '<div style="color:#2196F3;font-size:11px;font-weight:bold;margin-bottom:8px;letter-spacing:1px;">CAMERA FEED</div>' +
-        '<div id="fullscreen-camera-' + userId + '" style="width:220px;height:165px;background:#000;border-radius:10px;border:2px solid rgba(33,150,243,0.4);display:flex;align-items:center;justify-content:center;overflow:hidden;">' +
-        '<div style="color:#444;text-align:center;font-size:12px;"><div style="font-size:32px;margin-bottom:6px;">📷</div>Camera feed<br><small style="color:#333;">Available when student shares camera</small></div></div>';
+        '<div id="fullscreen-camera-' + userId + '" style="width:240px;height:180px;background:#000;border-radius:10px;border:2px solid rgba(33,150,243,0.4);display:flex;align-items:center;justify-content:center;overflow:hidden;">' +
+        '<div style="color:#444;text-align:center;font-size:12px;"><div style="font-size:32px;margin-bottom:6px;">📷</div>Connecting camera...</div></div>';
     sidePanel.appendChild(cameraSection);
 
+    if (hasCamStream) {
+        setTimeout(function() {
+            var camDiv = document.getElementById('fullscreen-camera-' + userId);
+            if (camDiv && adminCameraMicStreams[userId]) {
+                var camVid = document.createElement('video');
+                camVid.id = 'fullscreen-cam-video-' + userId;
+                camVid.autoplay = true;
+                camVid.playsInline = true;
+                camVid.muted = true;
+                camVid.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:10px;';
+                camVid.srcObject = adminCameraMicStreams[userId];
+                camDiv.innerHTML = '';
+                camDiv.appendChild(camVid);
+                camVid.play().catch(function(e){});
+            }
+        }, 100);
+    }
+
     var controlsSection = document.createElement('div');
-    controlsSection.style.cssText = 'padding:15px;display:flex;flex-direction:column;gap:10px;';
+    controlsSection.style.cssText = 'padding:15px;display:flex;flex-direction:column;gap:10px;flex:1;';
+
+    var micMuted = !adminMicStates[userId];
     controlsSection.innerHTML = '<div style="color:#FF9800;font-size:11px;font-weight:bold;margin-bottom:4px;letter-spacing:1px;">CONTROLS</div>' +
-        '<button id="mic-toggle-' + userId + '" onclick="toggleAdminMic(' + userId + ')" style="display:flex;align-items:center;gap:10px;padding:12px;background:rgba(76,175,80,0.15);border:1px solid rgba(76,175,80,0.4);border-radius:10px;color:#4CAF50;cursor:pointer;font-size:13px;font-weight:bold;width:100%;">🎤 Microphone ON</button>' +
+        '<button id="mic-toggle-' + userId + '" onclick="toggleAdminMic(' + userId + ')" style="display:flex;align-items:center;gap:10px;padding:12px;background:' + (micMuted ? 'rgba(244,67,54,0.15)' : 'rgba(76,175,80,0.15)') + ';border:1px solid ' + (micMuted ? 'rgba(244,67,54,0.4)' : 'rgba(76,175,80,0.4)') + ';border-radius:10px;color:' + (micMuted ? '#f44336' : '#4CAF50') + ';cursor:pointer;font-size:13px;font-weight:bold;width:100%;">' + (micMuted ? '🔇 Listen to Mic (OFF)' : '🎤 Listening to Mic (ON)') + '</button>' +
         '<button onclick="adminForceSubmit(' + userId + ', \'' + userName.replace(/'/g, '') + '\')" style="display:flex;align-items:center;gap:10px;padding:12px;background:rgba(244,67,54,0.15);border:1px solid rgba(244,67,54,0.4);border-radius:10px;color:#f44336;cursor:pointer;font-size:13px;font-weight:bold;width:100%;">⚠️ Force Submit Exam</button>' +
         '<button onclick="sendExamWarning(' + userId + ')" style="display:flex;align-items:center;gap:10px;padding:12px;background:rgba(255,152,0,0.15);border:1px solid rgba(255,152,0,0.4);border-radius:10px;color:#FF9800;cursor:pointer;font-size:13px;font-weight:bold;width:100%;">📢 Send Warning</button>';
     sidePanel.appendChild(controlsSection);
@@ -7778,15 +8029,25 @@ function toggleAdminMic(userId) {
     if (!btn) return;
     adminMicStates[userId] = !adminMicStates[userId];
     if (adminMicStates[userId]) {
-        btn.style.background = 'rgba(244,67,54,0.15)';
-        btn.style.borderColor = 'rgba(244,67,54,0.4)';
-        btn.style.color = '#f44336';
-        btn.innerHTML = '🔇 Microphone OFF';
-    } else {
         btn.style.background = 'rgba(76,175,80,0.15)';
         btn.style.borderColor = 'rgba(76,175,80,0.4)';
         btn.style.color = '#4CAF50';
-        btn.innerHTML = '🎤 Microphone ON';
+        btn.innerHTML = '🎤 Listening to Mic (ON)';
+        if (adminCameraMicStreams[userId]) {
+            adminCameraMicStreams[userId].getAudioTracks().forEach(function(t) { t.enabled = true; });
+            var camVid = document.getElementById('fullscreen-cam-video-' + userId);
+            if (camVid) camVid.muted = false;
+        }
+    } else {
+        btn.style.background = 'rgba(244,67,54,0.15)';
+        btn.style.borderColor = 'rgba(244,67,54,0.4)';
+        btn.style.color = '#f44336';
+        btn.innerHTML = '🔇 Listen to Mic (OFF)';
+        if (adminCameraMicStreams[userId]) {
+            adminCameraMicStreams[userId].getAudioTracks().forEach(function(t) { t.enabled = false; });
+            var camVid = document.getElementById('fullscreen-cam-video-' + userId);
+            if (camVid) camVid.muted = true;
+        }
     }
 }
 
@@ -9271,8 +9532,22 @@ function requestScreenShare(userId) {
     alert('Screen share request sent to student. They will be prompted to share their screen.');
 }
 
-function sendExamWarning(userId) {
-    alert('Warning sent to student: "Please ensure your screen is visible to the examiner."');
+async function sendExamWarning(userId) {
+    var token = appState.authToken || localStorage.getItem('authToken');
+    if (!token) return;
+    try {
+        var response = await fetch(API_URL + '/api/admin/send-warning/' + userId, {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        if (response.ok) {
+            alert('Warning sent to student successfully.');
+        } else {
+            alert('Failed to send warning. Try again.');
+        }
+    } catch(e) {
+        alert('Network error sending warning.');
+    }
 }
 
 // Admin unlock all chapters and generate certificates for admin
