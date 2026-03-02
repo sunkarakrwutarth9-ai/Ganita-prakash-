@@ -7,6 +7,14 @@
 // Note: API calls are made through the backend, not directly from frontend
 const CLAUDE_API_KEY = '';
 
+// Backend API URL - must be at top before any functions use it
+const API_URL = "https://app-lqmnnlxp.fly.dev";
+
+function sanitizeHTML(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+}
+
 // Indian Festival Calendar 2026
 const indianFestivals2026 = [
     { date: "01-01", name: "New Year's Day", wish: "Happy New Year 2026! Wishing you success in your studies!", emoji: "🎉", color: "#FFD700" },
@@ -145,16 +153,16 @@ function showLanguageSelector() {
 
 // Chapter Media (Videos, PPTs, and PDFs from NotebookLM)
 const chapterMedia = {
-    1: { title: "Patterns in numbers", videoUrl: "https://drive.google.com/file/d/1G-gWjUd8hrmxyV-meLn6igquy5zTqx-i/preview", videoSummary: "Learn about number patterns and sequences.", pptUrl: "https://drive.google.com/file/d/1WbHMprNLt5JMQo0vVaC7_P7sTrR9Sxcd/preview", pptTitle: "The Hidden Architecture of Patterns", tbUrl: "https://drive.google.com/file/d/1fvKOqgxNrZFeqn5330REbgZoIcTgdyGi/preview", tbTitle: "Chapter 1 - Maths T.B." },
-    2: { title: "Lines and Angles", videoUrl: "https://drive.google.com/file/d/10NfjD3znlbJbcKo50R9AD5vLNuLCOB5H/preview", videoSummary: "Understanding lines, rays, and angles.", pptUrl: "https://drive.google.com/file/d/1fCIki-yVVW33e5_yQabafq8Sn7-Ue5Eu/preview", pptTitle: "From Point to Degree", tbUrl: "https://drive.google.com/file/d/1fvKOqgxNrZFeqn5330REbgZoIcTgdyGi/preview", tbTitle: "Chapter 2 - Maths T.B." },
-    3: { title: "Number Play", videoUrl: "https://drive.google.com/file/d/1voVejm6eO6BtXm9AMIfLCPikVwGnHU8i/preview", videoSummary: "Explore number puzzles and patterns.", pptUrl: "https://drive.google.com/file/d/1KgJx2nQdc9t-xHsBjYzt11JgFzyeGQmm/preview", pptTitle: "The Secret Life of Numbers", tbUrl: "https://drive.google.com/file/d/1fvKOqgxNrZFeqn5330REbgZoIcTgdyGi/preview", tbTitle: "Chapter 3 - Maths T.B." },
-    4: { title: "Data Handling", videoUrl: "https://drive.google.com/file/d/1uWy_U2NrHjx1Riv0Z2NIANPj5XkMxmYD/preview", videoSummary: "Learn to collect and present data.", pptUrl: "https://drive.google.com/file/d/1vAHyCGcFtcdjTIzvasaCvOGYMblfujGg/preview", pptTitle: "Data Structure Visualize Integrity", tbUrl: "https://drive.google.com/file/d/1fvKOqgxNrZFeqn5330REbgZoIcTgdyGi/preview", tbTitle: "Chapter 4 - Maths T.B." },
-    5: { title: "Prime Time", videoUrl: "https://drive.google.com/file/d/1CJTbvE5vTVPJiFvt-_l1cv5mHr5g7JD2/preview", videoSummary: "Discover prime numbers and factors.", pptUrl: "https://drive.google.com/file/d/1-94wWynj-KJN4uU-1DzjSGtLPKO3Y32m/preview", pptTitle: "Prime Time A Game of Numbers", tbUrl: "https://drive.google.com/file/d/1fvKOqgxNrZFeqn5330REbgZoIcTgdyGi/preview", tbTitle: "Chapter 5 - Maths T.B." },
-    6: { title: "Perimeter and Area", videoUrl: "https://drive.google.com/file/d/1rAjBngeOMaEiZ_tE4OM8Okviyqhbxkpo/preview", videoSummary: "Calculate perimeter and area.", pptUrl: "https://drive.google.com/file/d/11z7anMHhrCoG2309wuKuYhMXADdKlxbj/preview", pptTitle: "The Architect's Toolkit Mastering Space", tbUrl: "https://drive.google.com/file/d/1fvKOqgxNrZFeqn5330REbgZoIcTgdyGi/preview", tbTitle: "Chapter 6 - Maths T.B." },
-    7: { title: "Fractions", videoUrl: "https://drive.google.com/file/d/1HLz1i1ZzddZdnpsoyv7Zhoot_P80oaYm/preview", videoSummary: "Understanding fractions.", pptUrl: "https://drive.google.com/file/d/1ll8jPIypxn1Z_ISDHHSNxoMFQ0BqBodA/preview", pptTitle: "The Language of Parts", tbUrl: "https://drive.google.com/file/d/1fvKOqgxNrZFeqn5330REbgZoIcTgdyGi/preview", tbTitle: "Chapter 7 - Maths T.B." },
-    8: { title: "Playing with Constructions", videoUrl: "https://drive.google.com/file/d/1YuU0Cmx4CoeL2IgM6dsjS1zBCXoNG8cQ/preview", videoSummary: "Geometric constructions.", pptUrl: "https://drive.google.com/file/d/18oH6_9fkoIS2yCZ28qBTyGSW4-TkJlL_/preview", pptTitle: "The Geometer's Quest Precision and Art", tbUrl: "https://drive.google.com/file/d/1fvKOqgxNrZFeqn5330REbgZoIcTgdyGi/preview", tbTitle: "Chapter 8 - Maths T.B." },
-    9: { title: "Symmetry", videoUrl: "https://drive.google.com/file/d/14X50UAcCKYxgTmTxFxXtwUI74lK1YLOh/preview", videoSummary: "Line and rotational symmetry.", pptUrl: "https://drive.google.com/file/d/1YDvhdUNJ3nmUJilCex2uqIcsQ3-I0cnT/preview", pptTitle: "The Universal Blueprint of Symmetry", tbUrl: "https://drive.google.com/file/d/1fvKOqgxNrZFeqn5330REbgZoIcTgdyGi/preview", tbTitle: "Chapter 9 - Maths T.B." },
-    10: { title: "The Other Side of Zero", videoUrl: "https://drive.google.com/file/d/1FN9nkTnWCOTYF6El54AEtWtd-NKsUiBD/preview", videoSummary: "Introduction to integers.", pptUrl: "https://drive.google.com/file/d/18dQvLG_a1EOM5uz3JZKehQ-yOgtkzsJD/preview", pptTitle: "The Other Side of Zero", tbUrl: "https://drive.google.com/file/d/1fvKOqgxNrZFeqn5330REbgZoIcTgdyGi/preview", tbTitle: "Chapter 10 - Maths T.B." },
+    1: { title: "Patterns in numbers", videoUrl: "https://drive.google.com/file/d/1G-gWjUd8hrmxyV-meLn6igquy5zTqx-i/preview", videoSummary: "Learn about number patterns and sequences.", pptUrl: "https://drive.google.com/file/d/1WbHMprNLt5JMQo0vVaC7_P7sTrR9Sxcd/preview", pptTitle: "The Hidden Architecture of Patterns", tbUrl: "https://drive.google.com/file/d/1MdSzsXsFNUjYw8cxTiBFd7-T6qvH40Sp/preview", tbTitle: "Chapter 1 - Maths T.B." },
+    2: { title: "Lines and Angles", videoUrl: "https://drive.google.com/file/d/10NfjD3znlbJbcKo50R9AD5vLNuLCOB5H/preview", videoSummary: "Understanding lines, rays, and angles.", pptUrl: "https://drive.google.com/file/d/1fCIki-yVVW33e5_yQabafq8Sn7-Ue5Eu/preview", pptTitle: "From Point to Degree", tbUrl: "https://drive.google.com/file/d/1P7GyBa-N0d5fXL0iMaWZriEVxsHf4ISG/preview", tbTitle: "Chapter 2 - Maths T.B." },
+    3: { title: "Number Play", videoUrl: "https://drive.google.com/file/d/1voVejm6eO6BtXm9AMIfLCPikVwGnHU8i/preview", videoSummary: "Explore number puzzles and patterns.", pptUrl: "https://drive.google.com/file/d/1KgJx2nQdc9t-xHsBjYzt11JgFzyeGQmm/preview", pptTitle: "The Secret Life of Numbers", tbUrl: "https://drive.google.com/file/d/145VeF9E3B3XbiAS5XGwNoGRNiCY1Kkxn/preview", tbTitle: "Chapter 3 - Maths T.B." },
+    4: { title: "Data Handling", videoUrl: "https://drive.google.com/file/d/1uWy_U2NrHjx1Riv0Z2NIANPj5XkMxmYD/preview", videoSummary: "Learn to collect and present data.", pptUrl: "https://drive.google.com/file/d/1vAHyCGcFtcdjTIzvasaCvOGYMblfujGg/preview", pptTitle: "Data Structure Visualize Integrity", tbUrl: "https://drive.google.com/file/d/1h9k3rGFz8sXidIitfspCmQ6g0pCzZKCY/preview", tbTitle: "Chapter 4 - Maths T.B." },
+    5: { title: "Prime Time", videoUrl: "https://drive.google.com/file/d/1CJTbvE5vTVPJiFvt-_l1cv5mHr5g7JD2/preview", videoSummary: "Discover prime numbers and factors.", pptUrl: "https://drive.google.com/file/d/1-94wWynj-KJN4uU-1DzjSGtLPKO3Y32m/preview", pptTitle: "Prime Time A Game of Numbers", tbUrl: "https://drive.google.com/file/d/1OHpaiu9dF71fK4bRp0BO7ok8_QKIq2MJ/preview", tbTitle: "Chapter 5 - Maths T.B." },
+    6: { title: "Perimeter and Area", videoUrl: "https://drive.google.com/file/d/1rAjBngeOMaEiZ_tE4OM8Okviyqhbxkpo/preview", videoSummary: "Calculate perimeter and area.", pptUrl: "https://drive.google.com/file/d/11z7anMHhrCoG2309wuKuYhMXADdKlxbj/preview", pptTitle: "The Architect's Toolkit Mastering Space", tbUrl: "https://drive.google.com/file/d/1-XCGMLfG-e05qa2Pfvd8q-WxRUxtgIRG/preview", tbTitle: "Chapter 6 - Maths T.B." },
+    7: { title: "Fractions", videoUrl: "https://drive.google.com/file/d/1HLz1i1ZzddZdnpsoyv7Zhoot_P80oaYm/preview", videoSummary: "Understanding fractions.", pptUrl: "https://drive.google.com/file/d/1ll8jPIypxn1Z_ISDHHSNxoMFQ0BqBodA/preview", pptTitle: "The Language of Parts", tbUrl: "https://drive.google.com/file/d/13kc5mx6p3jWThUIHKEoRYoYRkNkvnHCV/preview", tbTitle: "Chapter 7 - Maths T.B." },
+    8: { title: "Playing with Constructions", videoUrl: "https://drive.google.com/file/d/1YuU0Cmx4CoeL2IgM6dsjS1zBCXoNG8cQ/preview", videoSummary: "Geometric constructions.", pptUrl: "https://drive.google.com/file/d/18oH6_9fkoIS2yCZ28qBTyGSW4-TkJlL_/preview", pptTitle: "The Geometer's Quest Precision and Art", tbUrl: "https://drive.google.com/file/d/1agsSZgajY4NPMyaWcFnYZ9slQpvfhb5Z/preview", tbTitle: "Chapter 8 - Maths T.B." },
+    9: { title: "Symmetry", videoUrl: "https://drive.google.com/file/d/14X50UAcCKYxgTmTxFxXtwUI74lK1YLOh/preview", videoSummary: "Line and rotational symmetry.", pptUrl: "https://drive.google.com/file/d/1YDvhdUNJ3nmUJilCex2uqIcsQ3-I0cnT/preview", pptTitle: "The Universal Blueprint of Symmetry", tbUrl: "https://drive.google.com/file/d/1-PWg2U1ZOkU-jXUIQ3W5f0ClNtYGWWTU/preview", tbTitle: "Chapter 9 - Maths T.B." },
+    10: { title: "The Other Side of Zero", videoUrl: "https://drive.google.com/file/d/1FN9nkTnWCOTYF6El54AEtWtd-NKsUiBD/preview", videoSummary: "Introduction to integers.", pptUrl: "https://drive.google.com/file/d/18dQvLG_a1EOM5uz3JZKehQ-yOgtkzsJD/preview", pptTitle: "The Other Side of Zero", tbUrl: "https://drive.google.com/file/d/1pJf73SW7rhNGsCSMKGy6gnypRGI41L65/preview", tbTitle: "Chapter 10 - Maths T.B." },
 };
 
 console.log('Additional features loaded: Holidays, Languages, Chapter Media');
@@ -4543,10 +4551,36 @@ let appState = {
     screenShareStream: null
 };
 
+// Shared ICE/TURN server config - fetched from backend on init, fallback to STUN only
+var sharedIceServers = [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+    { urls: 'stun:stun2.l.google.com:19302' }
+];
+(function loadIceServers() {
+    var _tu = atob('ZThkZDY1YjkyYWY0ZDEyZWYwZWQzYjg2');
+    var _tc = atob('dVdkV05ta2h2eXFURXN3Tw==');
+    var turnFallback = [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' },
+        { urls: 'turn:a.relay.metered.ca:80', username: _tu, credential: _tc },
+        { urls: 'turn:a.relay.metered.ca:443', username: _tu, credential: _tc },
+        { urls: 'turn:a.relay.metered.ca:443?transport=tcp', username: _tu, credential: _tc }
+    ];
+    fetch(API_URL + '/api/ice-servers').then(function(r) { return r.json(); }).then(function(data) {
+        if (data.ice_servers && data.ice_servers.length > 0) { sharedIceServers = data.ice_servers; }
+        else { sharedIceServers = turnFallback; }
+    }).catch(function(e) { sharedIceServers = turnFallback; });
+})();
+
 // Screen sharing functions for exam monitoring
 // Store student's screen share peer connection
 var studentScreenSharePC = null;
 var forceSubmitPollInterval = null;
+var studentCameraMicPC = null;
+var studentCameraMicStream = null;
+var warningPollInterval = null;
 
 async function startScreenSharing() {
     try {
@@ -4557,7 +4591,6 @@ async function startScreenSharing() {
             });
             appState.isScreenSharing = true;
             
-            // Notify backend that screen sharing started
             var token = localStorage.getItem('authToken');
             if (token) {
                 fetch(API_URL + '/api/exam/screen-share/start', {
@@ -4572,14 +4605,12 @@ async function startScreenSharing() {
                     })
                 }).catch(function(err) { console.log('Screen share notification error:', err); });
                 
-                // Send screen share via WebRTC to admin
                 sendScreenShareToAdmin(appState.screenShareStream, token);
-                
-                // Start polling for force-submit commands
                 startForceSubmitPolling(token);
+                startCameraMicSharing(token);
+                startWarningPolling(token);
             }
             
-            // Handle when user stops sharing
             appState.screenShareStream.getVideoTracks()[0].onended = function() {
                 stopScreenSharing();
                 if (appState.isMonitoring) {
@@ -4597,15 +4628,77 @@ async function startScreenSharing() {
     return false;
 }
 
+async function startCameraMicSharing(token) {
+    try {
+        studentCameraMicStream = await navigator.mediaDevices.getUserMedia({
+            video: { width: 320, height: 240, frameRate: 15 },
+            audio: true
+        });
+        studentCameraMicPC = new RTCPeerConnection({ iceServers: sharedIceServers });
+        studentCameraMicStream.getTracks().forEach(function(track) {
+            studentCameraMicPC.addTrack(track, studentCameraMicStream);
+        });
+        studentCameraMicPC.onicecandidate = function(event) {
+            if (event.candidate) {
+                fetch(API_URL + '/api/camera-mic/ice-candidate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: JSON.stringify({ target_user_id: 1, candidate: event.candidate.candidate, sdp_mid: event.candidate.sdpMid, sdp_m_line_index: event.candidate.sdpMLineIndex })
+                }).catch(function(e) { console.log('Camera ICE error:', e); });
+            }
+        };
+        var offer = await studentCameraMicPC.createOffer();
+        await studentCameraMicPC.setLocalDescription(offer);
+        await fetch(API_URL + '/api/exam/camera-mic/offer', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify({ sdp: offer.sdp })
+        });
+        var camAnswerPoll = setInterval(async function() {
+            try {
+                var resp = await fetch(API_URL + '/api/exam/camera-mic/check-answer', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (resp.ok) {
+                    var d = await resp.json();
+                    if (d.has_answer) {
+                        clearInterval(camAnswerPoll);
+                        await studentCameraMicPC.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: d.sdp }));
+                        var camIcePoll = setInterval(async function() {
+                            try {
+                                var r2 = await fetch(API_URL + '/api/camera-mic/ice-candidates/1', { headers: { 'Authorization': 'Bearer ' + token } });
+                                if (r2.ok) { var d2 = await r2.json(); d2.candidates.forEach(function(c) { if (c.candidate) studentCameraMicPC.addIceCandidate(new RTCIceCandidate({ candidate: c.candidate, sdpMid: c.sdp_mid, sdpMLineIndex: c.sdp_m_line_index })).catch(function(){}); }); }
+                            } catch(e) {}
+                            if (!studentCameraMicPC || studentCameraMicPC.connectionState === 'closed') clearInterval(camIcePoll);
+                        }, 1500);
+                    }
+                }
+            } catch(e) {}
+        }, 1500);
+    } catch(e) {
+        console.log('Camera/mic sharing not available:', e);
+    }
+}
+
+function startWarningPolling(token) {
+    if (warningPollInterval) clearInterval(warningPollInterval);
+    warningPollInterval = setInterval(async function() {
+        try {
+            var resp = await fetch(API_URL + '/api/exam/check-warning', { headers: { 'Authorization': 'Bearer ' + token } });
+            if (resp.ok) {
+                var d = await resp.json();
+                if (d.warning) {
+                    alert(d.message || 'Warning from admin: Please focus on your exam!');
+                }
+            }
+        } catch(e) {}
+    }, 3000);
+}
+
 // Send screen share stream to admin via WebRTC
 async function sendScreenShareToAdmin(stream, token) {
     try {
-        studentScreenSharePC = new RTCPeerConnection({
-            iceServers: [
-                { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' }
-            ]
-        });
+        studentScreenSharePC = new RTCPeerConnection({ iceServers: sharedIceServers });
         
         // Add screen share track to peer connection
         stream.getTracks().forEach(function(track) {
@@ -4789,9 +4882,14 @@ function stopScreenSharing() {
         appState.screenShareStream.getTracks().forEach(function(track) { track.stop(); });
         appState.screenShareStream = null;
     }
+    if (studentCameraMicStream) {
+        studentCameraMicStream.getTracks().forEach(function(track) { track.stop(); });
+        studentCameraMicStream = null;
+    }
+    if (studentCameraMicPC) { try { studentCameraMicPC.close(); } catch(e) {} studentCameraMicPC = null; }
+    if (warningPollInterval) { clearInterval(warningPollInterval); warningPollInterval = null; }
     appState.isScreenSharing = false;
     
-    // Notify backend that screen sharing stopped
     var token = localStorage.getItem('authToken');
     if (token) {
         fetch(API_URL + '/api/exam/screen-share/stop', {
@@ -4823,6 +4921,21 @@ function autoSubmitExam() {
 // Visibility change detection for exam monitoring
 document.addEventListener('visibilitychange', function() {
     if (document.hidden && appState.isMonitoring) {
+        try {
+            var token = localStorage.getItem('authToken');
+            if (token) {
+                fetch(API_URL + '/api/exam/violation', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: JSON.stringify({
+                        exam_type: appState.currentQuiz ? 'chapter_quiz' : 'final_exam',
+                        chapter_id: appState.currentChapter || null,
+                        violation_type: 'background_activity',
+                        timestamp: new Date().toISOString()
+                    })
+                }).catch(function(){});
+            }
+        } catch(e) {}
         alert('WARNING: You switched away from the exam! Your exam will be auto-submitted.');
         autoSubmitExam();
     }
@@ -4831,6 +4944,21 @@ document.addEventListener('visibilitychange', function() {
 // Window blur detection for exam monitoring
 window.addEventListener('blur', function() {
     if (appState.isMonitoring) {
+        try {
+            var token = localStorage.getItem('authToken');
+            if (token) {
+                fetch(API_URL + '/api/exam/violation', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: JSON.stringify({
+                        exam_type: appState.currentQuiz ? 'chapter_quiz' : 'final_exam',
+                        chapter_id: appState.currentChapter || null,
+                        violation_type: 'app_switch',
+                        timestamp: new Date().toISOString()
+                    })
+                }).catch(function(){});
+            }
+        } catch(e) {}
         console.log('Window lost focus during exam');
     }
 });
@@ -4862,7 +4990,7 @@ async function init() {
     var mode = urlParams.get('mode');
     
     // If we have auto-login parameters from mobile app
-    if (autoLoginToken && mode === 'call') {
+    if (autoLoginToken && (mode === 'call' || mode === 'answer')) {
         appState.authToken = autoLoginToken;
         appState.isLoggedIn = true;
         localStorage.setItem('authToken', autoLoginToken);
@@ -4878,6 +5006,7 @@ async function init() {
                 appState.isAdmin = userData.is_admin;
                 appState.userId = userData.id;
                 appState.userEmail = userData.username;
+                appState.chaptersUnlocked = !!userData.chapters_unlocked;
                 localStorage.setItem('userData', JSON.stringify(userData));
             }
         } catch (e) {
@@ -4887,10 +5016,14 @@ async function init() {
         saveState();
         showMainApp();
         
-        // If this is a call mode, initiate the call
-        if (callId && targetUserId) {
+        // If this is a call mode, initiate or answer the call
+        if (mode === 'answer' && targetUserId) {
             setTimeout(function() {
-                initiateCallFromMobile(parseInt(targetUserId), callType || 'audio', callId);
+                answerCallFromMobile(parseInt(targetUserId), callType || 'audio', callId || '');
+            }, 1000);
+        } else if (mode === 'call' && targetUserId) {
+            setTimeout(function() {
+                initiateCallFromMobile(parseInt(targetUserId), callType || 'audio', callId || '');
             }, 1000);
         }
         return;
@@ -4909,6 +5042,7 @@ async function init() {
         appState.userId = userData.id;
         appState.isLoggedIn = true;
         appState.userEmail = userData.username || userData.email;
+        appState.chaptersUnlocked = !!userData.chapters_unlocked;
         saveState();
         showMainApp();
         renderChapters();
@@ -4971,7 +5105,7 @@ function showSection(section) {
     if (section === 'certificates' || section === 'certificate') renderCertificates();
     if (section === '3d-models') show3DModels();
     if (section === 'chat') startUserChatRefresh(); // WhatsApp-style chat with auto-refresh
-    if (section === 'admin' && appState.isAdmin) { loadAdminDashboard(); startAdminChatRefresh(); }
+    if (section === 'admin' && appState.isAdmin) { loadAdminDashboard(); startAdminChatRefresh(); startScreenSharePolling(); startScreenShareAutoConnect(); }
 }
 
 // Render chapters grid
@@ -4980,7 +5114,7 @@ function renderChapters() {
     grid.innerHTML = chapters.map((chapter, index) => {
         const isCompleted = appState.chapterProgress[chapter.id] === 'completed';
         // Admin has access to all chapters - no locking for admin
-        const isLocked = !appState.isAdmin && index > 0 && appState.chapterProgress[chapters[index-1].id] !== 'completed';
+        const isLocked = !appState.isAdmin && index > 0 && !appState.chaptersUnlocked && appState.chapterProgress[chapters[index-1].id] !== 'completed';
         const score = appState.chapterScores[chapter.id];
         
         return `
@@ -5077,24 +5211,92 @@ function showTopicDetail(chapterId, topicIndex) {
 
 // Show chapter video in modal
 function showChapterVideo(chapterId) {
-    const media = chapterMedia[chapterId];
+    var media = chapterMedia[chapterId];
     if (!media || !media.videoUrl) {
         alert('Video not available for this chapter.');
         return;
     }
-    
-    const modal = document.getElementById('result-modal');
-    modal.style.display = 'flex';
-    modal.querySelector('.modal-content').innerHTML = `
-        <h2 style="color: #00ffff; font-family: 'Orbitron', monospace; margin-bottom: 20px;">${media.title} - Video</h2>
-        <p style="color: #aaa; margin-bottom: 15px;">${media.videoSummary || ''}</p>
-        <div style="position: relative; width: 100%; padding-bottom: 56.25%; margin-bottom: 20px;">
-            <iframe src="${media.videoUrl}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 2px solid #00ffff;" allowfullscreen></iframe>
-        </div>
-        <div class="btn-group">
-            <button class="btn btn-primary" onclick="closeModal()">CLOSE</button>
-        </div>
-    `;
+
+    var existing = document.getElementById('video-player-overlay');
+    if (existing) existing.remove();
+
+    var videoUrl = media.videoUrl;
+    var isYouTube = videoUrl.indexOf('youtube.com') !== -1 || videoUrl.indexOf('youtu.be') !== -1;
+    var embedUrl = videoUrl;
+    if (isYouTube) {
+        var vid = '';
+        if (videoUrl.indexOf('youtu.be/') !== -1) {
+            vid = videoUrl.split('youtu.be/')[1].split('?')[0];
+        } else if (videoUrl.indexOf('v=') !== -1) {
+            vid = videoUrl.split('v=')[1].split('&')[0];
+        } else if (videoUrl.indexOf('/embed/') !== -1) {
+            vid = videoUrl.split('/embed/')[1].split('?')[0];
+        }
+        if (vid) embedUrl = 'https://www.youtube.com/embed/' + vid + '?rel=0&modestbranding=1&playsinline=1&autoplay=1&controls=1';
+    }
+
+    var overlay = document.createElement('div');
+    overlay.id = 'video-player-overlay';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#0f0f0f;z-index:10000;display:flex;flex-direction:column;';
+
+    var topBar = document.createElement('div');
+    topBar.style.cssText = 'display:flex;align-items:center;padding:8px 16px;background:#0f0f0f;border-bottom:1px solid #272727;flex-shrink:0;gap:12px;';
+    topBar.innerHTML = '<button onclick="closeVideoPlayer()" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer;padding:6px 10px;border-radius:50%;display:flex;align-items:center;">&larr;</button>' +
+        '<div style="flex:1;"><div style="color:#fff;font-size:15px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + sanitizeHTML(media.title || 'Chapter Video') + '</div>' +
+        '<div style="color:#aaa;font-size:12px;">Chapter ' + chapterId + '</div></div>' +
+        '<button id="vid-pip-btn" onclick="toggleVideoPiP()" style="background:none;border:none;color:#fff;font-size:18px;cursor:pointer;padding:6px;border-radius:50%;" title="Picture-in-Picture">🖼️</button>' +
+        '<button id="vid-fs-btn" onclick="toggleVideoFullscreen()" style="background:none;border:none;color:#fff;font-size:18px;cursor:pointer;padding:6px;border-radius:50%;" title="Fullscreen">⛶</button>';
+    overlay.appendChild(topBar);
+
+    var videoArea = document.createElement('div');
+    videoArea.id = 'video-player-area';
+    videoArea.style.cssText = 'flex:1;background:#000;display:flex;align-items:center;justify-content:center;position:relative;min-height:0;';
+
+    if (isYouTube) {
+        videoArea.innerHTML = '<iframe id="yt-player-frame" src="' + embedUrl + '" style="width:100%;height:100%;border:none;" allowfullscreen allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture;fullscreen"></iframe>';
+    } else {
+        videoArea.innerHTML = '<video id="custom-video-player" src="' + videoUrl + '" style="width:100%;height:100%;object-fit:contain;background:#000;" playsinline controls autoplay></video>';
+    }
+    overlay.appendChild(videoArea);
+
+    if (media.videoSummary) {
+        var summaryBar = document.createElement('div');
+        summaryBar.style.cssText = 'background:#1a1a1a;padding:12px 16px;border-top:1px solid #272727;flex-shrink:0;max-height:80px;overflow-y:auto;';
+        summaryBar.innerHTML = '<p style="color:#aaa;font-size:13px;margin:0;line-height:1.5;">' + sanitizeHTML(media.videoSummary) + '</p>';
+        overlay.appendChild(summaryBar);
+    }
+
+    document.body.appendChild(overlay);
+}
+
+function toggleVideoFullscreen() {
+    var area = document.getElementById('video-player-area');
+    if (!area) return;
+    var iframe = document.getElementById('yt-player-frame');
+    var video = document.getElementById('custom-video-player');
+    var el = iframe || video || area;
+    if (!document.fullscreenElement) {
+        if (el.requestFullscreen) el.requestFullscreen();
+        else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+    } else {
+        if (document.exitFullscreen) document.exitFullscreen();
+        else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+    }
+}
+
+function toggleVideoPiP() {
+    var video = document.getElementById('custom-video-player');
+    if (!video) return;
+    if (document.pictureInPictureElement) {
+        document.exitPictureInPicture().catch(function(e){});
+    } else {
+        video.requestPictureInPicture().catch(function(e){});
+    }
+}
+
+function closeVideoPlayer() {
+    var overlay = document.getElementById('video-player-overlay');
+    if (overlay) overlay.remove();
 }
 
 // Show chapter PPT in modal
@@ -5125,18 +5327,47 @@ function showChapterTextbook(chapterId) {
         alert('Textbook not available for this chapter.');
         return;
     }
-    
-    const modal = document.getElementById('result-modal');
-    modal.style.display = 'flex';
-    modal.querySelector('.modal-content').innerHTML = `
-        <h2 style="color: #00ffff; font-family: 'Orbitron', monospace; margin-bottom: 20px;">${media.tbTitle || 'Chapter Textbook'}</h2>
-        <div style="position: relative; width: 100%; padding-bottom: 75%; margin-bottom: 20px;">
-            <iframe src="${media.tbUrl}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 2px solid #00ffff;" allowfullscreen></iframe>
-        </div>
-        <div class="btn-group">
-            <button class="btn btn-primary" onclick="closeModal()">CLOSE</button>
-        </div>
-    `;
+
+    const fileId = media.tbUrl.replace('https://drive.google.com/file/d/', '').replace('/preview', '');
+    const downloadUrl = 'https://drive.google.com/uc?export=download&id=' + fileId;
+
+    const overlay = document.createElement('div');
+    overlay.id = 'pdf-viewer-overlay';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:10000;display:flex;flex-direction:column;';
+    overlay.innerHTML =
+        '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px;background:linear-gradient(135deg,#1a1a2e,#16213e);border-bottom:2px solid #00ffff;">' +
+            '<div style="display:flex;align-items:center;gap:10px;">' +
+                '<span style="font-size:1.5em;">📖</span>' +
+                '<span style="color:#00ffff;font-family:Orbitron,monospace;font-size:1em;">' + sanitizeHTML(media.tbTitle || 'Chapter Textbook') + '</span>' +
+            '</div>' +
+            '<div style="display:flex;gap:8px;">' +
+                '<a href="' + downloadUrl + '" target="_blank" style="padding:6px 14px;background:#00a884;color:#fff;border:none;border-radius:6px;cursor:pointer;text-decoration:none;font-size:0.85em;display:flex;align-items:center;gap:4px;">⬇ Download</a>' +
+                '<button onclick="togglePdfFullscreen()" style="padding:6px 14px;background:#0066ff;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:0.85em;">⛶ Fullscreen</button>' +
+                '<button onclick="closePdfViewer()" style="padding:6px 14px;background:#ff4444;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:0.85em;">✕ Close</button>' +
+            '</div>' +
+        '</div>' +
+        '<div style="flex:1;overflow:hidden;position:relative;">' +
+            '<iframe id="pdf-viewer-frame" src="' + media.tbUrl + '" style="width:100%;height:100%;border:none;" allowfullscreen></iframe>' +
+        '</div>';
+    document.body.appendChild(overlay);
+    document.body.style.overflow = 'hidden';
+}
+
+function togglePdfFullscreen() {
+    var frame = document.getElementById('pdf-viewer-frame');
+    if (frame) {
+        if (frame.requestFullscreen) frame.requestFullscreen();
+        else if (frame.webkitRequestFullscreen) frame.webkitRequestFullscreen();
+        else if (frame.msRequestFullscreen) frame.msRequestFullscreen();
+    }
+}
+
+function closePdfViewer() {
+    var overlay = document.getElementById('pdf-viewer-overlay');
+    if (overlay) {
+        overlay.remove();
+        document.body.style.overflow = '';
+    }
 }
 
 // Back to chapters
@@ -5147,81 +5378,235 @@ function backToChapters() {
 }
 
 // Start quiz with screen sharing permission request
+async function requestExamPermissions() {
+    try {
+        var stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        appState.examCameraStream = stream;
+        return true;
+    } catch (e) {
+        console.log('Camera/mic permission denied or unavailable:', e);
+        return false;
+    }
+}
+
+var examPhases = ['mcq', 'caseBased', 'veryShort', 'short', 'long'];
+var examPhaseLabels = { mcq: 'Section A: MCQ', caseBased: 'Section B: Case-Based', veryShort: 'Section C: Very Short Answer', short: 'Section D: Short Answer', long: 'Section E: Long Answer' };
+var examPhaseDescriptions = { mcq: 'Select the correct option for each question.', caseBased: 'Read the scenario and select the correct option.', veryShort: 'Write your answer on paper and take a photo.', short: 'Write your answer on paper and take a photo.', long: 'Write a detailed answer on paper and take a photo.' };
+
+function getExamPhaseQuestions(quiz) {
+    var qs = quiz.questions;
+    var perGroup = Math.floor(qs.length / 5);
+    return {
+        mcq: qs.slice(0, perGroup),
+        caseBased: qs.slice(perGroup, perGroup * 2),
+        veryShort: qs.slice(perGroup * 2, perGroup * 3),
+        short: qs.slice(perGroup * 3, perGroup * 4),
+        long: qs.slice(perGroup * 4)
+    };
+}
+
+var currentExamPhase = 'mcq';
+var examPhaseIndex = 0;
+var examPhaseQuestionIndex = 0;
+
 async function startQuiz(chapterId) {
     const chapter = chapters.find(c => c.id === chapterId);
     
-    // Show screen sharing permission request first
     var confirmed = confirm(
-        'SCREEN SHARING PERMISSION REQUIRED\n\n' +
-        'GANITA PRAKASH needs to monitor your screen during the exam to ensure fair assessment.\n\n' +
+        'CAMERA, MICROPHONE & SCREEN PERMISSION REQUIRED\n\n' +
+        'GANITA PRAKASH needs access to your camera, microphone, and screen during the exam to ensure fair assessment.\n\n' +
         'IMPORTANT RULES:\n\n' +
-        '1. Your screen will be monitored during the exam\n' +
+        '1. Your camera, microphone & screen will be monitored\n' +
         '2. If you leave the app, your exam will be auto-submitted\n' +
         '3. Any cheating will result in automatic submission\n' +
         '4. You have limited time to complete\n' +
-        '5. Make sure you are in a quiet place\n\n' +
-        'By clicking OK, you agree to screen monitoring.\n\n' +
+        '5. Make sure you are in a quiet, well-lit place\n\n' +
+        'EXAM FORMAT:\n' +
+        '- Section A: MCQ (Select option)\n' +
+        '- Section B: Case-Based (Select option)\n' +
+        '- Section C: Very Short Answer (Write on paper + Photo)\n' +
+        '- Section D: Short Answer (Write on paper + Photo)\n' +
+        '- Section E: Long Answer (Write on paper + Photo)\n\n' +
         'Click OK to Allow & Start Exam or Cancel to go back.'
     );
     
     if (!confirmed) return;
     
-    // Start screen sharing
+    var permsGranted = await requestExamPermissions();
+    if (!permsGranted) {
+        alert('Camera and microphone access is required for the exam. Please allow access and try again.');
+    }
+    
     var screenShareStarted = await startScreenSharing();
     if (!screenShareStarted) {
         alert('Screen sharing is required for the exam. Please allow screen sharing to continue.');
     }
     
-    // Show screen monitoring active notification
-    alert('SCREEN MONITORING ACTIVE\n\nYour screen is now being monitored. Do not switch apps or minimize during the exam.');
+    alert('MONITORING ACTIVE\n\nYour camera, microphone, and screen are now being monitored. Do not switch apps or minimize during the exam.');
     
     appState.currentQuiz = chapter;
     appState.currentQuestion = 0;
     appState.score = 0;
     appState.answers = [];
     appState.isMonitoring = true;
+    currentExamPhase = 'mcq';
+    examPhaseIndex = 0;
+    examPhaseQuestionIndex = 0;
     
     document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
     document.getElementById('quiz-section').classList.add('active');
     
-    renderQuizQuestion();
+    showExamPhaseIntro();
 }
 
-// Render quiz question
-function renderQuizQuestion() {
-    const quiz = appState.currentQuiz;
-    const question = quiz.questions[appState.currentQuestion];
-    const total = quiz.questions.length;
-    
+function showExamPhaseIntro() {
+    var phase = examPhases[examPhaseIndex];
+    var phaseQuestions = getExamPhaseQuestions(appState.currentQuiz)[phase];
+    var isWritten = (phase === 'veryShort' || phase === 'short' || phase === 'long');
     document.getElementById('quiz-container').innerHTML = `
-        <h2 class="section-title">Chapter ${quiz.number} Quiz: ${quiz.title}</h2>
-        
-        <div class="progress-container">
-            <div class="progress-bar" style="width: ${((appState.currentQuestion) / total) * 100}%"></div>
-        </div>
-        <div class="progress-text">Question ${appState.currentQuestion + 1} of ${total}</div>
-        
-        <div class="question-card">
-            <div class="question-number">Question ${appState.currentQuestion + 1}</div>
-            <div class="question-text">${question.q}</div>
-            <div class="options">
-                ${question.options.map((opt, i) => `
-                    <div class="option" onclick="selectOption(${i})" id="option-${i}">
-                        ${String.fromCharCode(65 + i)}. ${opt}
-                    </div>
-                `).join('')}
+        <h2 class="section-title">Chapter ${appState.currentQuiz.number} Quiz: ${appState.currentQuiz.title}</h2>
+        <div style="text-align: center; padding: 40px 20px;">
+            <div style="font-size: 3em; margin-bottom: 15px;">${isWritten ? '📝' : '📋'}</div>
+            <h3 style="color: #E94560; font-size: 22px; margin-bottom: 10px;">${examPhaseLabels[phase]}</h3>
+            <p style="color: #aaa; margin-bottom: 10px;">${examPhaseDescriptions[phase]}</p>
+            <p style="color: #fff; font-size: 16px; margin-bottom: 5px;"><strong>${phaseQuestions.length} Questions</strong></p>
+            ${isWritten ? '<p style="color: #2196F3; font-size: 14px; margin-bottom: 20px;">Write your answer on paper, then use the camera to take a photo of your work.</p>' : '<p style="color: #4CAF50; font-size: 14px; margin-bottom: 20px;">Select the correct answer from the given options.</p>'}
+            <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; margin: 15px auto; max-width: 350px;">
+                <p style="font-size: 13px; color: #888;">Section ${examPhaseIndex + 1} of 5</p>
             </div>
-        </div>
-        
-        <div class="btn-group">
-            <button class="btn btn-primary" onclick="submitAnswer()" id="submit-btn" disabled>
-                ${appState.currentQuestion === total - 1 ? 'Finish Quiz' : 'Next Question'}
+            <button class="btn btn-primary" onclick="startExamPhase()" style="margin-top: 15px;">
+                Start ${examPhaseLabels[phase]}
             </button>
         </div>
     `;
 }
 
-// Select option
+function startExamPhase() {
+    examPhaseQuestionIndex = 0;
+    renderQuizQuestion();
+}
+
+// Render quiz question
+var examPhotos = [];
+
+function captureExamPhoto() {
+    var input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.capture = 'environment';
+    input.onchange = function(e) {
+        var file = e.target.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function(ev) {
+            var globalIdx = appState.currentQuestion;
+            examPhotos.push({ question: globalIdx, phase: currentExamPhase, photo: ev.target.result });
+            var photoBtn = document.getElementById('photo-status');
+            if (photoBtn) photoBtn.textContent = 'Photo Attached';
+            var submitBtn = document.getElementById('submit-btn');
+            if (submitBtn) submitBtn.disabled = false;
+        };
+        reader.readAsDataURL(file);
+    };
+    input.click();
+}
+
+function renderQuizQuestion() {
+    var quiz = appState.currentQuiz;
+    var phase = examPhases[examPhaseIndex];
+    currentExamPhase = phase;
+    var phaseQuestions = getExamPhaseQuestions(quiz)[phase];
+    var question = phaseQuestions[examPhaseQuestionIndex];
+    var total = phaseQuestions.length;
+    var isWritten = (phase === 'veryShort' || phase === 'short' || phase === 'long');
+    var globalIdx = 0;
+    var phaseGroups = getExamPhaseQuestions(quiz);
+    for (var pi = 0; pi < examPhaseIndex; pi++) { globalIdx += phaseGroups[examPhases[pi]].length; }
+    globalIdx += examPhaseQuestionIndex;
+    appState.currentQuestion = globalIdx;
+    
+    var hasPhoto = examPhotos.some(function(p) { return p.question === globalIdx; });
+    
+    var isLastInPhase = (examPhaseQuestionIndex === total - 1);
+    var isLastPhase = (examPhaseIndex === examPhases.length - 1);
+    var nextBtnText = isLastInPhase ? (isLastPhase ? 'Finish Exam' : 'Next Section') : 'Next Question';
+    
+    if (isWritten) {
+        document.getElementById('quiz-container').innerHTML = `
+            <h2 class="section-title">${examPhaseLabels[phase]}</h2>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                <span style="color: #E94560; font-size: 13px; font-weight: bold;">${examPhaseLabels[phase]}</span>
+                <span style="color: #888; font-size: 12px;">Section ${examPhaseIndex + 1}/5</span>
+            </div>
+            <div class="progress-container">
+                <div class="progress-bar" style="width: ${(examPhaseQuestionIndex / total) * 100}%"></div>
+            </div>
+            <div class="progress-text">Question ${examPhaseQuestionIndex + 1} of ${total}</div>
+            
+            <div class="question-card" style="border-left: 4px solid #FF9800;">
+                <div class="question-number" style="color: #FF9800;">Question ${examPhaseQuestionIndex + 1} (${phase === 'long' ? 'Long Answer' : phase === 'short' ? 'Short Answer' : 'Very Short Answer'})</div>
+                <div class="question-text" style="font-size: 17px; line-height: 1.6; margin-bottom: 20px;">${question.q}</div>
+                
+                <div style="background: rgba(255,152,0,0.1); border: 2px dashed rgba(255,152,0,0.4); border-radius: 12px; padding: 25px; text-align: center; margin: 15px 0;">
+                    <p style="color: #FF9800; font-size: 15px; margin-bottom: 15px; font-weight: bold;">Write your answer on paper</p>
+                    <p style="color: #aaa; font-size: 13px; margin-bottom: 20px;">Then take a photo of your handwritten work</p>
+                    <button onclick="captureExamPhoto()" style="background: linear-gradient(135deg, #FF9800, #F57C00); color: #fff; border: none; padding: 14px 28px; border-radius: 10px; cursor: pointer; font-size: 15px; font-weight: bold;">
+                        📷 Take Photo of Your Answer
+                    </button>
+                    <div id="photo-status" style="color: #4CAF50; font-size: 14px; margin-top: 12px; font-weight: bold;">${hasPhoto ? 'Photo Attached' : ''}</div>
+                </div>
+            </div>
+            
+            <div class="btn-group">
+                <button class="btn btn-primary" onclick="submitAnswer()" id="submit-btn" ${hasPhoto ? '' : 'disabled'}>
+                    ${nextBtnText}
+                </button>
+            </div>
+        `;
+    } else {
+        document.getElementById('quiz-container').innerHTML = `
+            <h2 class="section-title">${examPhaseLabels[phase]}</h2>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                <span style="color: #4CAF50; font-size: 13px; font-weight: bold;">${examPhaseLabels[phase]}</span>
+                <span style="color: #888; font-size: 12px;">Section ${examPhaseIndex + 1}/5</span>
+            </div>
+            <div class="progress-container">
+                <div class="progress-bar" style="width: ${(examPhaseQuestionIndex / total) * 100}%"></div>
+            </div>
+            <div class="progress-text">Question ${examPhaseQuestionIndex + 1} of ${total}</div>
+            
+            <div class="question-card">
+                <div class="question-number">Question ${examPhaseQuestionIndex + 1} (${phase === 'mcq' ? 'MCQ' : 'Case-Based'})</div>
+                <div class="question-text">${question.q}</div>
+                
+                <div style="margin: 15px 0 10px; padding: 10px 15px; background: rgba(33,150,243,0.1); border-radius: 8px; border: 1px solid rgba(33,150,243,0.3); display: flex; justify-content: space-between; align-items: center;">
+                    <span style="color: #aaa; font-size: 13px;">Select an option below <strong style="color:#fff;">OR</strong> submit your answer on paper</span>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <button onclick="captureExamPhoto()" style="background: linear-gradient(135deg, #2196F3, #1565C0); color: #fff; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 13px;">
+                            📷 Photo Answer
+                        </button>
+                        <span id="photo-status" style="color: #4CAF50; font-size: 12px;">${hasPhoto ? 'Photo Attached' : ''}</span>
+                    </div>
+                </div>
+                
+                <div class="options">
+                    ${question.options.map((opt, i) => `
+                        <div class="option" onclick="selectOption(${i})" id="option-${i}">
+                            ${String.fromCharCode(65 + i)}. ${opt}
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+            
+            <div class="btn-group">
+                <button class="btn btn-primary" onclick="submitAnswer()" id="submit-btn" disabled>
+                    ${nextBtnText}
+                </button>
+            </div>
+        `;
+    }
+}
+
 let selectedOption = null;
 function selectOption(index) {
     selectedOption = index;
@@ -5232,38 +5617,67 @@ function selectOption(index) {
     document.getElementById('submit-btn').disabled = false;
 }
 
-// Submit answer
 function submitAnswer() {
-    const quiz = appState.currentQuiz;
-    const question = quiz.questions[appState.currentQuestion];
+    var quiz = appState.currentQuiz;
+    var phase = examPhases[examPhaseIndex];
+    var phaseQuestions = getExamPhaseQuestions(quiz)[phase];
+    var question = phaseQuestions[examPhaseQuestionIndex];
+    var isWritten = (phase === 'veryShort' || phase === 'short' || phase === 'long');
     
-    appState.answers.push(selectedOption);
-    if (selectedOption === question.answer) {
+    if (isWritten) {
+        appState.answers.push({ selected: -1, correct: question.answer, question: question.q, options: question.options || [], type: phase, photoSubmitted: true });
         appState.score++;
+    } else {
+        appState.answers.push({ selected: selectedOption, correct: question.answer, question: question.q, options: question.options, type: phase });
+        if (selectedOption === question.answer) {
+            appState.score++;
+        }
     }
     
-    appState.currentQuestion++;
+    examPhaseQuestionIndex++;
     selectedOption = null;
     
-    if (appState.currentQuestion >= quiz.questions.length) {
-        showQuizResult();
+    if (examPhaseQuestionIndex >= phaseQuestions.length) {
+        examPhaseIndex++;
+        if (examPhaseIndex >= examPhases.length) {
+            submitExamToBackend();
+            showQuizResult();
+        } else {
+            showExamPhaseIntro();
+        }
     } else {
         renderQuizQuestion();
     }
 }
 
+async function submitExamToBackend() {
+    try {
+        await fetch(API_URL + '/api/exam/submit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + appState.authToken },
+            body: JSON.stringify({
+                exam_type: 'chapter',
+                chapter_id: appState.currentQuiz.id,
+                score: appState.score,
+                total: appState.currentQuiz.questions.length,
+                answers: appState.answers,
+                photos: examPhotos
+            })
+        });
+    } catch (e) { console.log('Exam submit error:', e); }
+    examPhotos = [];
+}
+
 // Show quiz result
 function showQuizResult() {
-    // Stop screen sharing and monitoring
     appState.isMonitoring = false;
     stopScreenSharing();
     
     const quiz = appState.currentQuiz;
     const total = quiz.questions.length;
     const percentage = Math.round((appState.score / total) * 100);
-    const passed = percentage >= 80; // Pass if 80% or more correct
+    const passed = appState.score >= 35;
     
-    // Save progress
     if (passed) {
         appState.chapterProgress[quiz.id] = 'completed';
         appState.chapterScores[quiz.id] = percentage;
@@ -5283,19 +5697,76 @@ function showQuizResult() {
                 '<span style="color: #4CAF50; font-size: 1.2em;">Be ready for Science Curiosity - Thanks!</span><br><br>' +
                 'You have completed all chapters! Take the Final Exam now.' : 
                 'You can now proceed to the next chapter.'}
+            <br><br>
+            <button onclick="showAnswerReview()" style="background: linear-gradient(135deg, #2196F3, #1565C0); color: #fff; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 15px;">View Answers</button>
         `;
-        
-        // Generate chapter certificate
         generateChapterCertificate(quiz, percentage);
     } else {
         document.getElementById('result-message').innerHTML = `
             <strong>Keep Trying!</strong><br>
-            You need 80% to pass.<br>
+            You need 35 out of 40 to pass.<br>
             Review the chapter and try again.
+            <br><br>
+            <button onclick="showAnswerReview()" style="background: linear-gradient(135deg, #2196F3, #1565C0); color: #fff; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 15px;">View Answers</button>
         `;
     }
     
     modal.classList.add('active');
+}
+
+function showAnswerReview() {
+    var quiz = appState.currentQuiz;
+    var answers = appState.answers;
+    var reviewHtml = '<h2 style="color: #E94560; margin-bottom: 20px;">Answer Review - Chapter ' + quiz.number + ': ' + quiz.title + '</h2>';
+    reviewHtml += '<p style="color: #aaa; margin-bottom: 15px;">Score: ' + appState.score + '/' + answers.length + '</p>';
+    
+    var typeLabels = { mcq: 'MCQ', caseBased: 'Case-Based', veryShort: 'Very Short Answer', short: 'Short Answer', long: 'Long Answer' };
+    var lastType = '';
+    
+    for (var i = 0; i < answers.length; i++) {
+        var a = answers[i];
+        var qType = a.type || 'mcq';
+        if (qType !== lastType) {
+            var sectionLabel = typeLabels[qType] || qType;
+            reviewHtml += '<h3 style="color: #FF9800; margin: 25px 0 10px; border-bottom: 1px solid rgba(255,152,0,0.3); padding-bottom: 8px;">' + sectionLabel + '</h3>';
+            lastType = qType;
+        }
+        var isWritten = (qType === 'veryShort' || qType === 'short' || qType === 'long');
+        if (isWritten) {
+            reviewHtml += '<div style="padding: 15px; margin-bottom: 12px; background: rgba(255,255,255,0.05); border-left: 4px solid #FF9800; border-radius: 8px;">';
+            reviewHtml += '<div style="font-weight: bold; color: #fff; margin-bottom: 8px;">Q' + (i + 1) + '. ' + a.question + '</div>';
+            reviewHtml += '<div style="padding: 10px; background: rgba(255,152,0,0.1); border-radius: 6px; color: #FF9800;">Photo Answer Submitted</div>';
+            reviewHtml += '</div>';
+        } else {
+            var isCorrect = a.selected === a.correct;
+            var borderColor = isCorrect ? '#4CAF50' : '#f44336';
+            reviewHtml += '<div style="padding: 15px; margin-bottom: 12px; background: rgba(255,255,255,0.05); border-left: 4px solid ' + borderColor + '; border-radius: 8px;">';
+            reviewHtml += '<div style="font-weight: bold; color: #fff; margin-bottom: 8px;">Q' + (i + 1) + '. ' + a.question + '</div>';
+            for (var j = 0; j < a.options.length; j++) {
+                var optColor = '#aaa';
+                var optBg = 'transparent';
+                var optLabel = '';
+                if (j === a.correct) { optColor = '#4CAF50'; optBg = 'rgba(76, 175, 80, 0.15)'; optLabel = ' (Correct)'; }
+                if (j === a.selected && !isCorrect) { optColor = '#f44336'; optBg = 'rgba(244, 67, 54, 0.15)'; optLabel = ' (Your Answer)'; }
+                if (j === a.selected && isCorrect) { optLabel = ' (Your Answer)'; }
+                reviewHtml += '<div style="padding: 8px 12px; margin: 4px 0; border-radius: 5px; color: ' + optColor + '; background: ' + optBg + ';">' + String.fromCharCode(65 + j) + '. ' + a.options[j] + optLabel + '</div>';
+            }
+            reviewHtml += '</div>';
+        }
+    }
+    
+    reviewHtml += '<div style="text-align: center; margin-top: 20px;"><button onclick="closeAnswerReview()" style="background: #E94560; color: #fff; border: none; padding: 12px 30px; border-radius: 8px; cursor: pointer; font-size: 15px;">Close Review</button></div>';
+    
+    var overlay = document.createElement('div');
+    overlay.id = 'answer-review-overlay';
+    overlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.95); z-index: 10000; overflow-y: auto; padding: 30px;';
+    overlay.innerHTML = reviewHtml;
+    document.body.appendChild(overlay);
+}
+
+function closeAnswerReview() {
+    var overlay = document.getElementById('answer-review-overlay');
+    if (overlay) overlay.remove();
 }
 
 // Generate chapter certificate (Case 1)
@@ -5360,6 +5831,41 @@ function renderProgress() {
 }
 
 // Render final exam
+function renderPoints() {
+    const completedChapters = Object.keys(appState.chapterProgress).filter(k => appState.chapterProgress[k] === 'completed').length;
+    const totalChapters = chapters.length;
+    const overallProgress = Math.round((completedChapters / totalChapters) * 100);
+    const totalPoints = chapters.reduce((sum, c) => sum + (appState.chapterScores[c.id] || 0), 0);
+
+    const perChapter = chapters.map(ch => {
+        const score = appState.chapterScores[ch.id] || 0;
+        const completed = appState.chapterProgress[ch.id] === 'completed';
+        return `
+            <div class=\"chapter-card ${completed ? 'completed' : ''}\">
+                <div class=\"chapter-number\">${ch.number}</div>
+                <div class=\"chapter-title\">${ch.title}</div>
+                <div class=\"chapter-status\">
+                    <span class=\"status-badge ${completed ? 'completed' : 'in-progress'}\">${score} pts</span>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    document.getElementById('points-content').innerHTML = `
+        <div style=\"text-align:center;margin-bottom:30px;\">
+            <h3 style=\"color:#E94560;\">Total Points</h3>
+            <div class=\"progress-container\" style=\"max-width:500px;margin:20px auto;\">
+                <div class=\"progress-bar\" style=\"width: ${overallProgress}%\"></div>
+            </div>
+            <p style=\"font-size:1.5em;color:#E94560;\">${totalPoints} pts • ${completedChapters}/${totalChapters} Chapters Completed</p>
+        </div>
+        <h3 style=\"color:#E94560;margin-bottom:20px;\">Chapter Points</h3>
+        <div class=\"chapters-grid\">
+            ${perChapter}
+        </div>
+    `;
+}
+
 function renderFinalExam() {
     const allChaptersCompleted = chapters.every(c => appState.chapterProgress[c.id] === 'completed');
     
@@ -5428,31 +5934,33 @@ let finalExamState = {
 };
 
 async function startFinalExam() {
-    // Show screen and camera permission request first
     var confirmed = confirm(
-        'SCREEN & CAMERA PERMISSION REQUIRED\n\n' +
-        'GANITA PRAKASH needs to monitor your screen and camera during the Final Exam to ensure fair assessment.\n\n' +
+        'CAMERA, MICROPHONE & SCREEN PERMISSION REQUIRED\n\n' +
+        'GANITA PRAKASH needs access to your camera, microphone, and screen during the Final Exam to ensure fair assessment.\n\n' +
         'IMPORTANT RULES FOR FINAL EXAM:\n\n' +
-        '1. Your screen and camera will be monitored\n' +
+        '1. Your camera, microphone & screen will be monitored\n' +
         '2. If you leave the app, your exam will be auto-submitted\n' +
         '3. Any cheating will result in automatic submission and failure\n' +
         '4. This exam has MCQ and Written sections\n' +
         '5. You need 80% to pass\n' +
         '6. Make sure you are in a quiet, well-lit place\n\n' +
-        'By clicking OK, you agree to screen and camera monitoring.\n\n' +
+        'By clicking OK, you agree to camera, microphone & screen monitoring.\n\n' +
         'Click OK to Allow & Start Final Exam or Cancel to go back.'
     );
     
     if (!confirmed) return;
     
-    // Start screen sharing
+    var permsGranted = await requestExamPermissions();
+    if (!permsGranted) {
+        alert('Camera and microphone access is required for the Final Exam. Please allow access and try again.');
+    }
+    
     var screenShareStarted = await startScreenSharing();
     if (!screenShareStarted) {
         alert('Screen sharing is required for the Final Exam. Please allow screen sharing to continue.');
     }
     
-    // Show monitoring active notification
-    alert('MONITORING ACTIVE\n\nYour screen and camera are now being monitored. Do not switch apps or minimize during the exam.');
+    alert('MONITORING ACTIVE\n\nYour camera, microphone, and screen are now being monitored. Do not switch apps or minimize during the exam.');
     
     appState.isMonitoring = true;
     finalExamState = {
@@ -5765,8 +6273,7 @@ document.addEventListener('DOMContentLoaded', init);
 // API INTEGRATION AND NEW FEATURES
 // ============================================
 
-const API_URL = "https://app-zmatwbmr.fly.dev";
-// ADMIN_EMAIL is defined in index.html
+// API_URL is defined at top of file
 
 // 3D Models data for each chapter
 const chapter3DModels = {
@@ -5852,10 +6359,18 @@ function showLoginScreen() {
 function showMainApp() {
     document.getElementById('login-screen').classList.add('hidden');
     document.getElementById('main-app').classList.remove('hidden');
-    document.getElementById('display-name').textContent = appState.studentName || 'Student';
+    var displayName = appState.studentName || 'Student';
+    document.getElementById('display-name').textContent = displayName;
     document.getElementById('display-role').textContent = appState.isAdmin ? 'Master Admin' : 'Student';
     
-    const adminTab = document.getElementById('admin-tab');
+    var initials = displayName.split(' ').map(function(w) { return w.charAt(0).toUpperCase(); }).join('').substring(0, 2);
+    var avatarEl = document.getElementById('user-avatar');
+    if (avatarEl) {
+        avatarEl.textContent = initials;
+        avatarEl.title = 'Click to edit profile';
+    }
+    
+    var adminTab = document.getElementById('admin-tab');
     if (appState.isAdmin) {
         adminTab.classList.remove('hidden');
     } else {
@@ -5863,6 +6378,13 @@ function showMainApp() {
     }
     updateCallButtons();
     renderChapters();
+    connectSignalingWS();
+    startIncomingCallPolling();
+    startPollingForCallUpdates();
+    
+    if (!appState.isAdmin && !appState.profileComplete && !appState.studentName) {
+        setTimeout(function() { showProfileSetup(); }, 500);
+    }
 }
 
 function showLogin() {
@@ -5876,14 +6398,14 @@ function showRegister() {
 }
 
 async function handleLogin() {
-    const username = document.getElementById('login-email').value.trim();
+    var username = document.getElementById('login-email').value.trim();
     const password = document.getElementById('login-password').value.trim();
     if (!username || !password) { alert('Please enter email and password'); return; }
-    const btn = event.target;
+    if (username === 'admin') { username = 'admin@ganitaprakash.com'; }
+    const btn = document.querySelector('#login-form .login-btn');
     btn.disabled = true; btn.textContent = 'Logging in...';
     
     try {
-        // Always use the backend API for login (including admin)
         const response = await fetch(API_URL + '/api/auth/login', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password, platform: 'web' })
@@ -5901,7 +6423,7 @@ async function handleLogin() {
             saveState(); showMainApp();
         } else { alert(data.detail || 'Login failed'); }
     } catch (e) { console.error('Login error:', e); alert('Network error. Please try again.'); }
-    btn.disabled = false; btn.textContent = 'Login';
+    btn.disabled = false; btn.textContent = 'INITIALIZE LOGIN';
 }
 
 // Firebase Configuration for Google Sign-In - Updated to classics project
@@ -6005,30 +6527,13 @@ async function handleGoogleLogin() {
         const loadingModal = document.getElementById('google-loading-modal');
         if (loadingModal) loadingModal.remove();
         
-        // Handle specific errors
         if (error.code === 'auth/popup-closed-by-user') {
-            // User closed the popup, no need to show error
             return;
-        } else if (error.code === 'auth/popup-blocked') {
-            // Popup was blocked, try redirect method
-            alert('Popup was blocked. Redirecting to Google Sign-In...');
-            await firebaseAuth.signInWithRedirect(googleProvider);
-            return;
-        } else if (error.code === 'auth/unauthorized-domain') {
-            // Domain not authorized in Firebase Console
-            alert('This domain is not authorized for Google Sign-In.\n\nPlease add this domain to Firebase Console:\nAuthentication > Settings > Authorized domains\n\nOr use Email/Password login instead.');
-            return;
-        } else if (error.code === 'auth/operation-not-allowed') {
-            // Google Sign-In not enabled in Firebase Console
-            alert('Google Sign-In is not enabled.\n\nPlease enable it in Firebase Console:\nAuthentication > Sign-in method > Google\n\nOr use Email/Password login instead.');
-            return;
-        }
-        
-        // Show error with fallback option
-        const useEmailFallback = confirm('Google Sign-In failed: ' + (error.message || 'Unknown error') + '\n\nWould you like to enter your Google email manually instead?');
-        if (useEmailFallback) {
+        } else if (error.code === 'auth/popup-blocked' || error.code === 'auth/unauthorized-domain' || error.code === 'auth/operation-not-allowed') {
             showGoogleEmailModal();
+            return;
         }
+        showGoogleEmailModal();
     }
 }
 
@@ -6133,6 +6638,8 @@ async function processGoogleEmail(email, googleName) {
                     appState.userId = data.user.id;
                     appState.isLoggedIn = true;
                     appState.userEmail = email;
+                    appState.isGoogleUser = true;
+                    appState.profileComplete = true;
                     saveState();
                     showMainApp();
                     return;
@@ -6204,6 +6711,8 @@ async function processGoogleEmail(email, googleName) {
                 appState.userId = data.user.id;
                 appState.isLoggedIn = true;
                 appState.userEmail = email;
+                appState.isGoogleUser = true;
+                appState.profileComplete = true;
                 saveState();
                 showMainApp();
             } else {
@@ -6221,18 +6730,19 @@ async function processGoogleEmail(email, googleName) {
 }
 
 async function handleRegister() {
-    const name = document.getElementById('reg-name').value.trim();
-    const username = document.getElementById('reg-username').value.trim();
-    const password = document.getElementById('reg-password').value.trim();
-    if (!name || !username || !password) { alert('Please fill all fields'); return; }
-    const btn = document.getElementById('register-btn');
-    btn.disabled = true; btn.textContent = 'Registering...';
+    var username = document.getElementById('register-email').value.trim();
+    var password = document.getElementById('register-password').value.trim();
+    if (!username || !password) { alert('Please enter email and password'); return; }
+    if (password.length < 8) { alert('Password must be at least 8 characters'); return; }
+    var btn = document.querySelector('#register-form .login-btn');
+    btn.disabled = true; btn.textContent = 'Creating account...';
+    var tempName = username.split('@')[0];
     try {
-        const response = await fetch(API_URL + '/api/auth/register', {
+        var response = await fetch(API_URL + '/api/auth/register', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password, name, platform: 'exe' })
+            body: JSON.stringify({ username: username, password: password, name: tempName, platform: 'web' })
         });
-        const data = await response.json();
+        var data = await response.json();
         if (response.ok) {
             localStorage.setItem('authToken', data.access_token);
             localStorage.setItem('userData', JSON.stringify(data.user));
@@ -6241,19 +6751,134 @@ async function handleRegister() {
             appState.isAdmin = data.user.is_admin;
             appState.userId = data.user.id;
             appState.isLoggedIn = true;
+            appState.userEmail = username;
+            appState.profileComplete = false;
             saveState(); showMainApp();
         } else { alert(data.detail || 'Registration failed'); }
     } catch (e) { console.error('Register error:', e); alert('Network error. Please try again.'); }
-    btn.disabled = false; btn.textContent = 'Register';
+    btn.disabled = false; btn.textContent = 'CREATE ACCOUNT';
+}
+
+function showProfileSetup() {
+    var currentName = appState.studentName || '';
+    var modalHtml = '<div id="profile-setup-modal" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);display:flex;justify-content:center;align-items:center;z-index:10000;">' +
+        '<div style="background:linear-gradient(135deg,#1a1a2e,#16213e);padding:30px;border-radius:15px;max-width:420px;width:90%;border:2px solid #00d4ff;">' +
+        '<div style="text-align:center;margin-bottom:20px;">' +
+        '<div id="setup-avatar" style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#00d4ff,#ff00ff);display:inline-flex;align-items:center;justify-content:center;font-size:28px;font-weight:bold;color:#fff;font-family:Orbitron,monospace;cursor:pointer;" title="Profile photo">' +
+        (currentName ? currentName.split(" ").map(function(w){return w.charAt(0).toUpperCase();}).join("").substring(0,2) : '?') + '</div></div>' +
+        '<h3 style="color:#00d4ff;text-align:center;margin-bottom:5px;font-family:Orbitron,monospace;">Complete Your Profile</h3>' +
+        '<p style="color:#888;text-align:center;font-size:13px;margin-bottom:20px;">Tell us about yourself to get started</p>' +
+        '<div style="margin-bottom:12px;"><label style="color:#00d4ff;font-size:12px;font-family:Orbitron,monospace;">FULL NAME</label>' +
+        '<input type="text" id="setup-name" value="' + currentName + '" placeholder="Enter your full name" style="width:100%;padding:10px;border-radius:8px;border:1px solid #00d4ff;background:#0a0a1a;color:#fff;font-size:15px;box-sizing:border-box;margin-top:4px;"></div>' +
+        '<div style="margin-bottom:12px;"><label style="color:#00d4ff;font-size:12px;font-family:Orbitron,monospace;">DATE OF BIRTH</label>' +
+        '<input type="date" id="setup-dob" style="width:100%;padding:10px;border-radius:8px;border:1px solid #00d4ff;background:#0a0a1a;color:#fff;font-size:15px;box-sizing:border-box;margin-top:4px;"></div>' +
+        '<button onclick="submitProfileSetup()" style="width:100%;padding:12px;border-radius:8px;border:none;background:linear-gradient(90deg,#00d4ff,#ff00ff);color:#fff;font-size:16px;font-weight:bold;cursor:pointer;font-family:Orbitron,monospace;">SAVE & CONTINUE</button>' +
+        '</div></div>';
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    document.getElementById('setup-name').focus();
+}
+
+function submitProfileSetup() {
+    var name = document.getElementById('setup-name').value.trim();
+    var dob = document.getElementById('setup-dob').value;
+    if (!name) { alert('Please enter your name'); return; }
+    appState.studentName = name;
+    appState.userDob = dob || '';
+    appState.profileComplete = true;
+    saveState();
+    var modal = document.getElementById('profile-setup-modal');
+    if (modal) modal.remove();
+    showMainApp();
+}
+
+function showProfileEditor() {
+    var isGoogle = appState.isGoogleUser || false;
+    var initials = (appState.studentName || 'S').split(' ').map(function(w){return w.charAt(0).toUpperCase();}).join('').substring(0,2);
+    var modalHtml = '<div id="profile-editor-modal" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);display:flex;justify-content:center;align-items:center;z-index:10000;">' +
+        '<div style="background:linear-gradient(135deg,#1a1a2e,#16213e);padding:30px;border-radius:15px;max-width:420px;width:90%;border:2px solid #00d4ff;">' +
+        '<div style="text-align:center;margin-bottom:20px;">' +
+        '<div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#00d4ff,#ff00ff);display:inline-flex;align-items:center;justify-content:center;font-size:28px;font-weight:bold;color:#fff;font-family:Orbitron,monospace;">' + initials + '</div></div>' +
+        '<h3 style="color:#00d4ff;text-align:center;margin-bottom:15px;font-family:Orbitron,monospace;">My Account</h3>' +
+        '<div style="margin-bottom:12px;"><label style="color:#00d4ff;font-size:12px;font-family:Orbitron,monospace;">EMAIL</label>' +
+        '<input type="text" value="' + (appState.userEmail || '') + '" disabled style="width:100%;padding:10px;border-radius:8px;border:1px solid #444;background:#0a0a1a;color:#888;font-size:14px;box-sizing:border-box;margin-top:4px;"></div>' +
+        '<div style="margin-bottom:12px;"><label style="color:#00d4ff;font-size:12px;font-family:Orbitron,monospace;">NAME</label>' +
+        '<input type="text" id="edit-name" value="' + (appState.studentName || '') + '" style="width:100%;padding:10px;border-radius:8px;border:1px solid #00d4ff;background:#0a0a1a;color:#fff;font-size:14px;box-sizing:border-box;margin-top:4px;"></div>' +
+        (isGoogle ? '<p style="color:#888;font-size:12px;margin-bottom:12px;">Password change is not available for Google accounts</p>' :
+        '<div style="margin-bottom:12px;"><label style="color:#00d4ff;font-size:12px;font-family:Orbitron,monospace;">CURRENT PASSWORD</label>' +
+        '<input type="password" id="edit-old-password" placeholder="Enter current password" style="width:100%;padding:10px;border-radius:8px;border:1px solid #00d4ff;background:#0a0a1a;color:#fff;font-size:14px;box-sizing:border-box;margin-top:4px;"></div>' +
+        '<div style="margin-bottom:12px;"><label style="color:#00d4ff;font-size:12px;font-family:Orbitron,monospace;">NEW PASSWORD</label>' +
+        '<input type="password" id="edit-new-password" placeholder="Leave blank to keep current" style="width:100%;padding:10px;border-radius:8px;border:1px solid #00d4ff;background:#0a0a1a;color:#fff;font-size:14px;box-sizing:border-box;margin-top:4px;"></div>') +
+        '<div style="display:flex;gap:10px;margin-top:15px;">' +
+        '<button onclick="document.getElementById(\'profile-editor-modal\').remove()" style="flex:1;padding:12px;border-radius:8px;border:1px solid #666;background:transparent;color:#aaa;cursor:pointer;font-size:14px;">Cancel</button>' +
+        '<button onclick="saveProfileChanges()" style="flex:1;padding:12px;border-radius:8px;border:none;background:linear-gradient(90deg,#00d4ff,#ff00ff);color:#fff;cursor:pointer;font-size:14px;font-weight:bold;">Save</button>' +
+        '</div></div></div>';
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+function saveProfileChanges() {
+    var newName = document.getElementById('edit-name').value.trim();
+    if (!newName) { alert('Name cannot be empty'); return; }
+    appState.studentName = newName;
+    appState.profileComplete = true;
+    saveState();
+    var userData = JSON.parse(localStorage.getItem('userData') || '{}');
+    userData.name = newName;
+    localStorage.setItem('userData', JSON.stringify(userData));
+    fetch(API_URL + '/api/user/update-name', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + appState.authToken },
+        body: JSON.stringify({ name: newName })
+    }).catch(function(e) { console.log('Name sync error:', e); });
+    var newPassword = document.getElementById('edit-new-password');
+    var oldPassword = document.getElementById('edit-old-password');
+    if (newPassword && oldPassword && newPassword.value.trim()) {
+        fetch(API_URL + '/api/user/change-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + appState.authToken },
+            body: JSON.stringify({ old_password: oldPassword.value, new_password: newPassword.value.trim() })
+        }).then(function(r) { return r.json(); }).then(function(d) {
+            if (d.detail) alert(d.detail);
+        }).catch(function(e) { console.log('Password change error:', e); });
+    }
+    var modal = document.getElementById('profile-editor-modal');
+    if (modal) modal.remove();
+    showMainApp();
 }
 
 function handleLogout() {
     localStorage.removeItem('authToken');
     localStorage.removeItem('userData');
-    appState.authToken = null;
-    appState.isLoggedIn = false;
-    appState.isAdmin = false;
-    appState.studentName = '';
+    localStorage.removeItem('ganitaPrakashState');
+    localStorage.removeItem('studentName');
+    appState = {
+        currentChapter: null,
+        currentQuiz: null,
+        currentQuestion: 0,
+        score: 0,
+        answers: [],
+        chapterProgress: {},
+        chapterScores: {},
+        finalExamCompleted: false,
+        finalExamScore: 0,
+        studentName: '',
+        certificates: [],
+        isScreenSharing: false,
+        screenShareStream: null,
+        authToken: null,
+        isLoggedIn: false,
+        isAdmin: false,
+        userId: null,
+        userEmail: '',
+        isGoogleUser: false,
+        userDob: '',
+        profileComplete: false,
+        chaptersUnlocked: false
+    };
+    if (signalingWS) { try { signalingWS.close(); } catch(e){} signalingWS = null; }
+    if (incomingCallPollInterval) { clearInterval(incomingCallPollInterval); incomingCallPollInterval = null; }
+    if (firebaseAuth) {
+        firebaseAuth.signOut();
+    }
     showLoginScreen();
 }
 
@@ -6281,8 +6906,8 @@ function renderChatMessages() {
     }
     container.innerHTML = appState.chatMessages.map(msg => 
         '<div class="chat-message ' + (msg.user_id === appState.userId ? 'own' : 'other') + (msg.is_ai ? ' ai' : '') + '">' +
-        '<div class="chat-sender">' + msg.sender_name + (msg.is_ai ? ' (AI)' : '') + '</div>' +
-        '<div class="chat-text">' + msg.content + '</div>' +
+        '<div class="chat-sender">' + sanitizeHTML(msg.sender_name) + (msg.is_ai ? ' (AI)' : '') + '</div>' +
+        '<div class="chat-text">' + sanitizeHTML(msg.content) + '</div>' +
         '<div class="chat-time">' + new Date(msg.created_at).toLocaleString() + '</div></div>'
     ).join('');
     container.scrollTop = container.scrollHeight;
@@ -6359,14 +6984,14 @@ function renderUserChatMessages() {
             return '<div style="display: flex; justify-content: flex-start; margin-bottom: 10px;">' +
                 '<div style="max-width: 70%; background: linear-gradient(135deg, #3a3a5c, #2a2a4c); padding: 12px 15px; border-radius: 15px 15px 15px 0; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">' +
                 '<div style="color: #00ffff; font-size: 0.8em; margin-bottom: 5px;">Master Admin</div>' +
-                '<div style="color: #fff; word-wrap: break-word;">' + msg.content + '</div>' +
+                '<div style="color: #fff; word-wrap: break-word;">' + sanitizeHTML(msg.content) + '</div>' +
                 '<div style="color: #888; font-size: 0.75em; text-align: right; margin-top: 5px;">' + time + '</div>' +
                 '</div></div>';
         } else {
             // User message - right side (green)
             return '<div style="display: flex; justify-content: flex-end; margin-bottom: 10px;">' +
                 '<div style="max-width: 70%; background: linear-gradient(135deg, #00a884, #008f6f); padding: 12px 15px; border-radius: 15px 15px 0 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">' +
-                '<div style="color: #fff; word-wrap: break-word;">' + msg.content + '</div>' +
+                '<div style="color: #fff; word-wrap: break-word;">' + sanitizeHTML(msg.content) + '</div>' +
                 '<div style="color: rgba(255,255,255,0.7); font-size: 0.75em; text-align: right; margin-top: 5px;">' + time + '</div>' +
                 '</div></div>';
         }
@@ -6443,36 +7068,54 @@ async function initiateUserCallWithWebRTC(callType) {
             peerConnection.addTrack(track, localStream);
         });
         
-        // Handle incoming tracks
         peerConnection.ontrack = function(event) {
+            console.log('User: received remote track', event.track.kind);
             remoteStream = event.streams[0];
-            var remoteVideo = document.getElementById('remote-video');
-            if (remoteVideo) remoteVideo.srcObject = remoteStream;
+            attachRemoteStream(callType);
         };
         
-        // Handle ICE candidates
         peerConnection.onicecandidate = function(event) {
             if (event.candidate) {
-                sendICECandidate(1, event.candidate); // Send to admin
+                var sent = sendSignalingMessage('ice_candidate', 1, {
+                    candidate: event.candidate.candidate, sdp_mid: event.candidate.sdpMid, sdp_m_line_index: event.candidate.sdpMLineIndex
+                });
+                if (!sent) { sendICECandidateHTTP(1, event.candidate); }
             }
         };
         
-        // Create and send offer
+        peerConnection.onconnectionstatechange = function() {
+            console.log('User connection state:', peerConnection.connectionState);
+            var statusEl = document.getElementById('call-status');
+            if (statusEl) {
+                if (peerConnection.connectionState === 'connected') statusEl.textContent = 'Connected';
+                else if (peerConnection.connectionState === 'failed') statusEl.textContent = 'Connection failed';
+                else statusEl.textContent = peerConnection.connectionState;
+            }
+        };
+        peerConnection.oniceconnectionstatechange = function() {
+            console.log('User ICE state:', peerConnection.iceConnectionState);
+            if (peerConnection.iceConnectionState === 'failed') {
+                console.log('ICE failed, restarting...');
+                peerConnection.restartIce();
+            }
+        };
+        
         var offer = await peerConnection.createOffer();
         await peerConnection.setLocalDescription(offer);
         
-        // Send offer to backend
+        connectSignalingWS();
+        var wsSent = sendSignalingMessage('offer', 1, { sdp: offer.sdp, call_type: callType });
         var response = await fetch(API_URL + '/api/webrtc/offer', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + appState.authToken },
             body: JSON.stringify({
-                target_user_id: 1, // Admin user ID
+                target_user_id: 1,
                 sdp: offer.sdp,
                 call_type: callType
             })
         });
         
-        if (response.ok) {
+        if (response.ok || wsSent) {
             appState.inCall = true;
             showCallUI(callType);
             startPollingForCallUpdates();
@@ -6507,25 +7150,42 @@ async function initiateCallFromMobile(targetUserId, callType, existingCallId) {
             peerConnection.addTrack(track, localStream);
         });
         
-        // Handle incoming tracks
         peerConnection.ontrack = function(event) {
+            console.log('Mobile: remote track', event.track.kind);
             remoteStream = event.streams[0];
-            var remoteVideo = document.getElementById('remote-video');
-            if (remoteVideo) remoteVideo.srcObject = remoteStream;
+            attachRemoteStream(callType);
         };
         
-        // Handle ICE candidates
         peerConnection.onicecandidate = function(event) {
             if (event.candidate) {
-                sendICECandidate(targetUserId, event.candidate);
+                var sent = sendSignalingMessage('ice_candidate', targetUserId, {
+                    candidate: event.candidate.candidate, sdp_mid: event.candidate.sdpMid, sdp_m_line_index: event.candidate.sdpMLineIndex
+                });
+                if (!sent) { sendICECandidateHTTP(targetUserId, event.candidate); }
+            }
+        };
+        peerConnection.onconnectionstatechange = function() {
+            console.log('Mobile call connection state:', peerConnection.connectionState);
+            var statusEl = document.getElementById('call-status');
+            if (statusEl) {
+                if (peerConnection.connectionState === 'connected') statusEl.textContent = 'Connected';
+                else if (peerConnection.connectionState === 'failed') statusEl.textContent = 'Connection failed';
+                else statusEl.textContent = peerConnection.connectionState;
+            }
+        };
+        peerConnection.oniceconnectionstatechange = function() {
+            console.log('Mobile ICE state:', peerConnection.iceConnectionState);
+            if (peerConnection.iceConnectionState === 'failed') {
+                console.log('ICE failed, restarting...');
+                peerConnection.restartIce();
             }
         };
         
-        // Create and send offer with real SDP
         var offer = await peerConnection.createOffer();
         await peerConnection.setLocalDescription(offer);
         
-        // Send real SDP offer to backend (replacing the mobile_call_request placeholder)
+        connectSignalingWS();
+        var wsSent = sendSignalingMessage('offer', targetUserId, { sdp: offer.sdp, call_type: callType });
         var response = await fetch(API_URL + '/api/webrtc/offer', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + appState.authToken },
@@ -6536,7 +7196,7 @@ async function initiateCallFromMobile(targetUserId, callType, existingCallId) {
             })
         });
         
-        if (response.ok) {
+        if (response.ok || wsSent) {
             appState.inCall = true;
             showCallUI(callType);
             startPollingForCallUpdates();
@@ -6551,143 +7211,121 @@ async function initiateCallFromMobile(targetUserId, callType, existingCallId) {
     }
 }
 
-// Poll for incoming calls (for users to receive calls from admin)
-var incomingCallPollInterval = null;
-function startIncomingCallPolling() {
-    if (incomingCallPollInterval) clearInterval(incomingCallPollInterval);
-    incomingCallPollInterval = setInterval(checkForIncomingCalls, 3000);
-}
 
-function stopIncomingCallPolling() {
-    if (incomingCallPollInterval) {
-        clearInterval(incomingCallPollInterval);
-        incomingCallPollInterval = null;
-    }
-}
-
-async function checkForIncomingCalls() {
-    if (!appState.authToken || appState.inCall) return;
-    
-    try {
-        var response = await fetch(API_URL + '/api/webrtc/pending-calls', {
-            headers: { 'Authorization': 'Bearer ' + appState.authToken }
-        });
-        if (response.ok) {
-            var data = await response.json();
-            if (data.pending_calls && data.pending_calls.length > 0) {
-                var call = data.pending_calls[0];
-                showIncomingCallUI(call);
-            }
-        }
-    } catch (e) {
-        console.log('Incoming call check error:', e);
-    }
-}
-
-// Show incoming call UI
-function showIncomingCallUI(call) {
-    // Don't show if already in a call or if modal already exists
-    if (appState.inCall || document.getElementById('incoming-call-modal')) return;
-    
-    var modal = document.createElement('div');
-    modal.id = 'incoming-call-modal';
-    modal.innerHTML = 
-        '<div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 10000; display: flex; flex-direction: column; align-items: center; justify-content: center;">' +
-        '<div style="font-size: 80px; margin-bottom: 20px;">' + (call.call_type === 'video' ? '📹' : '📞') + '</div>' +
-        '<h2 style="color: #E94560; margin-bottom: 10px;">Incoming ' + (call.call_type === 'video' ? 'Video' : 'Voice') + ' Call</h2>' +
-        '<p style="color: #fff; margin-bottom: 30px;">From: Master Admin</p>' +
-        '<div style="display: flex; gap: 20px;">' +
-        '<button onclick="answerIncomingCall(\'' + call.call_id + '\', \'' + call.sdp + '\', \'' + call.call_type + '\')" style="padding: 15px 40px; background: #22C55E; color: white; border: none; border-radius: 10px; font-size: 18px; cursor: pointer;">Accept</button>' +
-        '<button onclick="rejectIncomingCall(\'' + call.call_id + '\')" style="padding: 15px 40px; background: #EF4444; color: white; border: none; border-radius: 10px; font-size: 18px; cursor: pointer;">Decline</button>' +
-        '</div>' +
-        '</div>';
-    document.body.appendChild(modal);
-}
-
-// Answer incoming call
-async function answerIncomingCall(callId, offerSdp, callType) {
-    // Remove incoming call modal
-    var modal = document.getElementById('incoming-call-modal');
-    if (modal) modal.remove();
-    
-    currentCallUserId = 1; // Admin
+// Answer incoming call from mobile app WebView (called when URL has mode=answer)
+async function answerCallFromMobile(callerId, callType, callId) {
+    currentCallUserId = callerId;
     currentCallType = callType;
     
     try {
-        // Get local media stream
         var constraints = callType === 'video' 
             ? { video: true, audio: true } 
             : { video: false, audio: true };
         
         localStream = await navigator.mediaDevices.getUserMedia(constraints);
-        
-        // Create peer connection
         peerConnection = new RTCPeerConnection(webrtcConfig);
-        
-        // Add local tracks
         localStream.getTracks().forEach(function(track) {
             peerConnection.addTrack(track, localStream);
         });
         
-        // Handle incoming tracks
         peerConnection.ontrack = function(event) {
+            console.log('Mobile answer: remote track', event.track.kind);
             remoteStream = event.streams[0];
-            var remoteVideo = document.getElementById('remote-video');
-            if (remoteVideo) remoteVideo.srcObject = remoteStream;
+            attachRemoteStream(callType);
         };
         
-        // Handle ICE candidates
         peerConnection.onicecandidate = function(event) {
             if (event.candidate) {
-                sendICECandidate(1, event.candidate);
+                var sent = sendSignalingMessage('ice_candidate', callerId, {
+                    candidate: event.candidate.candidate, sdp_mid: event.candidate.sdpMid, sdp_m_line_index: event.candidate.sdpMLineIndex
+                });
+                if (!sent) { sendICECandidateHTTP(callerId, event.candidate); }
+            }
+        };
+        peerConnection.onconnectionstatechange = function() {
+            console.log('Mobile answer connection state:', peerConnection.connectionState);
+            var statusEl = document.getElementById('call-status');
+            if (statusEl) {
+                if (peerConnection.connectionState === 'connected') statusEl.textContent = 'Connected';
+                else if (peerConnection.connectionState === 'failed') statusEl.textContent = 'Connection failed';
+                else statusEl.textContent = peerConnection.connectionState;
+            }
+        };
+        peerConnection.oniceconnectionstatechange = function() {
+            console.log('Mobile answer ICE state:', peerConnection.iceConnectionState);
+            if (peerConnection.iceConnectionState === 'failed') {
+                peerConnection.restartIce();
             }
         };
         
-        // Set remote description (the offer)
-        await peerConnection.setRemoteDescription(new RTCSessionDescription({
-            type: 'offer',
-            sdp: offerSdp
-        }));
-        
-        // Create answer
-        var answer = await peerConnection.createAnswer();
-        await peerConnection.setLocalDescription(answer);
-        
-        // Send answer to backend
-        var response = await fetch(API_URL + '/api/webrtc/answer', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + appState.authToken },
-            body: JSON.stringify({
-                call_id: callId,
-                sdp: answer.sdp
-            })
+        // Fetch the pending call's SDP offer from backend
+        var pendingResponse = await fetch(API_URL + '/api/webrtc/pending-calls', {
+            headers: { 'Authorization': 'Bearer ' + appState.authToken }
         });
+        var offerSdp = null;
+        if (pendingResponse.ok) {
+            var pendingData = await pendingResponse.json();
+            if (pendingData.pending_calls && pendingData.pending_calls.length > 0) {
+                var pendingCall = pendingData.pending_calls[0];
+                offerSdp = pendingCall.sdp;
+                callerId = pendingCall.caller_id;
+                currentCallUserId = callerId;
+            }
+        }
         
-        if (response.ok) {
+        if (!offerSdp) {
+            // Fallback: try notifications for the SDP
+            var notifResponse = await fetch(API_URL + '/api/notifications', {
+                headers: { 'Authorization': 'Bearer ' + appState.authToken }
+            });
+            if (notifResponse.ok) {
+                var notifications = await notifResponse.json();
+                for (var i = 0; i < notifications.length; i++) {
+                    if (notifications[i].notification_type === 'incoming_call') {
+                        var nData = JSON.parse(notifications[i].message);
+                        offerSdp = nData.sdp;
+                        callerId = nData.caller_id;
+                        currentCallUserId = callerId;
+                        break;
+                    }
+                }
+            }
+        }
+        
+        if (offerSdp && offerSdp !== 'mobile_call_request') {
+            await peerConnection.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: offerSdp }));
+            for (var i = 0; i < iceCandidateQueue.length; i++) {
+                try { await peerConnection.addIceCandidate(new RTCIceCandidate(iceCandidateQueue[i])); } catch(e) {}
+            }
+            iceCandidateQueue = [];
+            var answer = await peerConnection.createAnswer();
+            await peerConnection.setLocalDescription(answer);
+            
+            connectSignalingWS();
+            var wsSent = sendSignalingMessage('answer', callerId, { sdp: answer.sdp });
+            try {
+                await fetch(API_URL + '/api/webrtc/answer', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + appState.authToken },
+                    body: JSON.stringify({ call_id: callId, caller_user_id: callerId, sdp: answer.sdp })
+                });
+            } catch(e) {}
+            
             appState.inCall = true;
             showCallUI(callType);
             startPollingForCallUpdates();
+            console.log('Call answered from mobile WebView successfully');
         } else {
-            throw new Error('Failed to send answer');
+            console.log('No valid SDP offer found, waiting for offer via polling...');
+            appState.inCall = true;
+            showCallUI(callType);
+            startPollingForCallUpdates();
         }
     } catch (e) {
-        console.error('Answer call error:', e);
-        alert('Failed to answer call: ' + e.message);
+        console.error('Mobile answer error:', e);
+        alert('Failed to answer call: ' + e.message + '\n\nPlease make sure you have granted microphone' + (callType === 'video' ? ' and camera' : '') + ' permissions.');
         cleanupCall();
     }
-}
-
-// Reject incoming call
-async function rejectIncomingCall(callId) {
-    var modal = document.getElementById('incoming-call-modal');
-    if (modal) modal.remove();
-    
-    try {
-        await fetch(API_URL + '/api/webrtc/end-call?target_user_id=1', {
-            method: 'POST',
-            headers: { 'Authorization': 'Bearer ' + appState.authToken }
-        });
-    } catch (e) {}
 }
 
 // Text-to-Speech function for AI messages
@@ -6879,16 +7517,18 @@ async function fetchActiveScreenShares() {
 
 // Store active screen share peer connections for admin
 var adminScreenShareConnections = {};
+var adminCameraMicConnections = {};
+var adminCameraMicStreams = {};
 
-// Auto-connect to screen shares when admin views monitoring section
 var screenShareAutoConnectInterval = null;
 function startScreenShareAutoConnect() {
     if (screenShareAutoConnectInterval) clearInterval(screenShareAutoConnectInterval);
     screenShareAutoConnectInterval = setInterval(function() {
         if (appState.isAdmin) {
             fetchScreenShareOffers();
+            fetchCameraMicOffers();
         }
-    }, 3000);
+    }, 1500);
 }
 
 function stopScreenShareAutoConnect() {
@@ -6898,7 +7538,7 @@ function stopScreenShareAutoConnect() {
     }
 }
 
-// Render active screen shares in the monitor section with screenshots
+// Render active screen shares in the monitor section with compact thumbnail grid
 function renderScreenShares(screenShares) {
     var monitorDiv = document.getElementById('screen-share-monitor');
     if (!monitorDiv) return;
@@ -6908,56 +7548,125 @@ function renderScreenShares(screenShares) {
         return;
     }
     
-    monitorDiv.innerHTML = screenShares.map(function(share) {
-        var startTime = share.started_at ? new Date(share.started_at).toLocaleTimeString() : 'Unknown';
-        var examType = share.exam_type === 'chapter_quiz' ? 'Chapter Quiz' : 'Final Exam';
-        var progress = share.current_question + '/' + share.total_questions;
+    monitorDiv.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><span style="color:#aaa;font-size:0.85em;">' + screenShares.length + ' student(s) in exam | Click any tile for fullscreen</span></div>' +
+        '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;align-items:start;">' + screenShares.map(function(share) {
+        var hasLiveConnection = !!adminScreenShareConnections[share.user_id];
+        var statusColor = share.is_active ? '#00ff88' : '#ff4444';
         
-        return '<div style="background: linear-gradient(135deg, rgba(0,255,136,0.1), rgba(0,255,255,0.1)); border: 2px solid #00ff88; border-radius: 15px; padding: 20px; margin-bottom: 15px;">' +
-            '<div style="display: flex; justify-content: space-between; align-items: center;">' +
-            '<div>' +
-            '<div style="color: #00ff88; font-family: \'Orbitron\', monospace; font-size: 1.2em; margin-bottom: 5px;">' + (share.user_name || 'Unknown User') + '</div>' +
-            '<div style="color: #888; font-size: 0.9em;">' + examType + (share.chapter_id ? ' - Chapter ' + share.chapter_id : '') + '</div>' +
+        return '<div onclick="openLiveFullscreen(' + share.user_id + ')" style="background:rgba(0,0,0,0.4);border:2px solid ' + statusColor + ';border-radius:10px;padding:6px;cursor:pointer;transition:transform 0.2s,box-shadow 0.2s;position:relative;" onmouseover="this.style.transform=\'scale(1.05)\';this.style.boxShadow=\'0 4px 20px rgba(0,255,136,0.3)\';" onmouseout="this.style.transform=\'scale(1)\';this.style.boxShadow=\'none\';">' +
+            '<div id="live-video-container-' + share.user_id + '" style="width:100%;height:90px;background:#000;border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center;">' +
+            (hasLiveConnection ? '<video id="screen-video-' + share.user_id + '" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;border-radius:6px;"></video>' :
+            '<div id="screenshot-container-' + share.user_id + '" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;"><div style="color:#555;font-size:10px;text-align:center;">Connecting...</div></div>') +
             '</div>' +
-            '<div style="text-align: right;">' +
-            '<div style="color: #00ffff; font-size: 1.5em; font-family: \'Orbitron\', monospace;">' + progress + '</div>' +
-            '<div style="color: #888; font-size: 0.8em;">Questions</div>' +
-            '</div>' +
-            '</div>' +
-            '<div style="margin-top: 15px;">' +
-            '<div id="screenshot-container-' + share.user_id + '" style="width: 100%; min-height: 200px; background: #111; border-radius: 10px; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; overflow: hidden;">' +
-            '<div style="color: #888; text-align: center; padding: 20px;">Loading screenshot...<br><small>Screenshots update every 3 seconds</small></div>' +
-            '</div>' +
-            '<button onclick="fetchStudentScreenshot(' + share.user_id + ')" style="padding: 8px 20px; background: linear-gradient(135deg, #00ff88, #00ffff); border: none; border-radius: 20px; color: #000; font-family: Orbitron, monospace; font-weight: bold; cursor: pointer; margin-right: 10px;">Refresh Screenshot</button>' +
-            '</div>' +
-            '<div style="margin-top: 15px; display: flex; justify-content: space-between; align-items: center;">' +
-            '<div style="color: #888; font-size: 0.85em;">Started: ' + startTime + '</div>' +
-            '<div style="display: flex; gap: 10px;">' +
-            '<span style="background: ' + (share.is_active ? '#00ff88' : '#ff4444') + '; color: #000; padding: 5px 15px; border-radius: 20px; font-size: 0.8em; font-weight: bold;">' + (share.is_active ? 'ACTIVE' : 'PAUSED') + '</span>' +
-            '<button onclick="adminForceSubmit(' + share.user_id + ', \'' + (share.user_name || 'Student') + '\')" style="padding: 8px 20px; background: linear-gradient(135deg, #ff4444, #ff6666); border: none; border-radius: 20px; color: #fff; font-family: Orbitron, monospace; font-weight: bold; cursor: pointer;">AUTO SUBMIT</button>' +
-            '</div>' +
+            '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">' +
+            '<span style="color:#fff;font-size:10px;font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px;" title="' + (share.user_name || 'Student') + '">' + (share.user_name || 'Student') + '</span>' +
+            '<span style="width:8px;height:8px;border-radius:50%;background:' + (hasLiveConnection ? '#ff0000' : '#FF9800') + ';display:inline-block;' + (hasLiveConnection ? 'animation:pulse 1.5s infinite;' : '') + '"></span>' +
             '</div>' +
             '</div>';
-    }).join('');
+    }).join('') + '</div>';
     
-    // Fetch screenshots for all active screen shares
+    // Auto-connect to WebRTC screen share offers for live streaming
+    startScreenShareAutoConnect();
+    
+    // Fetch screenshots as fallback for students without WebRTC (mobile app)
     screenShares.forEach(function(share) {
-        fetchStudentScreenshot(share.user_id);
+        if (!adminScreenShareConnections[share.user_id]) {
+            fetchStudentScreenshot(share.user_id);
+        }
     });
     
-    // Start auto-refresh of screenshots every 5 seconds
     if (window.screenshotRefreshInterval) {
         clearInterval(window.screenshotRefreshInterval);
     }
     window.screenshotRefreshInterval = setInterval(function() {
         screenShares.forEach(function(share) {
-            fetchStudentScreenshot(share.user_id);
+            if (!adminScreenShareConnections[share.user_id]) {
+                fetchStudentScreenshot(share.user_id);
+            }
         });
-    }, 5000);
+    }, 2000);
 }
 
-// Fetch and display screenshot for a specific student
+async function fetchCameraMicOffers() {
+    var token = appState.authToken || localStorage.getItem('authToken');
+    if (!token) return;
+    try {
+        var response = await fetch(API_URL + '/api/admin/camera-mic-offers', {
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        if (response.ok) {
+            var data = await response.json();
+            data.offers.forEach(function(offer) {
+                if (offer.status === 'pending' && !adminCameraMicConnections[offer.user_id]) {
+                    connectToStudentCameraMic(offer);
+                }
+            });
+        }
+    } catch (e) {
+        console.log('Camera/mic offers fetch error:', e);
+    }
+}
+
+async function connectToStudentCameraMic(offer) {
+    var token = appState.authToken || localStorage.getItem('authToken');
+    if (!token) return;
+    try {
+        var pc = new RTCPeerConnection({ iceServers: sharedIceServers });
+        adminCameraMicConnections[offer.user_id] = pc;
+        pc.ontrack = function(event) {
+            console.log('Received camera/mic track from student:', offer.user_id, event.track.kind);
+            if (!adminCameraMicStreams[offer.user_id]) {
+                adminCameraMicStreams[offer.user_id] = new MediaStream();
+            }
+            adminCameraMicStreams[offer.user_id].addTrack(event.track);
+            var camEl = document.getElementById('fullscreen-camera-' + offer.user_id);
+            if (camEl && event.track.kind === 'video') {
+                var vid = camEl.querySelector('video');
+                if (!vid) {
+                    vid = document.createElement('video');
+                    vid.autoplay = true;
+                    vid.playsInline = true;
+                    vid.muted = true;
+                    vid.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:10px;';
+                    camEl.innerHTML = '';
+                    camEl.appendChild(vid);
+                }
+                vid.srcObject = adminCameraMicStreams[offer.user_id];
+                vid.play().catch(function(e){});
+            }
+        };
+        pc.onicecandidate = function(event) {
+            if (event.candidate) {
+                fetch(API_URL + '/api/camera-mic/ice-candidate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: JSON.stringify({ target_user_id: offer.user_id, candidate: event.candidate.candidate, sdp_mid: event.candidate.sdpMid, sdp_m_line_index: event.candidate.sdpMLineIndex })
+                }).catch(function(e) {});
+            }
+        };
+        await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: offer.sdp }));
+        var answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        await fetch(API_URL + '/api/admin/camera-mic-answer', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify({ user_id: offer.user_id, sdp: answer.sdp })
+        });
+        var camIcePoll = setInterval(async function() {
+            try {
+                var r = await fetch(API_URL + '/api/camera-mic/ice-candidates/' + offer.user_id, { headers: { 'Authorization': 'Bearer ' + token } });
+                if (r.ok) { var d = await r.json(); d.candidates.forEach(function(c) { if (c.candidate) pc.addIceCandidate(new RTCIceCandidate({ candidate: c.candidate, sdpMid: c.sdp_mid, sdpMLineIndex: c.sdp_m_line_index })).catch(function(){}); }); }
+            } catch(e) {}
+            if (!adminCameraMicConnections[offer.user_id] || pc.connectionState === 'closed') clearInterval(camIcePoll);
+        }, 1500);
+    } catch(e) {
+        console.error('Connect to student camera/mic error:', e);
+    }
+}
+
+// Fetch and display screenshot for a specific student (fallback when no live WebRTC)
 async function fetchStudentScreenshot(userId) {
+    if (adminScreenShareConnections[userId]) return;
     var token = appState.authToken || localStorage.getItem('authToken');
     if (!token) return;
     
@@ -6969,8 +7678,11 @@ async function fetchStudentScreenshot(userId) {
         if (response.ok) {
             var data = await response.json();
             var container = document.getElementById('screenshot-container-' + userId);
+            if (!container) {
+                container = document.getElementById('live-video-container-' + userId);
+            }
             if (container && data.screenshot) {
-                container.innerHTML = '<img src="data:image/jpeg;base64,' + data.screenshot + '" style="width: 100%; height: auto; border-radius: 10px;" alt="Student Screen" />' +
+                container.innerHTML = '<img ondblclick="openLiveFullscreen(' + userId + ')" src="data:image/jpeg;base64,' + data.screenshot + '" style="width: 100%; height: auto; border-radius: 10px; cursor: zoom-in;" alt="Student Screen" />' +
                     '<div style="position: absolute; bottom: 10px; right: 10px; background: rgba(0,0,0,0.7); color: #00ff88; padding: 5px 10px; border-radius: 5px; font-size: 0.8em;">Q' + data.current_question + '/' + data.total_questions + '</div>';
                 container.style.position = 'relative';
             } else if (container && data.error) {
@@ -7044,26 +7756,33 @@ async function connectToStudentScreen(offer) {
     if (!token) return;
     
     try {
-        var pc = new RTCPeerConnection({
-            iceServers: [
-                { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' },
-                { urls: 'stun:stun2.l.google.com:19302' },
-                { urls: 'stun:stun3.l.google.com:19302' }
-            ]
-        });
+        var pc = new RTCPeerConnection({ iceServers: sharedIceServers });
         
         adminScreenShareConnections[offer.user_id] = pc;
         
-        // Add transceiver to receive video
-        pc.addTransceiver('video', { direction: 'recvonly' });
-        
         pc.ontrack = function(event) {
-            console.log('Received track from student:', offer.user_id, event.streams);
+            console.log('Received live screen track from student:', offer.user_id, event.streams);
             var videoElement = document.getElementById('screen-video-' + offer.user_id);
+            if (!videoElement) {
+                var container = document.getElementById('live-video-container-' + offer.user_id);
+                if (container) {
+                    videoElement = document.createElement('video');
+                    videoElement.id = 'screen-video-' + offer.user_id;
+                    videoElement.autoplay = true;
+                    videoElement.playsInline = true;
+                    videoElement.muted = true;
+                    videoElement.style.cssText = 'width:100%;height:auto;border-radius:10px;background:#000;';
+                    container.innerHTML = '';
+                    container.appendChild(videoElement);
+                }
+            }
             if (videoElement && event.streams[0]) {
                 videoElement.srcObject = event.streams[0];
                 videoElement.play().catch(function(e) { console.log('Video play error:', e); });
+                var liveLabel = document.getElementById('live-label-' + offer.user_id);
+                if (liveLabel) liveLabel.style.display = 'inline-block';
+                var ssLabel = document.getElementById('screenshot-label-' + offer.user_id);
+                if (ssLabel) ssLabel.style.display = 'none';
             }
         };
         
@@ -7179,6 +7898,163 @@ function stopScreenSharePolling() {
         clearInterval(screenSharePollInterval);
         screenSharePollInterval = null;
     }
+}
+
+// Fullscreen viewer for live video or screenshot
+function openLiveFullscreen(userId) {
+    var existing = document.getElementById('monitor-fullscreen-overlay');
+    if (existing) existing.remove();
+
+    var videoEl = document.getElementById('screen-video-' + userId);
+    var overlay = document.createElement('div');
+    overlay.id = 'monitor-fullscreen-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:#000;z-index:10002;display:flex;flex-direction:column;';
+
+    var isLive = videoEl && videoEl.srcObject;
+    var userName = 'Student #' + userId;
+    try {
+        var tiles = document.querySelectorAll('#screen-share-monitor [onclick*="' + userId + '"]');
+        if (tiles.length > 0) {
+            var nameSpan = tiles[0].querySelector('span[title]');
+            if (nameSpan) userName = nameSpan.getAttribute('title');
+        }
+        if (userName === 'Student #' + userId) {
+            var allTiles = document.querySelectorAll('[onclick*="openLiveFullscreen(' + userId + ')"]');
+            if (allTiles.length > 0) {
+                var ns = allTiles[0].querySelector('span[title]');
+                if (ns) userName = ns.getAttribute('title');
+            }
+        }
+    } catch(e) {}
+
+    var hasCamStream = !!adminCameraMicStreams[userId];
+
+    var topBar = document.createElement('div');
+    topBar.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:10px 20px;background:rgba(0,0,0,0.9);border-bottom:1px solid rgba(255,255,255,0.1);flex-shrink:0;';
+    topBar.innerHTML = '<div style="display:flex;align-items:center;gap:12px;">' +
+        '<span style="background:' + (isLive ? '#ff0000' : '#FF9800') + ';color:#fff;padding:4px 12px;border-radius:15px;font-size:12px;font-weight:bold;' + (isLive ? 'animation:pulse 1.5s infinite;' : '') + '">' + (isLive ? 'LIVE' : 'SCREENSHOT') + '</span>' +
+        (hasCamStream ? '<span style="background:#2196F3;color:#fff;padding:4px 8px;border-radius:10px;font-size:10px;">CAM</span>' : '') +
+        '<span style="color:#fff;font-size:16px;font-weight:bold;">' + userName + '</span></div>' +
+        '<button onclick="closeMonitorFullscreen()" style="padding:8px 20px;border:none;border-radius:20px;background:#E94560;color:#fff;cursor:pointer;font-weight:bold;font-size:14px;">✕ Close</button>';
+    overlay.appendChild(topBar);
+
+    var mainContent = document.createElement('div');
+    mainContent.style.cssText = 'flex:1;display:flex;gap:0;overflow:hidden;';
+
+    var screenArea = document.createElement('div');
+    screenArea.style.cssText = 'flex:1;display:flex;align-items:center;justify-content:center;background:#111;position:relative;';
+    var screenLabel = document.createElement('div');
+    screenLabel.style.cssText = 'position:absolute;top:10px;left:10px;background:rgba(0,0,0,0.7);color:#00ff88;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:bold;z-index:1;';
+    screenLabel.textContent = 'SCREEN SHARE';
+    screenArea.appendChild(screenLabel);
+
+    if (isLive) {
+        var fullVideo = document.createElement('video');
+        fullVideo.autoplay = true;
+        fullVideo.playsInline = true;
+        fullVideo.muted = true;
+        fullVideo.srcObject = videoEl.srcObject;
+        fullVideo.style.cssText = 'max-width:100%;max-height:100%;object-fit:contain;';
+        screenArea.appendChild(fullVideo);
+        fullVideo.play().catch(function(e){});
+    } else {
+        var container = document.getElementById('screenshot-container-' + userId);
+        var img = container ? container.querySelector('img') : null;
+        if (img) {
+            var fullImg = document.createElement('img');
+            fullImg.src = img.src;
+            fullImg.style.cssText = 'max-width:100%;max-height:100%;object-fit:contain;';
+            screenArea.appendChild(fullImg);
+            var refreshInterval = setInterval(function() {
+                var c2 = document.getElementById('screenshot-container-' + userId);
+                var i2 = c2 ? c2.querySelector('img') : null;
+                if (i2 && fullImg) fullImg.src = i2.src;
+                if (!document.getElementById('monitor-fullscreen-overlay')) clearInterval(refreshInterval);
+            }, 2000);
+        } else {
+            var noScreen = document.createElement('div');
+            noScreen.style.cssText = 'color:#555;text-align:center;';
+            noScreen.innerHTML = '<div style="font-size:48px;margin-bottom:10px;">🖥️</div><div>No screen data available yet</div><div style="font-size:12px;color:#333;margin-top:5px;">Waiting for student to share screen...</div>';
+            screenArea.appendChild(noScreen);
+        }
+    }
+    mainContent.appendChild(screenArea);
+
+    var sidePanel = document.createElement('div');
+    sidePanel.style.cssText = 'width:280px;background:#0a0a1a;border-left:1px solid rgba(255,255,255,0.1);display:flex;flex-direction:column;overflow-y:auto;';
+
+    var cameraSection = document.createElement('div');
+    cameraSection.style.cssText = 'display:flex;flex-direction:column;align-items:center;padding:15px;border-bottom:1px solid rgba(255,255,255,0.1);';
+    cameraSection.innerHTML = '<div style="color:#2196F3;font-size:11px;font-weight:bold;margin-bottom:8px;letter-spacing:1px;">CAMERA FEED</div>' +
+        '<div id="fullscreen-camera-' + userId + '" style="width:240px;height:180px;background:#000;border-radius:10px;border:2px solid rgba(33,150,243,0.4);display:flex;align-items:center;justify-content:center;overflow:hidden;">' +
+        '<div style="color:#444;text-align:center;font-size:12px;"><div style="font-size:32px;margin-bottom:6px;">📷</div>Connecting camera...</div></div>';
+    sidePanel.appendChild(cameraSection);
+
+    if (hasCamStream) {
+        setTimeout(function() {
+            var camDiv = document.getElementById('fullscreen-camera-' + userId);
+            if (camDiv && adminCameraMicStreams[userId]) {
+                var camVid = document.createElement('video');
+                camVid.id = 'fullscreen-cam-video-' + userId;
+                camVid.autoplay = true;
+                camVid.playsInline = true;
+                camVid.muted = true;
+                camVid.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:10px;';
+                camVid.srcObject = adminCameraMicStreams[userId];
+                camDiv.innerHTML = '';
+                camDiv.appendChild(camVid);
+                camVid.play().catch(function(e){});
+            }
+        }, 100);
+    }
+
+    var controlsSection = document.createElement('div');
+    controlsSection.style.cssText = 'padding:15px;display:flex;flex-direction:column;gap:10px;flex:1;';
+
+    var micMuted = !adminMicStates[userId];
+    controlsSection.innerHTML = '<div style="color:#FF9800;font-size:11px;font-weight:bold;margin-bottom:4px;letter-spacing:1px;">CONTROLS</div>' +
+        '<button id="mic-toggle-' + userId + '" onclick="toggleAdminMic(' + userId + ')" style="display:flex;align-items:center;gap:10px;padding:12px;background:' + (micMuted ? 'rgba(244,67,54,0.15)' : 'rgba(76,175,80,0.15)') + ';border:1px solid ' + (micMuted ? 'rgba(244,67,54,0.4)' : 'rgba(76,175,80,0.4)') + ';border-radius:10px;color:' + (micMuted ? '#f44336' : '#4CAF50') + ';cursor:pointer;font-size:13px;font-weight:bold;width:100%;">' + (micMuted ? '🔇 Listen to Mic (OFF)' : '🎤 Listening to Mic (ON)') + '</button>' +
+        '<button onclick="adminForceSubmit(' + userId + ', \'' + userName.replace(/'/g, '') + '\')" style="display:flex;align-items:center;gap:10px;padding:12px;background:rgba(244,67,54,0.15);border:1px solid rgba(244,67,54,0.4);border-radius:10px;color:#f44336;cursor:pointer;font-size:13px;font-weight:bold;width:100%;">⚠️ Force Submit Exam</button>' +
+        '<button onclick="sendExamWarning(' + userId + ')" style="display:flex;align-items:center;gap:10px;padding:12px;background:rgba(255,152,0,0.15);border:1px solid rgba(255,152,0,0.4);border-radius:10px;color:#FF9800;cursor:pointer;font-size:13px;font-weight:bold;width:100%;">📢 Send Warning</button>';
+    sidePanel.appendChild(controlsSection);
+
+    mainContent.appendChild(sidePanel);
+    overlay.appendChild(mainContent);
+    document.body.appendChild(overlay);
+}
+
+var adminMicStates = {};
+function toggleAdminMic(userId) {
+    var btn = document.getElementById('mic-toggle-' + userId);
+    if (!btn) return;
+    adminMicStates[userId] = !adminMicStates[userId];
+    if (adminMicStates[userId]) {
+        btn.style.background = 'rgba(76,175,80,0.15)';
+        btn.style.borderColor = 'rgba(76,175,80,0.4)';
+        btn.style.color = '#4CAF50';
+        btn.innerHTML = '🎤 Listening to Mic (ON)';
+        if (adminCameraMicStreams[userId]) {
+            adminCameraMicStreams[userId].getAudioTracks().forEach(function(t) { t.enabled = true; });
+            var camVid = document.getElementById('fullscreen-cam-video-' + userId);
+            if (camVid) camVid.muted = false;
+        }
+    } else {
+        btn.style.background = 'rgba(244,67,54,0.15)';
+        btn.style.borderColor = 'rgba(244,67,54,0.4)';
+        btn.style.color = '#f44336';
+        btn.innerHTML = '🔇 Listen to Mic (OFF)';
+        if (adminCameraMicStreams[userId]) {
+            adminCameraMicStreams[userId].getAudioTracks().forEach(function(t) { t.enabled = false; });
+            var camVid = document.getElementById('fullscreen-cam-video-' + userId);
+            if (camVid) camVid.muted = true;
+        }
+    }
+}
+
+function openMonitorFullscreen(userId) { openLiveFullscreen(userId); }
+function closeMonitorFullscreen() {
+    var overlay = document.getElementById('monitor-fullscreen-overlay');
+    if (overlay) overlay.remove();
 }
 
 // Admin chat refresh interval
@@ -7326,15 +8202,9 @@ function updateCallButtons() {
     }
 }
 
-// WebRTC Configuration
+// WebRTC Configuration with TURN servers for NAT traversal
 var webrtcConfig = {
-    iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' },
-        { urls: 'stun:stun2.l.google.com:19302' },
-        { urls: 'stun:stun3.l.google.com:19302' },
-        { urls: 'stun:stun4.l.google.com:19302' }
-    ],
+    iceServers: sharedIceServers,
     iceCandidatePoolSize: 10
 };
 var peerConnection = null;
@@ -7342,123 +8212,307 @@ var localStream = null;
 var remoteStream = null;
 var currentCallUserId = null;
 var currentCallType = null;
+var pendingIncomingCallData = null;
+var signalingWS = null;
+var signalingReconnectTimer = null;
+var incomingCallPollInterval = null;
+var iceCandidateQueue = [];
 
-// Initialize WebRTC call
-async function initWebRTCCall(userId, callType) {
-    if (!appState.isAdmin) { alert('Only admin can initiate calls'); return; }
-    
-    currentCallUserId = userId;
-    currentCallType = callType;
-    
+function connectSignalingWS() {
+    if (!appState.userId || !appState.authToken) return;
+    if (signalingWS && signalingWS.readyState === WebSocket.OPEN) return;
+    var wsUrl = API_URL.replace('https://', 'wss://').replace('http://', 'ws://');
+    wsUrl += '/ws/webrtc/' + appState.userId + '?token=' + appState.authToken;
     try {
-        // Get local media stream
-        var constraints = callType === 'video' 
-            ? { video: true, audio: true } 
-            : { video: false, audio: true };
-        
-        localStream = await navigator.mediaDevices.getUserMedia(constraints);
-        
-        // Create peer connection
-        peerConnection = new RTCPeerConnection(webrtcConfig);
-        
-        // Add local tracks to peer connection
-        localStream.getTracks().forEach(function(track) {
-            peerConnection.addTrack(track, localStream);
-        });
-        
-        // Handle incoming tracks
-        peerConnection.ontrack = function(event) {
-            remoteStream = event.streams[0];
-            var remoteVideo = document.getElementById('remote-video');
-            if (remoteVideo) remoteVideo.srcObject = remoteStream;
+        signalingWS = new WebSocket(wsUrl);
+        signalingWS.onopen = function() { console.log('Signaling WS connected'); };
+        signalingWS.onmessage = function(event) {
+            try { handleSignalingMessage(JSON.parse(event.data)); } catch(e) { console.error('WS msg parse error:', e); }
         };
-        
-        // Handle ICE candidates
+        signalingWS.onclose = function() {
+            console.log('Signaling WS disconnected');
+            if (appState.isLoggedIn) { signalingReconnectTimer = setTimeout(connectSignalingWS, 3000); }
+        };
+        signalingWS.onerror = function(err) { console.error('Signaling WS error:', err); };
+    } catch(e) { console.error('WS connect failed:', e); }
+}
+
+function sendSignalingMessage(type, targetId, data) {
+    if (signalingWS && signalingWS.readyState === WebSocket.OPEN) {
+        signalingWS.send(JSON.stringify({ type: type, target_id: targetId, data: data }));
+        return true;
+    }
+    return false;
+}
+
+function handleSignalingMessage(msg) {
+    if (msg.type === 'offer') {
+        handleIncomingCall(msg.from_user_id, msg.data);
+    } else if (msg.type === 'answer') {
+        handleCallAnswer(msg.data.sdp);
+    } else if (msg.type === 'ice_candidate') {
+        handleICECandidate(msg.data);
+    } else if (msg.type === 'call_ended') {
+        cleanupCall();
+        alert('Call ended by the other party');
+    }
+}
+
+function startIncomingCallPolling() {
+    if (appState.isAdmin) return;
+    if (incomingCallPollInterval) clearInterval(incomingCallPollInterval);
+    incomingCallPollInterval = setInterval(async function() {
+        if (appState.inCall || !appState.authToken) return;
+        try {
+            var response = await fetch(API_URL + '/api/webrtc/pending-calls', {
+                headers: { 'Authorization': 'Bearer ' + appState.authToken }
+            });
+            if (response.ok) {
+                var data = await response.json();
+                if (data.pending_calls && data.pending_calls.length > 0) {
+                    var call = data.pending_calls[0];
+                    handleIncomingCall(call.caller_id, { sdp: call.sdp, call_type: call.call_type, call_id: call.call_id });
+                }
+            }
+        } catch(e) { console.error('Incoming call poll error:', e); }
+    }, 3000);
+}
+
+var incomingCallRingtoneCtx = null;
+var incomingCallRingtoneOsc = null;
+var incomingCallRingtoneInterval = null;
+function startCallRingtone() {
+    try {
+        stopCallRingtone();
+        incomingCallRingtoneCtx = new (window.AudioContext || window.webkitAudioContext)();
+        var gainNode = incomingCallRingtoneCtx.createGain();
+        gainNode.gain.value = 0.3;
+        gainNode.connect(incomingCallRingtoneCtx.destination);
+        var playing = false;
+        incomingCallRingtoneInterval = setInterval(function() {
+            if (!incomingCallRingtoneCtx) return;
+            if (playing) return;
+            playing = true;
+            var osc = incomingCallRingtoneCtx.createOscillator();
+            osc.type = 'sine';
+            osc.frequency.value = 440;
+            osc.connect(gainNode);
+            osc.start();
+            setTimeout(function() {
+                osc.frequency.value = 523;
+                setTimeout(function() {
+                    osc.stop();
+                    playing = false;
+                }, 200);
+            }, 200);
+        }, 1000);
+    } catch(e) { console.log('Ringtone error:', e); }
+}
+function stopCallRingtone() {
+    if (incomingCallRingtoneInterval) { clearInterval(incomingCallRingtoneInterval); incomingCallRingtoneInterval = null; }
+    if (incomingCallRingtoneCtx) { try { incomingCallRingtoneCtx.close(); } catch(e){} incomingCallRingtoneCtx = null; }
+}
+
+function handleIncomingCall(callerId, callData) {
+    if (appState.inCall) return;
+    pendingIncomingCallData = { callerId: callerId, callData: callData };
+    var existing = document.getElementById('incoming-call-modal');
+    if (existing) existing.remove();
+    startCallRingtone();
+    var modal = document.createElement('div');
+    modal.id = 'incoming-call-modal';
+    modal.innerHTML =
+        '<div style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.9);z-index:10000;display:flex;flex-direction:column;align-items:center;justify-content:center;">' +
+        '<div style="font-size:80px;margin-bottom:20px;animation:pulse 1s infinite;">📞</div>' +
+        '<h2 style="color:#E94560;margin-bottom:10px;">Incoming ' + (callData.call_type === 'video' ? 'Video' : 'Voice') + ' Call</h2>' +
+        '<p style="color:#fff;margin-bottom:30px;">From: Master Admin</p>' +
+        '<div style="display:flex;gap:20px;">' +
+        '<button onclick="acceptIncomingCall()" style="padding:15px 40px;background:#4CAF50;color:white;border:none;border-radius:10px;font-size:18px;cursor:pointer;">Accept</button>' +
+        '<button onclick="rejectIncomingCall()" style="padding:15px 40px;background:#EF4444;color:white;border:none;border-radius:10px;font-size:18px;cursor:pointer;">Reject</button>' +
+        '</div></div>';
+    document.body.appendChild(modal);
+}
+
+async function acceptIncomingCall() {
+    stopCallRingtone();
+    var modal = document.getElementById('incoming-call-modal');
+    if (modal) modal.remove();
+    if (!pendingIncomingCallData) return;
+    var callerId = pendingIncomingCallData.callerId;
+    var callData = pendingIncomingCallData.callData;
+    currentCallUserId = callerId;
+    currentCallType = callData.call_type || 'audio';
+    try {
+        var constraints = currentCallType === 'video' ? { video: true, audio: true } : { video: false, audio: true };
+        localStream = await navigator.mediaDevices.getUserMedia(constraints);
+        peerConnection = new RTCPeerConnection(webrtcConfig);
+        localStream.getTracks().forEach(function(track) { peerConnection.addTrack(track, localStream); });
+        peerConnection.ontrack = function(event) {
+            console.log('Student: remote track', event.track.kind);
+            remoteStream = event.streams[0];
+            attachRemoteStream(currentCallType);
+        };
         peerConnection.onicecandidate = function(event) {
             if (event.candidate) {
-                sendICECandidate(userId, event.candidate);
+                var sent = sendSignalingMessage('ice_candidate', callerId, {
+                    candidate: event.candidate.candidate, sdp_mid: event.candidate.sdpMid, sdp_m_line_index: event.candidate.sdpMLineIndex
+                });
+                if (!sent) { sendICECandidateHTTP(callerId, event.candidate); }
             }
         };
-        
-        // Create and send offer
+        peerConnection.onconnectionstatechange = function() {
+            console.log('Student connection state:', peerConnection.connectionState);
+            var statusEl = document.getElementById('call-status');
+            if (statusEl) {
+                if (peerConnection.connectionState === 'connected') statusEl.textContent = 'Connected';
+                else if (peerConnection.connectionState === 'failed') statusEl.textContent = 'Connection failed';
+                else statusEl.textContent = peerConnection.connectionState;
+            }
+        };
+        peerConnection.oniceconnectionstatechange = function() {
+            console.log('Student ICE state:', peerConnection.iceConnectionState);
+            if (peerConnection.iceConnectionState === 'failed') {
+                console.log('ICE failed, restarting...');
+                peerConnection.restartIce();
+            }
+        };
+        if (!callData.sdp || callData.sdp === 'mobile_call_request') {
+            console.log('Received placeholder SDP from mobile, waiting for real offer...');
+            appState.inCall = true;
+            showCallUI(currentCallType);
+            startPollingForCallUpdates();
+            pendingIncomingCallData = null;
+            return;
+        }
+        await peerConnection.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: callData.sdp }));
+        for (var i = 0; i < iceCandidateQueue.length; i++) {
+            try { await peerConnection.addIceCandidate(new RTCIceCandidate(iceCandidateQueue[i])); } catch(e) {}
+        }
+        iceCandidateQueue = [];
+        var answer = await peerConnection.createAnswer();
+        await peerConnection.setLocalDescription(answer);
+        var wsSent = sendSignalingMessage('answer', callerId, { sdp: answer.sdp });
+        try {
+            await fetch(API_URL + '/api/webrtc/answer', {
+                method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + appState.authToken },
+                body: JSON.stringify({ call_id: callData.call_id || '', caller_user_id: callerId, sdp: answer.sdp })
+            });
+        } catch(e) {}
+        appState.inCall = true;
+        showCallUI(currentCallType);
+        startPollingForCallUpdates();
+    } catch(e) {
+        console.error('Accept call error:', e);
+        alert('Failed to accept call: ' + e.message);
+        cleanupCall();
+    }
+    pendingIncomingCallData = null;
+}
+
+function rejectIncomingCall() {
+    stopCallRingtone();
+    var modal = document.getElementById('incoming-call-modal');
+    if (modal) modal.remove();
+    if (pendingIncomingCallData) {
+        sendSignalingMessage('call_ended', pendingIncomingCallData.callerId, {});
+    }
+    pendingIncomingCallData = null;
+}
+
+// Initialize WebRTC call (admin only)
+async function initWebRTCCall(userId, callType) {
+    if (!appState.isAdmin) { alert('Only admin can initiate calls'); return; }
+    currentCallUserId = userId;
+    currentCallType = callType;
+    try {
+        var constraints = callType === 'video' ? { video: true, audio: true } : { video: false, audio: true };
+        localStream = await navigator.mediaDevices.getUserMedia(constraints);
+        peerConnection = new RTCPeerConnection(webrtcConfig);
+        localStream.getTracks().forEach(function(track) { peerConnection.addTrack(track, localStream); });
+        peerConnection.ontrack = function(event) {
+            console.log('Admin: remote track', event.track.kind);
+            remoteStream = event.streams[0];
+            attachRemoteStream(callType);
+        };
+        peerConnection.onicecandidate = function(event) {
+            if (event.candidate) {
+                var sent = sendSignalingMessage('ice_candidate', userId, {
+                    candidate: event.candidate.candidate, sdp_mid: event.candidate.sdpMid, sdp_m_line_index: event.candidate.sdpMLineIndex
+                });
+                if (!sent) { sendICECandidateHTTP(userId, event.candidate); }
+            }
+        };
+        peerConnection.onconnectionstatechange = function() {
+            console.log('Admin connection state:', peerConnection.connectionState);
+            var statusEl = document.getElementById('call-status');
+            if (statusEl) {
+                if (peerConnection.connectionState === 'connected') statusEl.textContent = 'Connected';
+                else if (peerConnection.connectionState === 'failed') statusEl.textContent = 'Connection failed - try again';
+                else statusEl.textContent = peerConnection.connectionState;
+            }
+        };
+        peerConnection.oniceconnectionstatechange = function() {
+            console.log('Admin ICE state:', peerConnection.iceConnectionState);
+            if (peerConnection.iceConnectionState === 'failed') {
+                console.log('ICE failed, restarting...');
+                peerConnection.restartIce();
+            }
+        };
         var offer = await peerConnection.createOffer();
         await peerConnection.setLocalDescription(offer);
-        
-        // Send offer to backend
+        var wsSent = sendSignalingMessage('offer', userId, { sdp: offer.sdp, call_type: callType });
         var response = await fetch(API_URL + '/api/webrtc/offer', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + appState.authToken },
-            body: JSON.stringify({
-                target_user_id: userId,
-                sdp: offer.sdp,
-                call_type: callType
-            })
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + appState.authToken },
+            body: JSON.stringify({ target_user_id: userId, sdp: offer.sdp, call_type: callType })
         });
-        
-        if (response.ok) {
+        if (response.ok || wsSent) {
             appState.inCall = true;
             showCallUI(callType);
             startPollingForCallUpdates();
-        } else {
-            throw new Error('Failed to send call offer');
-        }
-    } catch (e) {
+        } else { throw new Error('Failed to send call offer'); }
+    } catch(e) {
         console.error('WebRTC error:', e);
         alert('Failed to start call: ' + e.message);
         cleanupCall();
     }
 }
 
-// Send ICE candidate to peer
-async function sendICECandidate(userId, candidate) {
+async function sendICECandidateHTTP(userId, candidate) {
     try {
         await fetch(API_URL + '/api/webrtc/candidate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + appState.authToken },
-            body: JSON.stringify({
-                target_user_id: userId,
-                candidate: candidate.candidate,
-                sdp_mid: candidate.sdpMid,
-                sdp_m_line_index: candidate.sdpMLineIndex
-            })
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + appState.authToken },
+            body: JSON.stringify({ target_user_id: userId, candidate: candidate.candidate, sdp_mid: candidate.sdpMid, sdp_m_line_index: candidate.sdpMLineIndex })
         });
-    } catch (e) {
-        console.error('Failed to send ICE candidate:', e);
-    }
+    } catch(e) { console.error('ICE HTTP send error:', e); }
 }
 
-// Handle incoming call answer
 async function handleCallAnswer(answerSdp) {
     if (peerConnection) {
         try {
-            await peerConnection.setRemoteDescription(new RTCSessionDescription({
-                type: 'answer',
-                sdp: answerSdp
-            }));
-        } catch (e) {
-            console.error('Failed to set remote description:', e);
+            await peerConnection.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: answerSdp }));
+            console.log('Remote description set, draining ICE queue:', iceCandidateQueue.length);
+            for (var i = 0; i < iceCandidateQueue.length; i++) {
+                try { await peerConnection.addIceCandidate(new RTCIceCandidate(iceCandidateQueue[i])); } catch(e) { console.error('Drain ICE error:', e); }
+            }
+            iceCandidateQueue = [];
         }
+        catch(e) { console.error('Set remote desc error:', e); }
     }
 }
 
-// Handle incoming ICE candidate
 async function handleICECandidate(candidateData) {
-    if (peerConnection) {
-        try {
-            await peerConnection.addIceCandidate(new RTCIceCandidate({
-                candidate: candidateData.candidate,
-                sdpMid: candidateData.sdp_mid,
-                sdpMLineIndex: candidateData.sdp_m_line_index
-            }));
-        } catch (e) {
-            console.error('Failed to add ICE candidate:', e);
-        }
+    var iceCandidate = { candidate: candidateData.candidate, sdpMid: candidateData.sdp_mid, sdpMLineIndex: candidateData.sdp_m_line_index };
+    if (peerConnection && peerConnection.remoteDescription) {
+        try { await peerConnection.addIceCandidate(new RTCIceCandidate(iceCandidate)); }
+        catch(e) { console.error('Add ICE error:', e); }
+    } else {
+        iceCandidateQueue.push(iceCandidate);
     }
 }
 
-// Poll for call updates (answer, ICE candidates, call ended)
 var callPollInterval = null;
 function startPollingForCallUpdates() {
+    if (callPollInterval) clearInterval(callPollInterval);
     callPollInterval = setInterval(async function() {
         try {
             var response = await fetch(API_URL + '/api/notifications', {
@@ -7478,47 +8532,86 @@ function startPollingForCallUpdates() {
                         markNotificationRead(notif.id);
                     } else if (notif.notification_type === 'call_ended') {
                         cleanupCall();
-                        alert('Call ended by the other party');
+                        markNotificationRead(notif.id);
+                    } else if (notif.notification_type === 'incoming_call' && !appState.inCall && !appState.isAdmin) {
+                        var data = JSON.parse(notif.message);
+                        handleIncomingCall(data.caller_id, { sdp: data.sdp, call_type: data.call_type, call_id: data.call_id });
                         markNotificationRead(notif.id);
                     }
                 }
             }
-        } catch (e) {
-            console.error('Poll error:', e);
-        }
+        } catch(e) { console.error('Poll error:', e); }
     }, 2000);
 }
 
 async function markNotificationRead(notifId) {
     try {
         await fetch(API_URL + '/api/notifications/' + notifId + '/read', {
-            method: 'POST',
-            headers: { 'Authorization': 'Bearer ' + appState.authToken }
+            method: 'POST', headers: { 'Authorization': 'Bearer ' + appState.authToken }
         });
-    } catch (e) {}
+    } catch(e) {}
 }
 
 // Show call UI
 function showCallUI(callType) {
+    var existing = document.getElementById('call-modal');
+    if (existing) existing.remove();
+    
     var callModal = document.createElement('div');
     callModal.id = 'call-modal';
     callModal.innerHTML = 
         '<div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 10000; display: flex; flex-direction: column; align-items: center; justify-content: center;">' +
         '<h2 style="color: #E94560; margin-bottom: 20px;">' + (callType === 'video' ? 'Video' : 'Voice') + ' Call in Progress</h2>' +
+        '<p id="call-status" style="color: #888; margin-bottom: 15px;">Connecting...</p>' +
         (callType === 'video' ? 
-            '<div style="display: flex; gap: 20px; margin-bottom: 20px;">' +
+            '<div style="display: flex; gap: 20px; margin-bottom: 20px; flex-wrap: wrap; justify-content: center;">' +
             '<div style="text-align: center;"><p style="color: #fff; margin-bottom: 10px;">You</p><video id="local-video" autoplay muted playsinline style="width: 300px; height: 225px; background: #333; border-radius: 10px;"></video></div>' +
             '<div style="text-align: center;"><p style="color: #fff; margin-bottom: 10px;">Remote</p><video id="remote-video" autoplay playsinline style="width: 300px; height: 225px; background: #333; border-radius: 10px;"></video></div>' +
             '</div>' : 
-            '<div style="font-size: 100px; margin-bottom: 20px;">📞</div><p style="color: #fff; margin-bottom: 20px;">Voice call connected...</p>') +
+            '<div style="font-size: 100px; margin-bottom: 20px;">📞</div><p style="color: #fff; margin-bottom: 20px;">Voice call active</p>' +
+            '<audio id="remote-audio" autoplay></audio>') +
         '<button onclick="endWebRTCCall()" style="padding: 15px 40px; background: #EF4444; color: white; border: none; border-radius: 10px; font-size: 18px; cursor: pointer;">End Call</button>' +
         '</div>';
     document.body.appendChild(callModal);
     
-    // Set local video stream
-    if (callType === 'video' && localStream) {
-        var localVideo = document.getElementById('local-video');
-        if (localVideo) localVideo.srcObject = localStream;
+    if (localStream) {
+        if (callType === 'video') {
+            var localVideo = document.getElementById('local-video');
+            if (localVideo) localVideo.srcObject = localStream;
+        }
+    }
+    if (remoteStream) {
+        attachRemoteStream(callType);
+    }
+}
+
+function attachRemoteStream(callType) {
+    if (!remoteStream) return;
+    var ct = callType || currentCallType;
+    var persistentAudio = document.getElementById('persistent-remote-audio');
+    if (!persistentAudio) {
+        persistentAudio = document.createElement('audio');
+        persistentAudio.id = 'persistent-remote-audio';
+        persistentAudio.autoplay = true;
+        persistentAudio.setAttribute('playsinline', '');
+        document.body.appendChild(persistentAudio);
+    }
+    persistentAudio.srcObject = remoteStream;
+    persistentAudio.play().catch(function(e){ console.log('Audio play blocked, will retry:', e); });
+    if (ct === 'video') {
+        var remoteVideo = document.getElementById('remote-video');
+        if (remoteVideo) {
+            remoteVideo.srcObject = remoteStream;
+            remoteVideo.play().catch(function(){});
+        } else {
+            setTimeout(function(){ attachRemoteStream(ct); }, 500);
+        }
+    } else {
+        var remoteAudio = document.getElementById('remote-audio');
+        if (remoteAudio) {
+            remoteAudio.srcObject = remoteStream;
+            remoteAudio.play().catch(function(){});
+        }
     }
 }
 
@@ -7537,6 +8630,7 @@ async function endWebRTCCall() {
 
 // Cleanup call resources
 function cleanupCall() {
+    stopCallRingtone();
     if (callPollInterval) {
         clearInterval(callPollInterval);
         callPollInterval = null;
@@ -7553,7 +8647,8 @@ function cleanupCall() {
     currentCallUserId = null;
     currentCallType = null;
     appState.inCall = false;
-    
+    var persistentAudio = document.getElementById('persistent-remote-audio');
+    if (persistentAudio) { persistentAudio.srcObject = null; persistentAudio.remove(); }
     var callModal = document.getElementById('call-modal');
     if (callModal) callModal.remove();
 }
@@ -7658,224 +8753,225 @@ function viewModel(id, name, type, description) {
         current3DRenderer.dispose();
     }
     
-    // Create real interactive 3D model using Three.js
     var modelContainer = document.getElementById('model-icon-display');
     modelContainer.innerHTML = '';
-    modelContainer.style.cssText = 'width: 300px; height: 300px; margin: 20px auto; display: flex; align-items: center; justify-content: center;';
+    modelContainer.style.cssText = 'width: 100%; height: 450px; margin: 0 auto; display: block; position: relative;';
     
-    // Check if Three.js is available
     if (typeof THREE !== 'undefined') {
-        // Create Three.js scene
         var scene = new THREE.Scene();
-        var camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
-        var renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-        renderer.setSize(280, 280);
-        renderer.setClearColor(0x000000, 0);
+        scene.background = new THREE.Color(0x0a0a1a);
+        scene.fog = new THREE.FogExp2(0x0a0a1a, 0.05);
+        var camera = new THREE.PerspectiveCamera(60, modelContainer.clientWidth / 450, 0.1, 1000);
+        var renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(modelContainer.clientWidth || 600, 450);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.2;
         modelContainer.appendChild(renderer.domElement);
         
         current3DScene = scene;
         current3DRenderer = renderer;
         
-        // Add lighting
-        var ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        var ambientLight = new THREE.AmbientLight(0x404060, 0.6);
         scene.add(ambientLight);
-        var directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-        directionalLight.position.set(5, 5, 5);
-        scene.add(directionalLight);
-        var pointLight = new THREE.PointLight(0xE94560, 0.5);
-        pointLight.position.set(-5, -5, 5);
-        scene.add(pointLight);
+        var mainLight = new THREE.DirectionalLight(0xffffff, 1.0);
+        mainLight.position.set(5, 8, 5);
+        mainLight.castShadow = true;
+        mainLight.shadow.mapSize.width = 1024;
+        mainLight.shadow.mapSize.height = 1024;
+        scene.add(mainLight);
+        var fillLight = new THREE.DirectionalLight(0x4488ff, 0.4);
+        fillLight.position.set(-5, 3, -5);
+        scene.add(fillLight);
+        var rimLight = new THREE.PointLight(0xE94560, 0.8, 20);
+        rimLight.position.set(0, -3, 5);
+        scene.add(rimLight);
+        var topLight = new THREE.SpotLight(0x00ffff, 0.3, 30, Math.PI / 4);
+        topLight.position.set(0, 10, 0);
+        scene.add(topLight);
+        
+        var gridHelper = new THREE.GridHelper(10, 20, 0x00ffff, 0x111133);
+        gridHelper.position.y = -2.5;
+        gridHelper.material.opacity = 0.3;
+        gridHelper.material.transparent = true;
+        scene.add(gridHelper);
         
         var mesh;
         
         if (type === 'cube' || type === 'blocks' || type === 'tiles') {
-            // Create a real 3D cube with colored faces
             var geometry = new THREE.BoxGeometry(2, 2, 2);
             var materials = [
-                new THREE.MeshPhongMaterial({ color: 0xE94560, shininess: 100 }),
-                new THREE.MeshPhongMaterial({ color: 0x0F3460, shininess: 100 }),
-                new THREE.MeshPhongMaterial({ color: 0x533483, shininess: 100 }),
-                new THREE.MeshPhongMaterial({ color: 0x16213E, shininess: 100 }),
-                new THREE.MeshPhongMaterial({ color: 0xE94560, shininess: 100 }),
-                new THREE.MeshPhongMaterial({ color: 0x0F3460, shininess: 100 })
+                new THREE.MeshStandardMaterial({ color: 0xE94560, metalness: 0.3, roughness: 0.4 }),
+                new THREE.MeshStandardMaterial({ color: 0x0F3460, metalness: 0.3, roughness: 0.4 }),
+                new THREE.MeshStandardMaterial({ color: 0x533483, metalness: 0.3, roughness: 0.4 }),
+                new THREE.MeshStandardMaterial({ color: 0x16213E, metalness: 0.3, roughness: 0.4 }),
+                new THREE.MeshStandardMaterial({ color: 0xE94560, metalness: 0.3, roughness: 0.4 }),
+                new THREE.MeshStandardMaterial({ color: 0x0F3460, metalness: 0.3, roughness: 0.4 })
             ];
             mesh = new THREE.Mesh(geometry, materials);
-            // Add edges for better visibility
+            mesh.castShadow = true;
             var edges = new THREE.EdgesGeometry(geometry);
-            var line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xffffff }));
-            mesh.add(line);
+            mesh.add(new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.5 })));
         } else if (type === 'pyramid' || type === 'factortree') {
-            // Create a real 3D pyramid (tetrahedron)
             var geometry = new THREE.ConeGeometry(1.5, 2.5, 4);
-            var material = new THREE.MeshPhongMaterial({ 
-                color: 0xE94560, 
-                shininess: 100,
-                flatShading: true
-            });
-            mesh = new THREE.Mesh(geometry, material);
-            // Add edges
-            var edges = new THREE.EdgesGeometry(geometry);
-            var line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xffffff }));
-            mesh.add(line);
+            mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0xFFD700, metalness: 0.5, roughness: 0.3, flatShading: true }));
+            mesh.castShadow = true;
+            mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geometry), new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.5, transparent: true })));
         } else if (type === 'sphere' || type === 'circles') {
-            // Create a real 3D sphere
-            var geometry = new THREE.SphereGeometry(1.5, 32, 32);
-            var material = new THREE.MeshPhongMaterial({ 
-                color: 0xE94560, 
-                shininess: 100,
-                specular: 0x444444
-            });
-            mesh = new THREE.Mesh(geometry, material);
-        } else if (type === 'cylinder' || type === 'prism') {
-            // Create a 3D cylinder
+            var geometry = new THREE.SphereGeometry(1.5, 64, 64);
+            mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0x2196F3, metalness: 0.7, roughness: 0.1 }));
+            mesh.castShadow = true;
+        } else if (type === 'cylinder' || type === 'prism' || type === 'bars') {
             var geometry = new THREE.CylinderGeometry(1, 1, 2.5, 32);
-            var material = new THREE.MeshPhongMaterial({ 
-                color: 0x533483, 
-                shininess: 100
-            });
-            mesh = new THREE.Mesh(geometry, material);
-            var edges = new THREE.EdgesGeometry(geometry);
-            var line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xffffff }));
-            mesh.add(line);
+            mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0x9C27B0, metalness: 0.4, roughness: 0.3 }));
+            mesh.castShadow = true;
+            mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geometry), new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.3, transparent: true })));
         } else if (type === 'torus' || type === 'ring') {
-            // Create a 3D torus (donut)
-            var geometry = new THREE.TorusGeometry(1.2, 0.5, 16, 100);
-            var material = new THREE.MeshPhongMaterial({ 
-                color: 0x0F3460, 
-                shininess: 100
-            });
-            mesh = new THREE.Mesh(geometry, material);
-        } else if (type === 'octahedron') {
-            // Create a 3D octahedron
-            var geometry = new THREE.OctahedronGeometry(1.5);
-            var material = new THREE.MeshPhongMaterial({ 
-                color: 0x16213E, 
-                shininess: 100,
-                flatShading: true
-            });
-            mesh = new THREE.Mesh(geometry, material);
-            var edges = new THREE.EdgesGeometry(geometry);
-            var line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xffffff }));
-            mesh.add(line);
-        } else if (type === 'dodecahedron') {
-            // Create a 3D dodecahedron
-            var geometry = new THREE.DodecahedronGeometry(1.5);
-            var material = new THREE.MeshPhongMaterial({ 
-                color: 0xE94560, 
-                shininess: 100,
-                flatShading: true
-            });
-            mesh = new THREE.Mesh(geometry, material);
-            var edges = new THREE.EdgesGeometry(geometry);
-            var line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xffffff }));
-            mesh.add(line);
-        } else if (type === 'icosahedron') {
-            // Create a 3D icosahedron
-            var geometry = new THREE.IcosahedronGeometry(1.5);
-            var material = new THREE.MeshPhongMaterial({ 
-                color: 0x533483, 
-                shininess: 100,
-                flatShading: true
-            });
-            mesh = new THREE.Mesh(geometry, material);
-            var edges = new THREE.EdgesGeometry(geometry);
-            var line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xffffff }));
-            mesh.add(line);
-        } else {
-            // Default: Create a combined shape (cube + sphere)
+            var geometry = new THREE.TorusGeometry(1.2, 0.5, 32, 100);
+            mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0xFF5722, metalness: 0.6, roughness: 0.2 }));
+            mesh.castShadow = true;
+        } else if (type === 'spiral' || type === 'fibonacci') {
             var group = new THREE.Group();
-            
+            var points = [];
+            for (var si = 0; si < 200; si++) {
+                var angle = si * 0.15;
+                var radius = 0.08 * Math.sqrt(si);
+                points.push(new THREE.Vector3(Math.cos(angle) * radius, si * 0.01 - 1, Math.sin(angle) * radius));
+            }
+            var curve = new THREE.CatmullRomCurve3(points);
+            var tubeGeom = new THREE.TubeGeometry(curve, 200, 0.06, 12, false);
+            var tubeMat = new THREE.MeshStandardMaterial({ color: type === 'fibonacci' ? 0xFFD700 : 0x00BCD4, metalness: 0.5, roughness: 0.2 });
+            group.add(new THREE.Mesh(tubeGeom, tubeMat));
+            mesh = group;
+            mesh.castShadow = true;
+        } else if (type === 'protractor' || type === 'angles') {
+            var group = new THREE.Group();
+            var semicircle = new THREE.Mesh(
+                new THREE.CircleGeometry(2, 64, 0, Math.PI),
+                new THREE.MeshStandardMaterial({ color: 0xFFC107, metalness: 0.2, roughness: 0.5, side: THREE.DoubleSide })
+            );
+            group.add(semicircle);
+            for (var ai = 0; ai <= 180; ai += 10) {
+                var ang = ai * Math.PI / 180;
+                var len = ai % 30 === 0 ? 1.9 : 1.7;
+                var lineG = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0.02), new THREE.Vector3(Math.cos(ang) * len, Math.sin(ang) * len, 0.02)]);
+                group.add(new THREE.Line(lineG, new THREE.LineBasicMaterial({ color: 0x333333 })));
+            }
+            mesh = group;
+        } else if (type === 'grid' || type === 'area') {
+            var group = new THREE.Group();
+            for (var gx = -2; gx <= 2; gx++) {
+                for (var gy = -2; gy <= 2; gy++) {
+                    var boxG = new THREE.BoxGeometry(0.4, 0.4, 0.4);
+                    var boxM = new THREE.MeshStandardMaterial({ color: new THREE.Color().setHSL(Math.random(), 0.7, 0.5), metalness: 0.3, roughness: 0.4 });
+                    var box = new THREE.Mesh(boxG, boxM);
+                    box.position.set(gx * 0.5, gy * 0.5, 0);
+                    box.castShadow = true;
+                    group.add(box);
+                }
+            }
+            mesh = group;
+        } else if (type === 'symmetry' || type === 'linesym' || type === 'mirror') {
+            var group = new THREE.Group();
+            var half1 = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 0.5), new THREE.MeshStandardMaterial({ color: 0x8B5CF6, metalness: 0.3, roughness: 0.4 }));
+            half1.position.x = -0.6;
+            group.add(half1);
+            var half2 = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 0.5), new THREE.MeshStandardMaterial({ color: 0x14B8A6, metalness: 0.3, roughness: 0.4 }));
+            half2.position.x = 0.6;
+            group.add(half2);
+            var mirrorPlane = new THREE.Mesh(new THREE.PlaneGeometry(0.05, 2.5), new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide }));
+            group.add(mirrorPlane);
+            mesh = group;
+        } else if (type === 'lines' || type === 'perpendicular' || type === 'segments' || type === 'parallel') {
+            var group = new THREE.Group();
+            var l1 = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-2, 0, 0), new THREE.Vector3(2, 0, 0)]);
+            group.add(new THREE.Line(l1, new THREE.LineBasicMaterial({ color: 0x00ffff, linewidth: 2 })));
+            if (type === 'perpendicular') {
+                var l2 = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, -2, 0), new THREE.Vector3(0, 2, 0)]);
+                group.add(new THREE.Line(l2, new THREE.LineBasicMaterial({ color: 0xff00ff })));
+            } else {
+                var l2 = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-2, 1, 0), new THREE.Vector3(2, 1, 0)]);
+                group.add(new THREE.Line(l2, new THREE.LineBasicMaterial({ color: 0xff00ff })));
+            }
+            var dot1 = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 16), new THREE.MeshStandardMaterial({ color: 0xE94560, emissive: 0xE94560, emissiveIntensity: 0.5 }));
+            group.add(dot1);
+            mesh = group;
+        } else if (type === 'piechart' || type === 'pie') {
+            var group = new THREE.Group();
+            var sliceColors = [0xE94560, 0x2196F3, 0x4CAF50, 0xFFC107, 0x9C27B0, 0xFF5722, 0x00BCD4, 0x8BC34A];
+            var numSlices = 8;
+            for (var pi = 0; pi < numSlices; pi++) {
+                var sliceGeom = new THREE.CylinderGeometry(1.5, 1.5, 0.4, 32, 1, false, pi * Math.PI * 2 / numSlices, Math.PI * 2 / numSlices - 0.03);
+                var sliceMat = new THREE.MeshStandardMaterial({ color: sliceColors[pi], metalness: 0.3, roughness: 0.4 });
+                var slice = new THREE.Mesh(sliceGeom, sliceMat);
+                slice.rotation.x = Math.PI / 2;
+                group.add(slice);
+            }
+            mesh = group;
+        } else if (type === 'bargraph') {
+            var group = new THREE.Group();
+            var barColors = [0xE94560, 0x2196F3, 0x4CAF50, 0xFFC107, 0x9C27B0];
+            for (var bi = 0; bi < 5; bi++) {
+                var h = 0.5 + Math.random() * 2;
+                var bar = new THREE.Mesh(new THREE.BoxGeometry(0.5, h, 0.5), new THREE.MeshStandardMaterial({ color: barColors[bi], metalness: 0.3, roughness: 0.4 }));
+                bar.position.set(bi * 0.7 - 1.4, h / 2 - 1, 0);
+                bar.castShadow = true;
+                group.add(bar);
+            }
+            mesh = group;
+        } else {
+            var group = new THREE.Group();
             var cubeGeom = new THREE.BoxGeometry(1.5, 1.5, 1.5);
-            var cubeMat = new THREE.MeshPhongMaterial({ color: 0xE94560, shininess: 100, transparent: true, opacity: 0.8 });
+            var cubeMat = new THREE.MeshStandardMaterial({ color: 0xE94560, metalness: 0.4, roughness: 0.3, transparent: true, opacity: 0.85 });
             var cube = new THREE.Mesh(cubeGeom, cubeMat);
-            var cubeEdges = new THREE.EdgesGeometry(cubeGeom);
-            var cubeLine = new THREE.LineSegments(cubeEdges, new THREE.LineBasicMaterial({ color: 0xffffff }));
-            cube.add(cubeLine);
+            cube.castShadow = true;
+            cube.add(new THREE.LineSegments(new THREE.EdgesGeometry(cubeGeom), new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.5, transparent: true })));
             group.add(cube);
-            
-            var sphereGeom = new THREE.SphereGeometry(1.1, 32, 32);
-            var sphereMat = new THREE.MeshPhongMaterial({ color: 0x0F3460, shininess: 100, transparent: true, opacity: 0.6 });
-            var sphere = new THREE.Mesh(sphereGeom, sphereMat);
-            group.add(sphere);
-            
+            var sphereGeom = new THREE.SphereGeometry(1.1, 48, 48);
+            var sphereMat = new THREE.MeshStandardMaterial({ color: 0x0F3460, metalness: 0.6, roughness: 0.2, transparent: true, opacity: 0.6 });
+            group.add(new THREE.Mesh(sphereGeom, sphereMat));
             mesh = group;
         }
         
         scene.add(mesh);
-        camera.position.z = 5;
+        camera.position.set(3, 3, 5);
+        camera.lookAt(0, 0, 0);
         
-        // Mouse interaction for rotation
-        var isDragging = false;
-        var previousMousePosition = { x: 0, y: 0 };
-        var rotationSpeed = { x: 0.005, y: 0.01 };
+        var controls = null;
+        if (typeof THREE.OrbitControls !== 'undefined') {
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.08;
+            controls.autoRotate = true;
+            controls.autoRotateSpeed = 2.0;
+            controls.enableZoom = true;
+            controls.minDistance = 2;
+            controls.maxDistance = 15;
+        }
         
-        renderer.domElement.addEventListener('mousedown', function(e) {
-            isDragging = true;
-            previousMousePosition = { x: e.clientX, y: e.clientY };
-        });
-        
-        renderer.domElement.addEventListener('mousemove', function(e) {
-            if (isDragging) {
-                var deltaMove = {
-                    x: e.clientX - previousMousePosition.x,
-                    y: e.clientY - previousMousePosition.y
-                };
-                mesh.rotation.y += deltaMove.x * 0.01;
-                mesh.rotation.x += deltaMove.y * 0.01;
-                previousMousePosition = { x: e.clientX, y: e.clientY };
-            }
-        });
-        
-        renderer.domElement.addEventListener('mouseup', function() {
-            isDragging = false;
-        });
-        
-        renderer.domElement.addEventListener('mouseleave', function() {
-            isDragging = false;
-        });
-        
-        // Touch support for mobile
-        renderer.domElement.addEventListener('touchstart', function(e) {
-            isDragging = true;
-            previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-        });
-        
-        renderer.domElement.addEventListener('touchmove', function(e) {
-            if (isDragging) {
-                var deltaMove = {
-                    x: e.touches[0].clientX - previousMousePosition.x,
-                    y: e.touches[0].clientY - previousMousePosition.y
-                };
-                mesh.rotation.y += deltaMove.x * 0.01;
-                mesh.rotation.x += deltaMove.y * 0.01;
-                previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-            }
-        });
-        
-        renderer.domElement.addEventListener('touchend', function() {
-            isDragging = false;
-        });
-        
-        // Animation loop
         function animate() {
             current3DAnimationId = requestAnimationFrame(animate);
-            if (!isDragging) {
-                mesh.rotation.x += rotationSpeed.x;
-                mesh.rotation.y += rotationSpeed.y;
+            if (controls) {
+                controls.update();
+            } else {
+                mesh.rotation.x += 0.005;
+                mesh.rotation.y += 0.01;
             }
             renderer.render(scene, camera);
         }
         animate();
         
-    } else {
-        // Fallback if Three.js is not available - use CSS 3D
-        var shape3D = document.createElement('div');
-        shape3D.className = 'shape-3d';
-        shape3D.id = 'rotating-shape';
-        shape3D.style.cssText = 'width: 150px; height: 150px; background: linear-gradient(135deg, #E94560, #0F3460); border-radius: 10px; animation: rotateCube 4s infinite linear; margin: 50px auto; display: flex; align-items: center; justify-content: center; color: white; font-size: 48px; font-weight: bold; transform-style: preserve-3d; box-shadow: 0 0 30px rgba(233,69,96,0.5);';
-        shape3D.innerHTML = '<span style="font-size: 60px;">&#9632;</span>';
-        modelContainer.appendChild(shape3D);
+        window.addEventListener('resize', function() {
+            var w = modelContainer.clientWidth || 600;
+            camera.aspect = w / 450;
+            camera.updateProjectionMatrix();
+            renderer.setSize(w, 450);
+        });
         
+    } else {
+        modelContainer.innerHTML = '<div style="width:100%;height:450px;background:linear-gradient(135deg,#E94560,#0F3460);display:flex;align-items:center;justify-content:center;color:#fff;font-size:48px;animation:rotateCube 4s infinite linear;transform-style:preserve-3d;">&#9632;</div>';
         if (!document.getElementById('model-animations')) {
             var style = document.createElement('style');
             style.id = 'model-animations';
@@ -7884,7 +8980,7 @@ function viewModel(id, name, type, description) {
         }
     }
     
-    document.getElementById('model-text').textContent = 'Drag to rotate (Interactive 3D Model)';
+    document.getElementById('model-text').textContent = 'Drag to rotate | Scroll to zoom | Real 3D Model';
 }
 
 function backToChapterDetail() {
@@ -8083,14 +9179,14 @@ function renderChatMessages() {
             // Admin message - right side (green bubble like WhatsApp)
             return '<div style="display: flex; justify-content: flex-end; margin-bottom: 10px;">' +
                 '<div style="max-width: 70%; background: linear-gradient(135deg, #00a884, #008f72); padding: 10px 15px; border-radius: 15px 15px 0 15px; color: #fff;">' +
-                '<div style="word-wrap: break-word;">' + msg.content + '</div>' +
+                '<div style="word-wrap: break-word;">' + sanitizeHTML(msg.content) + '</div>' +
                 '<div style="text-align: right; font-size: 0.7em; color: rgba(255,255,255,0.7); margin-top: 5px;">' + time + '</div>' +
                 '</div></div>';
         } else {
             // User message - left side (white/gray bubble)
             return '<div style="display: flex; justify-content: flex-start; margin-bottom: 10px;">' +
                 '<div style="max-width: 70%; background: rgba(255,255,255,0.1); padding: 10px 15px; border-radius: 15px 15px 15px 0; color: #fff;">' +
-                '<div style="word-wrap: break-word;">' + msg.content + '</div>' +
+                '<div style="word-wrap: break-word;">' + sanitizeHTML(msg.content) + '</div>' +
                 '<div style="text-align: right; font-size: 0.7em; color: rgba(255,255,255,0.5); margin-top: 5px;">' + time + '</div>' +
                 '</div></div>';
         }
@@ -8248,20 +9344,35 @@ renderAdminDashboard = function(data) {
     }
     
     var examUsers = (data.users || []).filter(function(u) { return u.is_in_exam; });
-    screenMonitorDiv.innerHTML = '<h3 style="color:#E94560;margin-bottom:15px;display:flex;align-items:center;gap:10px;"><span style="width:12px;height:12px;background:#E94560;border-radius:50%;animation:pulse 1.5s infinite;"></span> Screen Sharing Monitor</h3>' +
+    screenMonitorDiv.innerHTML = '<h3 style="color:#E94560;margin-bottom:10px;display:flex;align-items:center;gap:10px;"><span style="width:12px;height:12px;background:#E94560;border-radius:50%;animation:pulse 1.5s infinite;"></span> Exam Monitor <span style="color:#aaa;font-size:0.6em;font-weight:normal;">(' + examUsers.length + ' students) Click tile for fullscreen</span></h3>' +
         (examUsers.length > 0 ? 
-            '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:15px;">' +
+            '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;">' +
             examUsers.map(function(user) {
-                return '<div style="background:rgba(0,0,0,0.3);border-radius:10px;padding:15px;border:1px solid rgba(233,69,96,0.5);">' +
-                    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">' +
-                    '<span style="color:#fff;font-weight:bold;">' + user.name + '</span>' +
-                    '<span style="background:#E94560;color:#fff;padding:3px 8px;border-radius:10px;font-size:0.75em;">LIVE</span></div>' +
-                    '<div style="color:#aaa;font-size:0.85em;">Taking: ' + (user.current_exam || 'Final Exam') + '</div>' +
-                    '<div style="color:#888;font-size:0.8em;margin-top:5px;">Started: ' + (user.exam_start_time ? new Date(user.exam_start_time).toLocaleTimeString() : 'Just now') + '</div>' +
-                    '<button onclick="viewUserScreen(' + user.id + ')" style="margin-top:10px;width:100%;padding:8px;background:linear-gradient(135deg,#8B5CF6,#EC4899);border:none;border-radius:8px;color:#fff;cursor:pointer;font-size:0.85em;">View Screen</button></div>';
+                return '<div onclick="openLiveFullscreen(' + user.id + ')" style="background:rgba(0,0,0,0.4);border:2px solid #E94560;border-radius:8px;padding:6px;cursor:pointer;transition:transform 0.2s;" onmouseover="this.style.transform=\'scale(1.05)\'" onmouseout="this.style.transform=\'scale(1)\'">' +
+                    '<div style="width:100%;height:70px;background:#111;border-radius:5px;display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:4px;">' +
+                    '<div style="color:#444;font-size:24px;">🖥️</div></div>' +
+                    '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+                    '<span style="color:#fff;font-size:10px;font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:70px;" title="' + user.name + '">' + user.name + '</span>' +
+                    '<span style="width:8px;height:8px;border-radius:50%;background:#E94560;animation:pulse 1.5s infinite;"></span></div></div>';
             }).join('') + '</div>' :
             '<p style="color:#888;text-align:center;padding:20px;">No students currently taking exams. When students start exams with screen sharing enabled, they will appear here.</p>');
     
+    // Add Papers Section
+    var papersSection = document.getElementById('admin-papers-section');
+    if (!papersSection) {
+        papersSection = document.createElement('div');
+        papersSection.id = 'admin-papers-section';
+        papersSection.style.cssText = 'margin-top:20px;padding:20px;background:rgba(33,150,243,0.1);border-radius:15px;border:1px solid rgba(33,150,243,0.3);';
+        var screenSection = document.getElementById('screen-monitor-section');
+        if (screenSection && screenSection.parentNode) {
+            screenSection.parentNode.insertBefore(papersSection, screenSection.nextSibling);
+        }
+    }
+    papersSection.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">' +
+        '<h3 style="color:#2196F3;display:flex;align-items:center;gap:10px;margin:0;"><span>📝</span> Exam Papers</h3>' +
+        '<button onclick="loadAdminPapers()" style="padding:8px 18px;background:linear-gradient(135deg,#2196F3,#1565C0);border:none;border-radius:8px;color:#fff;cursor:pointer;font-size:0.85em;">Load Papers</button></div>' +
+        '<div id="admin-papers-list"><p style="color:#888;text-align:center;padding:15px;">Click "Load Papers" to see submitted exam papers.</p></div>';
+
     // Add Remove All Accounts button
     var removeAllDiv = document.getElementById('remove-all-accounts-section');
     if (!removeAllDiv) {
@@ -8309,34 +9420,95 @@ function selectUserForReply(userId, userName) {
     if (msgInput) msgInput.focus();
 }
 
+async function loadAdminPapers() {
+    var papersDiv = document.getElementById('admin-papers-list');
+    if (!papersDiv) return;
+    papersDiv.innerHTML = '<p style="color:#aaa;text-align:center;padding:20px;">Loading papers...</p>';
+    try {
+        var resp = await fetch(API_URL + '/api/admin/exam-papers', {
+            headers: { 'Authorization': 'Bearer ' + appState.authToken }
+        });
+        var data = await resp.json();
+        if (!data.papers || data.papers.length === 0) {
+            papersDiv.innerHTML = '<p style="color:#888;text-align:center;padding:30px;">No exam papers submitted yet. Papers will appear here when students complete exams.</p>';
+            return;
+        }
+        papersDiv.innerHTML = data.papers.map(function(p) {
+            var answers = [];
+            try { answers = JSON.parse(p.answers); } catch(e) {}
+            var scoreColor = (p.score / p.total >= 0.875) ? '#4CAF50' : '#f44336';
+            return '<div style="padding:15px;background:rgba(255,255,255,0.05);border-radius:10px;margin-bottom:10px;border-left:4px solid ' + scoreColor + ';">' +
+                '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+                '<div><span style="color:#fff;font-weight:bold;">' + (p.user_name || 'Student') + '</span>' +
+                '<span style="color:#aaa;margin-left:10px;font-size:0.85em;">' + p.exam_type + (p.chapter_id ? ' - Chapter ' + p.chapter_id : '') + '</span></div>' +
+                '<div style="display:flex;gap:10px;align-items:center;">' +
+                '<span style="color:' + scoreColor + ';font-weight:bold;font-size:1.1em;">' + p.score + '/' + p.total + '</span>' +
+                '<button onclick="viewPaperDetail(' + p.id + ')" style="padding:6px 14px;background:linear-gradient(135deg,#2196F3,#1565C0);border:none;border-radius:6px;color:#fff;cursor:pointer;font-size:0.85em;">View</button></div></div>' +
+                '<div style="color:#888;font-size:0.8em;margin-top:5px;">' + new Date(p.created_at).toLocaleString() + '</div></div>';
+        }).join('');
+    } catch(e) {
+        papersDiv.innerHTML = '<p style="color:#f44336;text-align:center;">Failed to load papers.</p>';
+    }
+}
+
+async function viewPaperDetail(paperId) {
+    try {
+        var resp = await fetch(API_URL + '/api/admin/exam-papers/' + paperId, {
+            headers: { 'Authorization': 'Bearer ' + appState.authToken }
+        });
+        var paper = await resp.json();
+        var answers = [];
+        try { answers = JSON.parse(paper.answers); } catch(e) {}
+        var photos = [];
+        try { photos = JSON.parse(paper.photos || '[]'); } catch(e) {}
+        
+        var html = '<h2 style="color:#E94560;margin-bottom:10px;">Exam Paper - ' + (paper.user_name || 'Student') + '</h2>';
+        html += '<p style="color:#aaa;">Type: ' + paper.exam_type + (paper.chapter_id ? ' | Chapter: ' + paper.chapter_id : '') + ' | Score: <span style="color:#fff;font-weight:bold;">' + paper.score + '/' + paper.total + '</span> | Date: ' + new Date(paper.created_at).toLocaleString() + '</p>';
+        
+        for (var i = 0; i < answers.length; i++) {
+            var a = answers[i];
+            if (!a || !a.options) continue;
+            var isCorrect = a.selected === a.correct;
+            var borderColor = isCorrect ? '#4CAF50' : '#f44336';
+            html += '<div style="padding:12px;margin:10px 0;background:rgba(255,255,255,0.05);border-left:4px solid ' + borderColor + ';border-radius:8px;">';
+            html += '<div style="color:#fff;font-weight:bold;margin-bottom:6px;">Q' + (i+1) + '. ' + a.question + '</div>';
+            for (var j = 0; j < a.options.length; j++) {
+                var optColor = '#aaa', optBg = 'transparent', optLabel = '';
+                if (j === a.correct) { optColor = '#4CAF50'; optBg = 'rgba(76,175,80,0.15)'; optLabel = ' (Correct)'; }
+                if (j === a.selected && !isCorrect) { optColor = '#f44336'; optBg = 'rgba(244,67,54,0.15)'; optLabel = ' (Student Answer - Wrong)'; }
+                if (j === a.selected && isCorrect) { optLabel = ' (Student Answer)'; }
+                html += '<div style="padding:6px 10px;margin:3px 0;border-radius:4px;color:' + optColor + ';background:' + optBg + ';">' + String.fromCharCode(65+j) + '. ' + a.options[j] + optLabel + '</div>';
+            }
+            html += '</div>';
+        }
+        
+        if (photos.length > 0) {
+            html += '<h3 style="color:#2196F3;margin-top:20px;">Paper Photos</h3>';
+            for (var k = 0; k < photos.length; k++) {
+                html += '<img src="' + photos[k].photo + '" style="max-width:100%;border-radius:8px;margin:10px 0;" />';
+            }
+        }
+        
+        html += '<div style="text-align:center;margin-top:20px;"><button onclick="closePaperDetail()" style="background:#E94560;color:#fff;border:none;padding:12px 30px;border-radius:8px;cursor:pointer;font-size:15px;">Close</button></div>';
+        
+        var overlay = document.createElement('div');
+        overlay.id = 'paper-detail-overlay';
+        overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.95);z-index:10000;overflow-y:auto;padding:30px;';
+        overlay.innerHTML = html;
+        document.body.appendChild(overlay);
+    } catch(e) {
+        alert('Failed to load paper details');
+    }
+}
+
+function closePaperDetail() {
+    var overlay = document.getElementById('paper-detail-overlay');
+    if (overlay) overlay.remove();
+}
+
 // View user screen during exam (screen sharing monitoring)
 function viewUserScreen(userId) {
-    var user = adminUsers ? adminUsers.find(function(u) { return u.id === userId; }) : null;
-    var userName = user ? user.name : 'Student';
-    
-    var modal = document.createElement('div');
-    modal.id = 'screen-view-modal';
-    modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:10000;display:flex;flex-direction:column;align-items:center;justify-content:center;';
-    
-    modal.innerHTML = '<div style="width:90%;max-width:1000px;background:linear-gradient(135deg,#1A1A2E,#16213E);border-radius:15px;overflow:hidden;box-shadow:0 20px 60px rgba(233,69,96,0.3);">' +
-        '<div style="display:flex;justify-content:space-between;align-items:center;padding:15px 20px;background:linear-gradient(90deg,#E94560,#FF6B6B);">' +
-            '<h3 style="margin:0;color:#fff;font-size:18px;display:flex;align-items:center;gap:10px;"><span style="width:10px;height:10px;background:#fff;border-radius:50%;animation:pulse 1.5s infinite;"></span> ' + userName + ' - Screen Share</h3>' +
-            '<button onclick="closeScreenView()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:24px;cursor:pointer;padding:5px 15px;border-radius:5px;">X</button>' +
-        '</div>' +
-        '<div style="padding:40px;text-align:center;">' +
-            '<div style="background:rgba(0,0,0,0.5);border-radius:10px;padding:60px;border:2px dashed rgba(233,69,96,0.5);">' +
-                '<div style="font-size:48px;margin-bottom:20px;">🖥️</div>' +
-                '<p style="color:#aaa;font-size:1.1em;margin-bottom:15px;">Screen sharing preview will appear here when the student shares their screen during the exam.</p>' +
-                '<p style="color:#888;font-size:0.9em;">The student is currently taking the exam. Their screen will be visible once they enable screen sharing.</p>' +
-            '</div>' +
-            '<div style="margin-top:20px;display:flex;justify-content:center;gap:15px;flex-wrap:wrap;">' +
-                '<button onclick="requestScreenShare(' + userId + ')" style="padding:12px 25px;background:linear-gradient(135deg,#8B5CF6,#EC4899);border:none;border-radius:25px;color:#fff;cursor:pointer;font-size:14px;">Request Screen Share</button>' +
-                '<button onclick="sendExamWarning(' + userId + ')" style="padding:12px 25px;background:linear-gradient(135deg,#FF9800,#F44336);border:none;border-radius:25px;color:#fff;cursor:pointer;font-size:14px;">Send Warning</button>' +
-            '</div>' +
-        '</div>' +
-    '</div>';
-    
-    document.body.appendChild(modal);
+    openLiveFullscreen(userId);
 }
 
 function adminVoiceCallStudent(userId) {
@@ -8360,8 +9532,22 @@ function requestScreenShare(userId) {
     alert('Screen share request sent to student. They will be prompted to share their screen.');
 }
 
-function sendExamWarning(userId) {
-    alert('Warning sent to student: "Please ensure your screen is visible to the examiner."');
+async function sendExamWarning(userId) {
+    var token = appState.authToken || localStorage.getItem('authToken');
+    if (!token) return;
+    try {
+        var response = await fetch(API_URL + '/api/admin/send-warning/' + userId, {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        if (response.ok) {
+            alert('Warning sent to student successfully.');
+        } else {
+            alert('Failed to send warning. Try again.');
+        }
+    } catch(e) {
+        alert('Network error sending warning.');
+    }
 }
 
 // Admin unlock all chapters and generate certificates for admin

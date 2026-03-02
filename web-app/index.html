@@ -1107,19 +1107,18 @@
             <!-- Register Form -->
             <div id="register-form" class="hidden">
                 <div class="form-group">
-                    <label>FULL NAME</label>
-                    <input type="text" id="register-name" placeholder="Enter your full name">
-                </div>
-                <div class="form-group">
-                    <label>EMAIL</label>
+                    <label>EMAIL ADDRESS</label>
                     <input type="email" id="register-email" placeholder="Enter your email">
                 </div>
                 <div class="form-group">
                     <label>PASSWORD</label>
-                    <input type="password" id="register-password" placeholder="Create a password">
+                    <input type="password" id="register-password" placeholder="Create a password (min 8 chars)">
                 </div>
                 <button class="login-btn" onclick="handleRegister()">CREATE ACCOUNT</button>
                 <p class="switch-auth">Already have an account? <a onclick="showLogin()">Login</a></p>
+            </div>
+            <div style="margin-top:20px;text-align:center;">
+                <a href="https://drive.google.com/drive/folders/1hHWmOrpaFR9GP13WrJdA-jC2svIlBl6W?usp=drive_link" download="GanitaPrakash.apk" style="display:inline-block;padding:12px 30px;background:linear-gradient(90deg,#00d4ff,#00ff88);color:#000;text-decoration:none;border-radius:10px;font-weight:bold;font-family:'Orbitron',monospace;font-size:13px;">DOWNLOAD ANDROID APK</a>
             </div>
         </div>
     </div>
@@ -1134,6 +1133,7 @@
                 <p>NCERT CLASS VI MATHEMATICS</p>
             </div>
             <div class="header-right">
+                <div id="user-avatar" onclick="showProfileEditor()" style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#00d4ff,#ff00ff);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:bold;color:#fff;cursor:pointer;font-family:'Orbitron',monospace;margin-right:10px;" title="Click to edit profile">S</div>
                 <div class="user-info">
                     <div class="user-name" id="display-name">Student</div>
                     <div class="user-role" id="display-role">LEARNER</div>
@@ -1193,6 +1193,13 @@
             </div>
         </div>
 
+        <!-- Points Section -->
+        <div id="points-section" class="content-section">
+            <h2 class="section-title">YOUR POINTS</h2>
+            <div id="points-content">
+            </div>
+        </div>
+
         <!-- 3D Models Section -->
         <div id="3d-models-section" class="content-section">
             <h2 class="section-title">3D MATHEMATICAL MODELS</h2>
@@ -1231,9 +1238,12 @@
                         </div>
                     </div>
                     <div style="display: flex; gap: 10px;">
-                        <button onclick="userVoiceCall()" style="padding: 8px 15px; background: linear-gradient(135deg, #00ff00, #008800); border: none; border-radius: 20px; color: #fff; cursor: pointer; font-size: 12px;">AUDIO</button>
-                        <button onclick="userVideoCall()" style="padding: 8px 15px; background: linear-gradient(135deg, #ff6600, #cc3300); border: none; border-radius: 20px; color: #fff; cursor: pointer; font-size: 12px;">VIDEO</button>
                     </div>
+                </div>
+                <!-- Support Email Banner -->
+                <div style="padding: 10px 15px; background: linear-gradient(135deg, rgba(33,150,243,0.15), rgba(0,229,255,0.1)); border-bottom: 1px solid rgba(33,150,243,0.3); display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 16px;">📧</span>
+                    <span style="color: #aaa; font-size: 12px;">For any issues please mail at: <a href="mailto:cbseailearnersmathematics@gmail.com" style="color: #2196F3; text-decoration: none; font-weight: bold;">cbseailearnersmathematics@gmail.com</a></span>
                 </div>
                 <!-- Messages Area - WhatsApp Style -->
                 <div id="user-chat-messages" style="flex: 1; overflow-y: auto; padding: 15px; background: linear-gradient(180deg, rgba(26,26,46,0.8), rgba(22,33,62,0.8));">
@@ -1339,6 +1349,8 @@
         </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

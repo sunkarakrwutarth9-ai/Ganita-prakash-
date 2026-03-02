@@ -19,6 +19,7 @@ import {
   BackHandler,
   Vibration,
   AppState,
+  PermissionsAndroid,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Sharing from 'expo-sharing';
@@ -35,6 +36,15 @@ import { Audio } from 'expo-av';
 import { captureRef } from 'react-native-view-shot';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import auth from '@react-native-firebase/auth';
+import { Camera } from 'expo-camera';
+import * as ImagePicker from 'expo-image-picker';
+import {
+  RTCPeerConnection,
+  RTCSessionDescription,
+  RTCIceCandidate,
+  RTCView,
+  mediaDevices,
+} from 'react-native-webrtc';
 
 // Configure notifications
 Notifications.setNotificationHandler({
@@ -60,131 +70,151 @@ const CLAUDE_API_KEY = process.env.CLAUDE_API_KEY || 'YOUR_API_KEY_HERE';
 const generate3DModelHTML = (modelType, modelName) => {
   const shapes = {
     'spiral': `
-      const geometry = new THREE.TorusKnotGeometry(1, 0.3, 100, 16);
-      const material = new THREE.MeshPhongMaterial({ color: 0x8B5CF6, shininess: 100 });
-      const mesh = new THREE.Mesh(geometry, material);
+      const points = [];
+      for (let i = 0; i < 200; i++) {
+        const angle = i * 0.15;
+        const radius = 0.08 * Math.sqrt(i);
+        points.push(new THREE.Vector3(Math.cos(angle) * radius, i * 0.01 - 1, Math.sin(angle) * radius));
+      }
+      const curve = new THREE.CatmullRomCurve3(points);
+      const geometry = new THREE.TubeGeometry(curve, 200, 0.06, 12, false);
+      const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0x00BCD4, metalness: 0.5, roughness: 0.2 }));
+      mesh.castShadow = true;
       scene.add(mesh);
     `,
     'fibonacci': `
       const points = [];
-      for (let i = 0; i < 100; i++) {
-        const angle = i * 0.1;
-        const radius = 0.1 * Math.sqrt(i);
-        points.push(new THREE.Vector3(Math.cos(angle) * radius, Math.sin(angle) * radius, i * 0.02));
+      for (let i = 0; i < 200; i++) {
+        const angle = i * 0.15;
+        const radius = 0.08 * Math.sqrt(i);
+        points.push(new THREE.Vector3(Math.cos(angle) * radius, i * 0.01 - 1, Math.sin(angle) * radius));
       }
       const curve = new THREE.CatmullRomCurve3(points);
-      const geometry = new THREE.TubeGeometry(curve, 100, 0.05, 8, false);
-      const material = new THREE.MeshPhongMaterial({ color: 0xF59E0B, shininess: 100 });
-      const mesh = new THREE.Mesh(geometry, material);
+      const geometry = new THREE.TubeGeometry(curve, 200, 0.06, 12, false);
+      const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0xFFD700, metalness: 0.5, roughness: 0.2 }));
+      mesh.castShadow = true;
       scene.add(mesh);
     `,
     'cube': `
-      const geometry = new THREE.BoxGeometry(1.5, 1.5, 1.5);
-      const material = new THREE.MeshPhongMaterial({ color: 0x14B8A6, shininess: 100 });
-      const mesh = new THREE.Mesh(geometry, material);
-      scene.add(mesh);
+      const geometry = new THREE.BoxGeometry(2, 2, 2);
+      const materials = [
+        new THREE.MeshStandardMaterial({ color: 0xE94560, metalness: 0.3, roughness: 0.4 }),
+        new THREE.MeshStandardMaterial({ color: 0x0F3460, metalness: 0.3, roughness: 0.4 }),
+        new THREE.MeshStandardMaterial({ color: 0x533483, metalness: 0.3, roughness: 0.4 }),
+        new THREE.MeshStandardMaterial({ color: 0x16213E, metalness: 0.3, roughness: 0.4 }),
+        new THREE.MeshStandardMaterial({ color: 0xE94560, metalness: 0.3, roughness: 0.4 }),
+        new THREE.MeshStandardMaterial({ color: 0x0F3460, metalness: 0.3, roughness: 0.4 })
+      ];
+      const mesh = new THREE.Mesh(geometry, materials);
+      mesh.castShadow = true;
       const edges = new THREE.EdgesGeometry(geometry);
-      const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xffffff }));
-      scene.add(line);
+      mesh.add(new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.5, transparent: true })));
+      scene.add(mesh);
     `,
     'pyramid': `
-      const geometry = new THREE.ConeGeometry(1, 1.5, 4);
-      const material = new THREE.MeshPhongMaterial({ color: 0xEF4444, shininess: 100 });
-      const mesh = new THREE.Mesh(geometry, material);
+      const geometry = new THREE.ConeGeometry(1.5, 2.5, 4);
+      const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0xFFD700, metalness: 0.5, roughness: 0.3, flatShading: true }));
+      mesh.castShadow = true;
+      mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geometry), new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.5, transparent: true })));
       scene.add(mesh);
     `,
     'grid': `
       for (let x = -2; x <= 2; x++) {
         for (let y = -2; y <= 2; y++) {
           const geometry = new THREE.BoxGeometry(0.4, 0.4, 0.4);
-          const material = new THREE.MeshPhongMaterial({ color: Math.random() * 0xffffff, shininess: 100 });
+          const hue = Math.random();
+          const material = new THREE.MeshStandardMaterial({ color: new THREE.Color().setHSL(hue, 0.7, 0.5), metalness: 0.3, roughness: 0.4 });
           const mesh = new THREE.Mesh(geometry, material);
           mesh.position.set(x * 0.5, y * 0.5, 0);
+          mesh.castShadow = true;
           scene.add(mesh);
         }
       }
     `,
     'sphere': `
-      const geometry = new THREE.SphereGeometry(1, 32, 32);
-      const material = new THREE.MeshPhongMaterial({ color: 0x8B5CF6, shininess: 100 });
-      const mesh = new THREE.Mesh(geometry, material);
+      const geometry = new THREE.SphereGeometry(1.5, 64, 64);
+      const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0x2196F3, metalness: 0.7, roughness: 0.1 }));
+      mesh.castShadow = true;
       scene.add(mesh);
     `,
     'cylinder': `
-      const geometry = new THREE.CylinderGeometry(0.8, 0.8, 2, 32);
-      const material = new THREE.MeshPhongMaterial({ color: 0x14B8A6, shininess: 100 });
-      const mesh = new THREE.Mesh(geometry, material);
+      const geometry = new THREE.CylinderGeometry(1, 1, 2.5, 32);
+      const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0x9C27B0, metalness: 0.4, roughness: 0.3 }));
+      mesh.castShadow = true;
+      mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geometry), new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.3, transparent: true })));
       scene.add(mesh);
     `,
     'torus': `
-      const geometry = new THREE.TorusGeometry(1, 0.4, 16, 100);
-      const material = new THREE.MeshPhongMaterial({ color: 0xF59E0B, shininess: 100 });
-      const mesh = new THREE.Mesh(geometry, material);
+      const geometry = new THREE.TorusGeometry(1.2, 0.5, 32, 100);
+      const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0xFF5722, metalness: 0.6, roughness: 0.2 }));
+      mesh.castShadow = true;
       scene.add(mesh);
     `,
     'dodecahedron': `
-      const geometry = new THREE.DodecahedronGeometry(1);
-      const material = new THREE.MeshPhongMaterial({ color: 0xEF4444, shininess: 100 });
-      const mesh = new THREE.Mesh(geometry, material);
+      const geometry = new THREE.DodecahedronGeometry(1.5);
+      const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0xE94560, metalness: 0.4, roughness: 0.3, flatShading: true }));
+      mesh.castShadow = true;
+      mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geometry), new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.5, transparent: true })));
       scene.add(mesh);
     `,
     'icosahedron': `
-      const geometry = new THREE.IcosahedronGeometry(1);
-      const material = new THREE.MeshPhongMaterial({ color: 0x8B5CF6, shininess: 100 });
-      const mesh = new THREE.Mesh(geometry, material);
+      const geometry = new THREE.IcosahedronGeometry(1.5);
+      const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0x8B5CF6, metalness: 0.4, roughness: 0.3, flatShading: true }));
+      mesh.castShadow = true;
+      mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geometry), new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.5, transparent: true })));
       scene.add(mesh);
     `,
     'octahedron': `
-      const geometry = new THREE.OctahedronGeometry(1);
-      const material = new THREE.MeshPhongMaterial({ color: 0x14B8A6, shininess: 100 });
-      const mesh = new THREE.Mesh(geometry, material);
+      const geometry = new THREE.OctahedronGeometry(1.5);
+      const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0x14B8A6, metalness: 0.4, roughness: 0.3, flatShading: true }));
+      mesh.castShadow = true;
+      mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geometry), new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.5, transparent: true })));
       scene.add(mesh);
     `,
     'tetrahedron': `
-      const geometry = new THREE.TetrahedronGeometry(1);
-      const material = new THREE.MeshPhongMaterial({ color: 0xF59E0B, shininess: 100 });
-      const mesh = new THREE.Mesh(geometry, material);
+      const geometry = new THREE.TetrahedronGeometry(1.5);
+      const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0xF59E0B, metalness: 0.4, roughness: 0.3, flatShading: true }));
+      mesh.castShadow = true;
+      mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geometry), new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.5, transparent: true })));
       scene.add(mesh);
     `,
     'pie': `
-      const slices = 8;
-      for (let i = 0; i < slices; i++) {
-        const geometry = new THREE.CylinderGeometry(1, 1, 0.3, 32, 1, false, i * Math.PI * 2 / slices, Math.PI * 2 / slices - 0.05);
-        const material = new THREE.MeshPhongMaterial({ color: i % 2 === 0 ? 0x8B5CF6 : 0x14B8A6, shininess: 100 });
-        const mesh = new THREE.Mesh(geometry, material);
+      const sliceColors = [0xE94560, 0x2196F3, 0x4CAF50, 0xFFC107, 0x9C27B0, 0xFF5722, 0x00BCD4, 0x8BC34A];
+      for (let i = 0; i < 8; i++) {
+        const geometry = new THREE.CylinderGeometry(1.5, 1.5, 0.4, 32, 1, false, i * Math.PI * 2 / 8, Math.PI * 2 / 8 - 0.03);
+        const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: sliceColors[i], metalness: 0.3, roughness: 0.4 }));
         mesh.rotation.x = Math.PI / 2;
+        mesh.castShadow = true;
         scene.add(mesh);
       }
     `,
     'protractor': `
-      const geometry = new THREE.CircleGeometry(1.5, 32, 0, Math.PI);
-      const material = new THREE.MeshPhongMaterial({ color: 0xF59E0B, side: THREE.DoubleSide, shininess: 100 });
-      const mesh = new THREE.Mesh(geometry, material);
+      const geometry = new THREE.CircleGeometry(2, 64, 0, Math.PI);
+      const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0xFFC107, metalness: 0.2, roughness: 0.5, side: THREE.DoubleSide }));
       scene.add(mesh);
       for (let i = 0; i <= 180; i += 10) {
         const angle = i * Math.PI / 180;
+        const len = i % 30 === 0 ? 1.9 : 1.7;
         const lineGeom = new THREE.BufferGeometry().setFromPoints([
-          new THREE.Vector3(0, 0, 0.01),
-          new THREE.Vector3(Math.cos(angle) * 1.4, Math.sin(angle) * 1.4, 0.01)
+          new THREE.Vector3(0, 0, 0.02),
+          new THREE.Vector3(Math.cos(angle) * len, Math.sin(angle) * len, 0.02)
         ]);
-        const line = new THREE.Line(lineGeom, new THREE.LineBasicMaterial({ color: 0x000000 }));
-        scene.add(line);
+        scene.add(new THREE.Line(lineGeom, new THREE.LineBasicMaterial({ color: 0x333333 })));
       }
     `,
     'symmetry': `
-      const geometry = new THREE.BoxGeometry(0.8, 1.5, 0.3);
-      const material = new THREE.MeshPhongMaterial({ color: 0x8B5CF6, shininess: 100 });
-      const mesh1 = new THREE.Mesh(geometry, material);
-      mesh1.position.x = -0.5;
+      const mat1 = new THREE.MeshStandardMaterial({ color: 0x8B5CF6, metalness: 0.3, roughness: 0.4 });
+      const mat2 = new THREE.MeshStandardMaterial({ color: 0x14B8A6, metalness: 0.3, roughness: 0.4 });
+      const mesh1 = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 0.5), mat1);
+      mesh1.position.x = -0.6;
+      mesh1.castShadow = true;
       scene.add(mesh1);
-      const mesh2 = new THREE.Mesh(geometry, material.clone());
-      mesh2.material.color.setHex(0x14B8A6);
-      mesh2.position.x = 0.5;
+      const mesh2 = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 0.5), mat2);
+      mesh2.position.x = 0.6;
+      mesh2.castShadow = true;
       scene.add(mesh2);
-      const planeGeom = new THREE.PlaneGeometry(0.02, 2);
-      const planeMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
-      const plane = new THREE.Mesh(planeGeom, planeMat);
-      scene.add(plane);
+      const mirrorPlane = new THREE.Mesh(new THREE.PlaneGeometry(0.05, 2.5), new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide }));
+      scene.add(mirrorPlane);
     `,
   };
 
@@ -204,63 +234,58 @@ const generate3DModelHTML = (modelType, modelName) => {
     <body>
       <div id="info">Drag to rotate | Pinch to zoom</div>
       <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
       <script>
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x1A1A2E);
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.z = 4;
+        scene.background = new THREE.Color(0x0a0a1a);
+        scene.fog = new THREE.FogExp2(0x0a0a1a, 0.04);
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(3, 3, 5);
         
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.2;
         document.body.appendChild(renderer.domElement);
         
-        // Lighting
-        const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
+        const ambientLight = new THREE.AmbientLight(0x404060, 0.6);
         scene.add(ambientLight);
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-        directionalLight.position.set(5, 5, 5);
-        scene.add(directionalLight);
-        const pointLight = new THREE.PointLight(0xffffff, 0.5);
-        pointLight.position.set(-5, -5, 5);
-        scene.add(pointLight);
+        const mainLight = new THREE.DirectionalLight(0xffffff, 1.0);
+        mainLight.position.set(5, 8, 5);
+        mainLight.castShadow = true;
+        mainLight.shadow.mapSize.width = 512;
+        mainLight.shadow.mapSize.height = 512;
+        scene.add(mainLight);
+        const fillLight = new THREE.DirectionalLight(0x4488ff, 0.4);
+        fillLight.position.set(-5, 3, -5);
+        scene.add(fillLight);
+        const rimLight = new THREE.PointLight(0xE94560, 0.8, 20);
+        rimLight.position.set(0, -3, 5);
+        scene.add(rimLight);
         
-        // Add 3D model
+        const gridHelper = new THREE.GridHelper(10, 20, 0x00ffff, 0x111133);
+        gridHelper.position.y = -2.5;
+        gridHelper.material.opacity = 0.3;
+        gridHelper.material.transparent = true;
+        scene.add(gridHelper);
+        
         ${shapeCode}
         
-        // Mouse/touch controls
-        let isDragging = false;
-        let previousMousePosition = { x: 0, y: 0 };
-        let rotationSpeed = { x: 0.005, y: 0.005 };
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.08;
+        controls.autoRotate = true;
+        controls.autoRotateSpeed = 2.0;
+        controls.enableZoom = true;
+        controls.minDistance = 2;
+        controls.maxDistance = 15;
         
-        document.addEventListener('mousedown', () => isDragging = true);
-        document.addEventListener('mouseup', () => isDragging = false);
-        document.addEventListener('mousemove', (e) => {
-          if (isDragging) {
-            scene.rotation.y += (e.clientX - previousMousePosition.x) * rotationSpeed.x;
-            scene.rotation.x += (e.clientY - previousMousePosition.y) * rotationSpeed.y;
-          }
-          previousMousePosition = { x: e.clientX, y: e.clientY };
-        });
-        
-        document.addEventListener('touchstart', (e) => {
-          isDragging = true;
-          previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-        });
-        document.addEventListener('touchend', () => isDragging = false);
-        document.addEventListener('touchmove', (e) => {
-          if (isDragging && e.touches.length === 1) {
-            scene.rotation.y += (e.touches[0].clientX - previousMousePosition.x) * rotationSpeed.x;
-            scene.rotation.x += (e.touches[0].clientY - previousMousePosition.y) * rotationSpeed.y;
-            previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-          }
-        });
-        
-        // Auto-rotate
         function animate() {
           requestAnimationFrame(animate);
-          if (!isDragging) {
-            scene.rotation.y += 0.005;
-          }
+          controls.update();
           renderer.render(scene, camera);
         }
         animate();
@@ -276,7 +301,7 @@ const generate3DModelHTML = (modelType, modelName) => {
   `;
 };
 
-const API_URL = "https://app-zmatwbmr.fly.dev";
+const API_URL = "https://app-lqmnnlxp.fly.dev";
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // Admin email for Google OAuth
@@ -354,16 +379,16 @@ const SUPPORTED_LANGUAGES = [
 
 // Chapter Media (Videos and PPTs from NotebookLM)
 const chapterMedia = {
-    1: { title: "Patterns in numbers", videoUrl: "https://drive.google.com/file/d/1G-gWjUd8hrmxyV-meLn6igquy5zTqx-i/preview", videoSummary: "Learn about number patterns and sequences.", pptUrl: "https://drive.google.com/file/d/1WbHMprNLt5JMQo0vVaC7_P7sTrR9Sxcd/preview", pptTitle: "The Hidden Architecture of Patterns", tbUrl: "https://drive.google.com/file/d/1fvKOqgxNrZFeqn5330REbgZoIcTgdyGi/preview", tbTitle: "Chapter 1 - Patterns in Mathematics" },
-    2: { title: "Lines and Angles", videoUrl: "https://drive.google.com/file/d/10NfjD3znlbJbcKo50R9AD5vLNuLCOB5H/preview", videoSummary: "Understanding lines, rays, and angles.", pptUrl: "https://drive.google.com/file/d/1fCIki-yVVW33e5_yQabafq8Sn7-Ue5Eu/preview", pptTitle: "From Point to Degree", tbUrl: "https://drive.google.com/file/d/1fvKOqgxNrZFeqn5330REbgZoIcTgdyGi/preview", tbTitle: "Chapter 2 - Lines and Angles" },
-    3: { title: "Number Play", videoUrl: "https://drive.google.com/file/d/1voVejm6eO6BtXm9AMIfLCPikVwGnHU8i/preview", videoSummary: "Explore number puzzles and patterns.", pptUrl: "https://drive.google.com/file/d/1KgJx2nQdc9t-xHsBjYzt11JgFzyeGQmm/preview", pptTitle: "The Secret Life of Numbers", tbUrl: "https://drive.google.com/file/d/1fvKOqgxNrZFeqn5330REbgZoIcTgdyGi/preview", tbTitle: "Chapter 3 - Number Play" },
-    4: { title: "Data Handling", videoUrl: "https://drive.google.com/file/d/1uWy_U2NrHjx1Riv0Z2NIANPj5XkMxmYD/preview", videoSummary: "Learn to collect and present data.", pptUrl: "https://drive.google.com/file/d/1vAHyCGcFtcdjTIzvasaCvOGYMblfujGg/preview", pptTitle: "Data Structure Visualize Integrity", tbUrl: "https://drive.google.com/file/d/1fvKOqgxNrZFeqn5330REbgZoIcTgdyGi/preview", tbTitle: "Chapter 4 - Data Handling and Presentation" },
-    5: { title: "Prime Time", videoUrl: "https://drive.google.com/file/d/1CJTbvE5vTVPJiFvt-_l1cv5mHr5g7JD2/preview", videoSummary: "Discover prime numbers and factors.", pptUrl: "https://drive.google.com/file/d/1-94wWynj-KJN4uU-1DzjSGtLPKO3Y32m/preview", pptTitle: "Prime Time A Game of Numbers", tbUrl: "https://drive.google.com/file/d/1fvKOqgxNrZFeqn5330REbgZoIcTgdyGi/preview", tbTitle: "Chapter 5 - Prime Time" },
-    6: { title: "Perimeter and Area", videoUrl: "https://drive.google.com/file/d/1rAjBngeOMaEiZ_tE4OM8Okviyqhbxkpo/preview", videoSummary: "Calculate perimeter and area.", pptUrl: "https://drive.google.com/file/d/11z7anMHhrCoG2309wuKuYhMXADdKlxbj/preview", pptTitle: "The Architect's Toolkit Mastering Space", tbUrl: "https://drive.google.com/file/d/1fvKOqgxNrZFeqn5330REbgZoIcTgdyGi/preview", tbTitle: "Chapter 6 - Perimeter and Area" },
-    7: { title: "Fractions", videoUrl: "https://drive.google.com/file/d/1HLz1i1ZzddZdnpsoyv7Zhoot_P80oaYm/preview", videoSummary: "Understanding fractions.", pptUrl: "https://drive.google.com/file/d/1ll8jPIypxn1Z_ISDHHSNxoMFQ0BqBodA/preview", pptTitle: "The Language of Parts", tbUrl: "https://drive.google.com/file/d/1fvKOqgxNrZFeqn5330REbgZoIcTgdyGi/preview", tbTitle: "Chapter 7 - Fractions" },
-    8: { title: "Playing with Constructions", videoUrl: "https://drive.google.com/file/d/1YuU0Cmx4CoeL2IgM6dsjS1zBCXoNG8cQ/preview", videoSummary: "Geometric constructions.", pptUrl: "https://drive.google.com/file/d/18oH6_9fkoIS2yCZ28qBTyGSW4-TkJlL_/preview", pptTitle: "The Geometer's Quest Precision and Art", tbUrl: "https://drive.google.com/file/d/1fvKOqgxNrZFeqn5330REbgZoIcTgdyGi/preview", tbTitle: "Chapter 8 - Playing with Constructions" },
-    9: { title: "Symmetry", videoUrl: "https://drive.google.com/file/d/14X50UAcCKYxgTmTxFxXtwUI74lK1YLOh/preview", videoSummary: "Line and rotational symmetry.", pptUrl: "https://drive.google.com/file/d/1YDvhdUNJ3nmUJilCex2uqIcsQ3-I0cnT/preview", pptTitle: "The Universal Blueprint of Symmetry", tbUrl: "https://drive.google.com/file/d/1fvKOqgxNrZFeqn5330REbgZoIcTgdyGi/preview", tbTitle: "Chapter 9 - Symmetry" },
-    10: { title: "The Other Side of Zero", videoUrl: "https://drive.google.com/file/d/1FN9nkTnWCOTYF6El54AEtWtd-NKsUiBD/preview", videoSummary: "Introduction to integers.", pptUrl: "https://drive.google.com/file/d/18dQvLG_a1EOM5uz3JZKehQ-yOgtkzsJD/preview", pptTitle: "The Other Side of Zero", tbUrl: "https://drive.google.com/file/d/1fvKOqgxNrZFeqn5330REbgZoIcTgdyGi/preview", tbTitle: "Chapter 10 - The Other Side of Zero" },
+    1: { title: "Patterns in numbers", videoUrl: "https://drive.google.com/file/d/1G-gWjUd8hrmxyV-meLn6igquy5zTqx-i/preview", videoSummary: "Learn about number patterns and sequences.", pptUrl: "https://drive.google.com/file/d/1WbHMprNLt5JMQo0vVaC7_P7sTrR9Sxcd/preview", pptTitle: "The Hidden Architecture of Patterns", tbUrl: "https://drive.google.com/file/d/1MdSzsXsFNUjYw8cxTiBFd7-T6qvH40Sp/preview", tbTitle: "Chapter 1 - Patterns in Mathematics" },
+    2: { title: "Lines and Angles", videoUrl: "https://drive.google.com/file/d/10NfjD3znlbJbcKo50R9AD5vLNuLCOB5H/preview", videoSummary: "Understanding lines, rays, and angles.", pptUrl: "https://drive.google.com/file/d/1fCIki-yVVW33e5_yQabafq8Sn7-Ue5Eu/preview", pptTitle: "From Point to Degree", tbUrl: "https://drive.google.com/file/d/1P7GyBa-N0d5fXL0iMaWZriEVxsHf4ISG/preview", tbTitle: "Chapter 2 - Lines and Angles" },
+    3: { title: "Number Play", videoUrl: "https://drive.google.com/file/d/1voVejm6eO6BtXm9AMIfLCPikVwGnHU8i/preview", videoSummary: "Explore number puzzles and patterns.", pptUrl: "https://drive.google.com/file/d/1KgJx2nQdc9t-xHsBjYzt11JgFzyeGQmm/preview", pptTitle: "The Secret Life of Numbers", tbUrl: "https://drive.google.com/file/d/145VeF9E3B3XbiAS5XGwNoGRNiCY1Kkxn/preview", tbTitle: "Chapter 3 - Number Play" },
+    4: { title: "Data Handling", videoUrl: "https://drive.google.com/file/d/1uWy_U2NrHjx1Riv0Z2NIANPj5XkMxmYD/preview", videoSummary: "Learn to collect and present data.", pptUrl: "https://drive.google.com/file/d/1vAHyCGcFtcdjTIzvasaCvOGYMblfujGg/preview", pptTitle: "Data Structure Visualize Integrity", tbUrl: "https://drive.google.com/file/d/1h9k3rGFz8sXidIitfspCmQ6g0pCzZKCY/preview", tbTitle: "Chapter 4 - Data Handling and Presentation" },
+    5: { title: "Prime Time", videoUrl: "https://drive.google.com/file/d/1CJTbvE5vTVPJiFvt-_l1cv5mHr5g7JD2/preview", videoSummary: "Discover prime numbers and factors.", pptUrl: "https://drive.google.com/file/d/1-94wWynj-KJN4uU-1DzjSGtLPKO3Y32m/preview", pptTitle: "Prime Time A Game of Numbers", tbUrl: "https://drive.google.com/file/d/1OHpaiu9dF71fK4bRp0BO7ok8_QKIq2MJ/preview", tbTitle: "Chapter 5 - Prime Time" },
+    6: { title: "Perimeter and Area", videoUrl: "https://drive.google.com/file/d/1rAjBngeOMaEiZ_tE4OM8Okviyqhbxkpo/preview", videoSummary: "Calculate perimeter and area.", pptUrl: "https://drive.google.com/file/d/11z7anMHhrCoG2309wuKuYhMXADdKlxbj/preview", pptTitle: "The Architect's Toolkit Mastering Space", tbUrl: "https://drive.google.com/file/d/1-XCGMLfG-e05qa2Pfvd8q-WxRUxtgIRG/preview", tbTitle: "Chapter 6 - Perimeter and Area" },
+    7: { title: "Fractions", videoUrl: "https://drive.google.com/file/d/1HLz1i1ZzddZdnpsoyv7Zhoot_P80oaYm/preview", videoSummary: "Understanding fractions.", pptUrl: "https://drive.google.com/file/d/1ll8jPIypxn1Z_ISDHHSNxoMFQ0BqBodA/preview", pptTitle: "The Language of Parts", tbUrl: "https://drive.google.com/file/d/13kc5mx6p3jWThUIHKEoRYoYRkNkvnHCV/preview", tbTitle: "Chapter 7 - Fractions" },
+    8: { title: "Playing with Constructions", videoUrl: "https://drive.google.com/file/d/1YuU0Cmx4CoeL2IgM6dsjS1zBCXoNG8cQ/preview", videoSummary: "Geometric constructions.", pptUrl: "https://drive.google.com/file/d/18oH6_9fkoIS2yCZ28qBTyGSW4-TkJlL_/preview", pptTitle: "The Geometer's Quest Precision and Art", tbUrl: "https://drive.google.com/file/d/1agsSZgajY4NPMyaWcFnYZ9slQpvfhb5Z/preview", tbTitle: "Chapter 8 - Playing with Constructions" },
+    9: { title: "Symmetry", videoUrl: "https://drive.google.com/file/d/14X50UAcCKYxgTmTxFxXtwUI74lK1YLOh/preview", videoSummary: "Line and rotational symmetry.", pptUrl: "https://drive.google.com/file/d/1YDvhdUNJ3nmUJilCex2uqIcsQ3-I0cnT/preview", pptTitle: "The Universal Blueprint of Symmetry", tbUrl: "https://drive.google.com/file/d/1-PWg2U1ZOkU-jXUIQ3W5f0ClNtYGWWTU/preview", tbTitle: "Chapter 9 - Symmetry" },
+    10: { title: "The Other Side of Zero", videoUrl: "https://drive.google.com/file/d/1FN9nkTnWCOTYF6El54AEtWtd-NKsUiBD/preview", videoSummary: "Introduction to integers.", pptUrl: "https://drive.google.com/file/d/18dQvLG_a1EOM5uz3JZKehQ-yOgtkzsJD/preview", pptTitle: "The Other Side of Zero", tbUrl: "https://drive.google.com/file/d/1pJf73SW7rhNGsCSMKGy6gnypRGI41L65/preview", tbTitle: "Chapter 10 - The Other Side of Zero" },
 };
 
 // PDF Viewer HTML generator using PDF.js for inbuilt viewing
@@ -5387,6 +5412,23 @@ export default function App() {
   const [examPhase, setExamPhase] = useState('mcq');
   const [penPaperAnswers, setPenPaperAnswers] = useState({});
   const [mcqScore, setMcqScore] = useState(0);
+  const [examPhotos, setExamPhotos] = useState([]);
+  const [examAnswerLog, setExamAnswerLog] = useState([]);
+  const [showAnswerReview, setShowAnswerReview] = useState(false);
+  const [examPhaseIndex, setExamPhaseIndex] = useState(0);
+  const [examPhaseQuestionIndex, setExamPhaseQuestionIndex] = useState(0);
+  const [showPhaseIntro, setShowPhaseIntro] = useState(false);
+
+  const examPhasesList = ['mcq', 'caseBased', 'veryShort', 'short', 'long'];
+  const examPhaseLabels = { mcq: 'Section A: MCQ', caseBased: 'Section B: Case-Based', veryShort: 'Section C: Very Short Answer', short: 'Section D: Short Answer', long: 'Section E: Long Answer' };
+  const examPhaseDescs = { mcq: 'Select the correct option.', caseBased: 'Read the scenario and select the correct option.', veryShort: 'Write answer on paper and take a photo.', short: 'Write answer on paper and take a photo.', long: 'Write a detailed answer on paper and take a photo.' };
+
+  const getPhaseQuestions = (ch) => {
+    if (!ch || !ch.questions) return { mcq: [], caseBased: [], veryShort: [], short: [], long: [] };
+    const qs = ch.questions;
+    const pg = Math.floor(qs.length / 5);
+    return { mcq: qs.slice(0, pg), caseBased: qs.slice(pg, pg*2), veryShort: qs.slice(pg*2, pg*3), short: qs.slice(pg*3, pg*4), long: qs.slice(pg*4) };
+  };
 
   // Auth state
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -5423,6 +5465,8 @@ export default function App() {
   const [adminUsers, setAdminUsers] = useState([]);
   const [adminStats, setAdminStats] = useState({});
   const [adminMessages, setAdminMessages] = useState([]);
+  const [monitorFullscreenUser, setMonitorFullscreenUser] = useState(null);
+  const [monitorMicOn, setMonitorMicOn] = useState(true);
 
   // 3D Models state
   const [selectedModel, setSelectedModel] = useState(null);
@@ -5457,6 +5501,15 @@ export default function App() {
   const [showLanguageSelector, setShowLanguageSelector] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState('en');
   
+  // Profile editor state
+  const [isGoogleUser, setIsGoogleUser] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [editName, setEditName] = useState('');
+  
+  // Chapter unlock state (from backend)
+  const [chaptersUnlocked, setChaptersUnlocked] = useState(false);
+  const [chapterUnlockMap, setChapterUnlockMap] = useState({});
+  
   // Video Player state (inbuilt)
   const [showVideoPlayer, setShowVideoPlayer] = useState(false);
   const [currentVideoChapter, setCurrentVideoChapter] = useState(null);
@@ -5464,19 +5517,53 @@ export default function App() {
   const [videoTitle, setVideoTitle] = useState('');
   const [videoUrl, setVideoUrl] = useState('');
   
-  // In-app WebRTC calling state (using WebView)
-  const [showCallWebView, setShowCallWebView] = useState(false);
-  const [callWebViewUrl, setCallWebViewUrl] = useState('');
-  const [callWebViewTitle, setCallWebViewTitle] = useState('');
+  // Native WebRTC calling state
+  const [showNativeCallUI, setShowNativeCallUI] = useState(false);
+  const [nativeCallType, setNativeCallType] = useState('audio');
+  const [nativeCallPeer, setNativeCallPeer] = useState(null);
+  const [localStreamUrl, setLocalStreamUrl] = useState(null);
+  const [remoteStreamUrl, setRemoteStreamUrl] = useState(null);
+  const [isMuted, setIsMuted] = useState(false);
+  const [isSpeakerOn, setIsSpeakerOn] = useState(true);
+  const [isFrontCamera, setIsFrontCamera] = useState(true);
+  const peerConnectionRef = useRef(null);
+  const localStreamRef = useRef(null);
+  const remoteStreamRef = useRef(null);
+  const iceCandidateQueue = useRef([]);
+  const ringtoneRef = useRef(null);
+  const isCallActiveRef = useRef(false);
+  const webrtcConfig = {
+    iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'turn:a.relay.metered.ca:80', username: 'e8dd65b92af4d12ef0ed3b86', credential: 'uWdWNmkhvyqTEswO' },
+      { urls: 'turn:a.relay.metered.ca:443', username: 'e8dd65b92af4d12ef0ed3b86', credential: 'uWdWNmkhvyqTEswO' },
+      { urls: 'turn:a.relay.metered.ca:443?transport=tcp', username: 'e8dd65b92af4d12ef0ed3b86', credential: 'uWdWNmkhvyqTEswO' },
+    ],
+  };
   
   // Screen sharing during exam state
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [screenShareInterval, setScreenShareInterval] = useState(null);
   const screenViewRef = useRef(null); // Ref for capturing screen screenshots
 
+  const requestAllPermissions = async () => {
+    try {
+      const { status: camStatus } = await Camera.requestCameraPermissionsAsync();
+      console.log('Camera permission:', camStatus);
+      const { status: micStatus } = await Camera.requestMicrophonePermissionsAsync();
+      console.log('Microphone permission:', micStatus);
+      await Audio.requestPermissionsAsync();
+      console.log('Audio permission granted');
+      await registerForPushNotifications();
+    } catch (e) {
+      console.log('Permission request error:', e);
+    }
+  };
+
   useEffect(() => {
     checkAuth();
-    registerForPushNotifications();
+    requestAllPermissions();
     checkBirthdayWish();
     checkFestivalWish();
   }, []);
@@ -5487,9 +5574,9 @@ export default function App() {
     
     const pollForNotifications = async () => {
       if (!authToken || !isLoggedIn) return;
+      if (isCallActiveRef.current) return;
       
       try {
-        // Poll for incoming calls
         const callResponse = await fetch(`${API_URL}/api/notifications`, {
           headers: { 'Authorization': `Bearer ${authToken}` },
         });
@@ -5507,6 +5594,16 @@ export default function App() {
                 sdp: data.sdp
               });
               Vibration.vibrate([0, 500, 200, 500, 200, 500], true);
+              playRingtone();
+              await Notifications.scheduleNotificationAsync({
+                content: {
+                  title: 'Incoming Call',
+                  body: `${data.caller_name || 'Admin'} is calling you (${data.call_type || 'voice'})`,
+                  sound: true,
+                  priority: Notifications.AndroidNotificationPriority.MAX,
+                },
+                trigger: null,
+              });
               
               // Mark notification as read
               try {
@@ -5697,63 +5794,197 @@ export default function App() {
   const [callDuration, setCallDuration] = useState(0);
   const callTimerRef = useRef(null);
 
-  // Answer incoming call - shows native in-app call UI
-  const answerCall = async () => {
-    if (incomingCall) {
-      Vibration.cancel();
-      
-      // Send answer notification back to caller
-      try {
-        await fetch(`${API_URL}/api/webrtc/answer`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-          body: JSON.stringify({
-            caller_user_id: incomingCall.callerId,
-            sdp: 'mobile_app_answer'
-          })
-        });
-      } catch (e) {
-        console.log('Error sending answer:', e);
-      }
-      
-      // Show native in-app call UI instead of WebView
-      setNativeCallData({
-        callerId: incomingCall.callerId,
-        callerName: incomingCall.callerName,
-        callType: incomingCall.callType,
-        callId: incomingCall.callId
+  const playRingtone = async () => {
+    try {
+      await stopRingtone();
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        staysActiveInBackground: true,
+        playsInSilentModeIOS: true,
+        shouldDuckAndroid: false,
+        playThroughEarpieceAndroid: false,
       });
-      setCallDuration(0);
-      setShowNativeCall(true);
-      setIncomingCall(null);
-      
-      // Start call duration timer
-      callTimerRef.current = setInterval(() => {
-        setCallDuration(prev => prev + 1);
-      }, 1000);
+      let soundSource = { uri: 'content://settings/system/ringtone' };
+      try {
+        const { sound: testSound } = await Audio.Sound.createAsync(
+          soundSource,
+          { shouldPlay: false }
+        );
+        await testSound.unloadAsync();
+      } catch (e) {
+        soundSource = { uri: 'content://settings/system/notification_sound' };
+      }
+      const { sound } = await Audio.Sound.createAsync(
+        soundSource,
+        { shouldPlay: true, isLooping: true, volume: 1.0 }
+      );
+      ringtoneRef.current = sound;
+    } catch (e) {
+      console.log('Ringtone play error:', e);
     }
   };
 
-  // End native call
+  const stopRingtone = async () => {
+    try {
+      if (ringtoneRef.current) {
+        await ringtoneRef.current.stopAsync();
+        await ringtoneRef.current.unloadAsync();
+        ringtoneRef.current = null;
+      }
+    } catch (e) {
+      console.log('Ringtone stop error:', e);
+    }
+  };
+
+  const cleanupWebRTC = async () => {
+    try {
+      if (peerConnectionRef.current) {
+        peerConnectionRef.current.close();
+        peerConnectionRef.current = null;
+      }
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach(t => t.stop());
+        localStreamRef.current = null;
+      }
+      remoteStreamRef.current = null;
+      iceCandidateQueue.current = [];
+      setLocalStreamUrl(null);
+      setRemoteStreamUrl(null);
+    } catch (e) {
+      console.log('WebRTC cleanup error:', e);
+    }
+  };
+
+  const answerCall = async () => {
+    if (!incomingCall) return;
+    Vibration.cancel();
+    await stopRingtone();
+    const callData = { ...incomingCall };
+    setIncomingCall(null);
+    isCallActiveRef.current = true;
+    setNativeCallType(callData.callType || 'audio');
+    setNativeCallPeer({ id: callData.callerId, name: callData.callerName || 'Admin' });
+    setShowNativeCallUI(true);
+    setCallDuration(0);
+    callTimerRef.current = setInterval(() => setCallDuration(d => d + 1), 1000);
+
+    try {
+      await cleanupWebRTC();
+      const isVideo = callData.callType === 'video';
+      const stream = await mediaDevices.getUserMedia({ audio: true, video: isVideo ? { facingMode: 'user', width: { ideal: 320 }, height: { ideal: 240 }, frameRate: { ideal: 15 } } : false });
+      localStreamRef.current = stream;
+      setLocalStreamUrl(stream.toURL());
+
+      const pc = new RTCPeerConnection(webrtcConfig);
+      peerConnectionRef.current = pc;
+
+      pc.ontrack = (event) => {
+        if (event.streams && event.streams[0]) {
+          remoteStreamRef.current = event.streams[0];
+          setRemoteStreamUrl(event.streams[0].toURL());
+        }
+      };
+
+      pc.oniceconnectionstatechange = () => {
+        console.log('ICE connection state:', pc.iceConnectionState);
+        if (pc.iceConnectionState === 'failed') {
+          console.log('ICE failed, restarting...');
+          pc.restartIce();
+        }
+      };
+
+      pc.onconnectionstatechange = () => {
+        console.log('Connection state:', pc.connectionState);
+        if (pc.connectionState === 'failed') {
+          console.log('Connection failed');
+        }
+      };
+
+      pc.onicecandidate = async (event) => {
+        if (event.candidate) {
+          try {
+            await fetch(`${API_URL}/api/webrtc/candidate`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+              body: JSON.stringify({ target_user_id: callData.callerId, candidate: event.candidate.candidate, sdp_mid: event.candidate.sdpMid || '0', sdp_m_line_index: event.candidate.sdpMLineIndex || 0 })
+            });
+          } catch (e) { console.log('ICE send error:', e); }
+        }
+      };
+
+      stream.getTracks().forEach(track => pc.addTrack(track, stream));
+
+      if (callData.sdp) {
+        await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: callData.sdp }));
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        await fetch(`${API_URL}/api/webrtc/answer`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+          body: JSON.stringify({ caller_user_id: callData.callerId, sdp: answer.sdp, call_id: callData.callId || '' })
+        });
+      }
+
+      for (const candidate of iceCandidateQueue.current) {
+        try { await pc.addIceCandidate(new RTCIceCandidate(candidate)); } catch (e) {}
+      }
+      iceCandidateQueue.current = [];
+
+      const pollICE = setInterval(async () => {
+        if (!peerConnectionRef.current) { clearInterval(pollICE); return; }
+        try {
+          const res = await fetch(`${API_URL}/api/notifications`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+          });
+          if (res.ok) {
+            const notifications = await res.json();
+            for (const notif of notifications) {
+              if (notif.notification_type === 'ice_candidate' && !notif.is_read) {
+                const data = JSON.parse(notif.message);
+                if (data.from_user_id === callData.callerId) {
+                  try {
+                    await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate({ candidate: data.candidate, sdpMid: data.sdp_mid, sdpMLineIndex: data.sdp_m_line_index }));
+                  } catch (e) {}
+                  try { await fetch(`${API_URL}/api/notifications/${notif.id}/read`, { method: 'POST', headers: { 'Authorization': `Bearer ${authToken}` } }); } catch (e) {}
+                }
+              }
+            }
+          }
+        } catch (e) {}
+      }, 1000);
+      setTimeout(() => clearInterval(pollICE), 120000);
+
+    } catch (e) {
+      console.log('Answer call error:', e);
+      Alert.alert('Call Error', 'Failed to connect call. Please try again.');
+      isCallActiveRef.current = false;
+      setShowNativeCallUI(false);
+    }
+  };
+
   const endNativeCall = async () => {
+    isCallActiveRef.current = false;
     if (callTimerRef.current) {
       clearInterval(callTimerRef.current);
       callTimerRef.current = null;
     }
-    if (nativeCallData) {
+    const peerId = nativeCallPeer?.id;
+    if (peerId) {
       try {
-        await fetch(`${API_URL}/api/webrtc/end-call`, {
+        await fetch(`${API_URL}/api/webrtc/end-call?target_user_id=${peerId}`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-          body: JSON.stringify({ call_id: nativeCallData.callId })
+          headers: { 'Authorization': `Bearer ${authToken}` }
         });
       } catch (e) {
         console.log('Error ending call:', e);
       }
     }
-    setShowNativeCall(false);
-    setNativeCallData(null);
+    await cleanupWebRTC();
+    setShowNativeCallUI(false);
+    setNativeCallPeer(null);
     setCallDuration(0);
+    setIsMuted(false);
+    setIsSpeakerOn(true);
   };
 
   // Format call duration
@@ -5767,11 +5998,11 @@ export default function App() {
   const declineCall = async () => {
     if (incomingCall) {
       Vibration.cancel();
+      await stopRingtone();
       try {
-        await fetch(`${API_URL}/api/webrtc/end-call`, {
+        await fetch(`${API_URL}/api/webrtc/end-call?target_user_id=${incomingCall.callerId}`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-          body: JSON.stringify({ call_id: incomingCall.callId })
+          headers: { 'Authorization': `Bearer ${authToken}` }
         });
       } catch (error) {
         console.log('Error declining call:', error);
@@ -5873,14 +6104,14 @@ export default function App() {
     }
     setLoading(true);
     
-    // Always use backend API for login (including admin)
-    // This ensures proper JWT token and admin dashboard access
+    let loginUsername = username.trim();
+    if (loginUsername === 'admin') { loginUsername = 'admin@ganitaprakash.com'; }
     
     try {
       const response = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: username.trim(), password: password.trim(), platform: 'apk' }),
+        body: JSON.stringify({ username: loginUsername, password: password.trim(), platform: 'apk' }),
       });
       const data = await response.json();
       if (response.ok) {
@@ -5902,22 +6133,28 @@ export default function App() {
   };
 
   const handleRegister = async () => {
-    if (!username.trim() || !password.trim() || !studentName.trim()) {
-      Alert.alert('Error', 'Please fill all fields');
+    if (!username.trim() || !password.trim()) {
+      Alert.alert('Error', 'Please enter email and password');
+      return;
+    }
+    if (password.trim().length < 8) {
+      Alert.alert('Error', 'Password must be at least 8 characters');
       return;
     }
     setLoading(true);
+    const tempName = username.trim().split('@')[0];
     try {
       const response = await fetch(`${API_URL}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: username.trim(), password: password.trim(), name: studentName.trim(), platform: 'apk' }),
+        body: JSON.stringify({ username: username.trim(), password: password.trim(), name: tempName, platform: 'apk' }),
       });
       const data = await response.json();
       if (response.ok) {
         await AsyncStorage.setItem('authToken', data.access_token);
         await AsyncStorage.setItem('userData', JSON.stringify(data.user));
         setAuthToken(data.access_token);
+        setStudentName(data.user.name);
         setIsAdmin(data.user.is_admin);
         setIsLoggedIn(true);
         setScreen('home');
@@ -5933,12 +6170,19 @@ export default function App() {
   const handleLogout = async () => {
     await AsyncStorage.removeItem('authToken');
     await AsyncStorage.removeItem('userData');
+    await AsyncStorage.removeItem('ganitaPrakashData');
     setAuthToken(null);
     setIsLoggedIn(false);
     setIsAdmin(false);
     setUsername('');
     setPassword('');
     setStudentName('');
+    setChapterProgress({});
+    setChapterScores({});
+    setCertificates([]);
+    setIsGoogleUser(false);
+    setChaptersUnlocked(false);
+    setChapterUnlockMap({});
     setScreen('login');
   };
 
@@ -6290,6 +6534,27 @@ export default function App() {
       if (certs) setCertificates(JSON.parse(certs));
       if (finalCompleted) setFinalExamCompleted(JSON.parse(finalCompleted));
       if (finalScore) setFinalExamScore(JSON.parse(finalScore));
+      
+      if (authToken) {
+        try {
+          const resp = await fetch(`${API_URL}/api/progress`, {
+            headers: { 'Authorization': `Bearer ${authToken}` },
+          });
+          if (resp.ok) {
+            const backendProgress = await resp.json();
+            const unlockMap = {};
+            let allUnlocked = true;
+            backendProgress.forEach(p => {
+              unlockMap[p.chapter_id] = p.unlocked;
+              if (!p.unlocked) allUnlocked = false;
+            });
+            setChapterUnlockMap(unlockMap);
+            setChaptersUnlocked(allUnlocked && backendProgress.length >= 10);
+          }
+        } catch (e) {
+          console.log('Backend progress fetch error:', e);
+        }
+      }
     } catch (e) {
       console.log('Error loading data:', e);
     }
@@ -6326,7 +6591,7 @@ export default function App() {
 
   // Go back to previous screen
   const goBack = () => {
-    if (screen === 'chapter' || screen === 'quiz' || screen === 'progress' || screen === 'certificates' || screen === 'chat' || screen === 'aiAssistant' || screen === 'admin') {
+    if (screen === 'chapter' || screen === 'quiz' || screen === 'progress' || screen === 'points' || screen === 'certificates' || screen === 'chat' || screen === 'aiAssistant' || screen === 'admin') {
       setScreen('home');
     } else {
       setScreen(previousScreen || 'home');
@@ -6389,6 +6654,11 @@ export default function App() {
     setScore(0);
     setSelectedOption(null);
     setIsFinalExam(false);
+    setExamPhaseIndex(0);
+    setExamPhaseQuestionIndex(0);
+    setShowPhaseIntro(true);
+    setExamPhotos([]);
+    setExamAnswerLog([]);
     setScreen('quiz');
   };
 
@@ -6419,115 +6689,276 @@ export default function App() {
     }
   };
 
-  // Function to start screen sharing and notify backend
+  const screenShareStreamRef = useRef(null);
+  const screenSharePCRef = useRef(null);
+
+  const screenShareActiveRef = useRef(false);
+
   const startScreenSharing = async () => {
     try {
       setIsScreenSharing(true);
-      // Notify backend that screen sharing has started
-      await fetch(`${API_URL}/api/exam/screen-share/start`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-        body: JSON.stringify({ 
-          exam_type: isFinalExam ? 'final' : 'chapter',
-          chapter_id: currentChapter?.id || null
-        })
-      });
-      
-      // Start periodic screenshot capture and status updates
+      screenShareActiveRef.current = true;
+      const token = authToken;
+      const examType = isFinalExam ? 'final' : 'chapter';
+      const chapterId = currentChapter?.id || null;
+      const totalQ = isFinalExam ? finalExamMCQ.length : (currentChapter?.questions?.length || 10);
+
+      try {
+        await fetch(`${API_URL}/api/exam/screen-share/start`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ exam_type: examType, chapter_id: chapterId })
+        });
+        console.log('Screen share registered with backend');
+      } catch (e) { console.log('Screen share start notify error:', e); }
+
       const interval = setInterval(async () => {
-        if (screen === 'quiz' && isMonitoring) {
-          try {
-            // Capture and send screenshot to admin
-            await captureAndSendScreenshot();
-            
-            // Update screen share status
-            await fetch(`${API_URL}/api/exam/screen-share/update`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-              body: JSON.stringify({ 
-                current_question: currentQuestion + 1,
-                total_questions: isFinalExam ? finalExamMCQ.length : (currentChapter?.questions?.length || 10),
-                is_active: true
-              })
-            });
-            
-            // Check if admin has force-submitted this exam
-            const forceCheckResponse = await fetch(`${API_URL}/api/exam/check-force-submit`, {
-              headers: { 'Authorization': `Bearer ${authToken}` }
-            });
-            if (forceCheckResponse.ok) {
-              const forceData = await forceCheckResponse.json();
-              if (forceData.force_submitted) {
-                // Admin has force-submitted - show cheating message
-                clearInterval(interval);
-                setScreenShareInterval(null);
-                setIsMonitoring(false);
-                setIsScreenSharing(false);
-                
-                Alert.alert(
-                  'EXAM AUTO-SUBMITTED',
-                  forceData.message || 'Admin has auto-submitted your exam because you were caught cheating!',
-                  [{ text: 'OK', onPress: () => {
-                    setScreen('chapters');
-                    setCurrentQuestion(0);
-                    setScore(0);
-                    setSelectedOption(null);
-                  }}],
-                  { cancelable: false }
-                );
-              }
+        if (!screenShareActiveRef.current) return;
+        try {
+          if (!screenShareStreamRef.current && screenViewRef.current) {
+            try {
+              const uri = await captureRef(screenViewRef.current, { format: 'jpg', quality: 0.3, result: 'base64' });
+              await fetch(`${API_URL}/api/exam/screen-share/screenshot`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ screenshot: uri, current_question: currentQuestion + 1, total_questions: totalQ, timestamp: new Date().toISOString() })
+              });
+            } catch (captureErr) {
+              console.log('Screenshot capture failed:', captureErr);
             }
-          } catch (e) {
-            console.log('Screen share update error:', e);
           }
-        }
-      }, 3000); // Capture screenshot every 3 seconds
+          await fetch(`${API_URL}/api/exam/screen-share/update`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ current_question: currentQuestion + 1, total_questions: totalQ, is_active: true })
+          });
+          const forceCheckResponse = await fetch(`${API_URL}/api/exam/check-force-submit`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (forceCheckResponse.ok) {
+            const forceData = await forceCheckResponse.json();
+            if (forceData.force_submitted) {
+              clearInterval(interval);
+              setScreenShareInterval(null);
+              setIsMonitoring(false);
+              setIsScreenSharing(false);
+              screenShareActiveRef.current = false;
+              Alert.alert('EXAM AUTO-SUBMITTED', forceData.message || 'You have been noticing that you are cheating. Please try without cheating.', [{ text: 'OK', onPress: () => { setScreen('home'); setCurrentQuestion(0); setScore(0); setSelectedOption(null); }}], { cancelable: false });
+            }
+          }
+        } catch (e) { console.log('Screen share update error:', e); }
+      }, 3000);
       setScreenShareInterval(interval);
+
+      setTimeout(async () => {
+        try {
+          const screenStream = await mediaDevices.getDisplayMedia({ video: { width: 720, height: 1280, frameRate: 10 }, audio: false });
+          if (!screenShareActiveRef.current) { screenStream.getTracks().forEach(t => t.stop()); return; }
+          screenShareStreamRef.current = screenStream;
+          console.log('getDisplayMedia succeeded - live screen sharing active');
+
+          const pc = new RTCPeerConnection(webrtcConfig);
+          screenSharePCRef.current = pc;
+          screenStream.getTracks().forEach(track => pc.addTrack(track, screenStream));
+
+          pc.onicecandidate = async (event) => {
+            if (event.candidate) {
+              try {
+                await fetch(`${API_URL}/api/screen-share/ice-candidate`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                  body: JSON.stringify({ target_user_id: 1, candidate: event.candidate.candidate, sdp_mid: event.candidate.sdpMid, sdp_m_line_index: event.candidate.sdpMLineIndex })
+                });
+              } catch (e) {}
+            }
+          };
+          pc.oniceconnectionstatechange = () => {
+            if (pc.iceConnectionState === 'failed') pc.restartIce();
+          };
+
+          const offer = await pc.createOffer();
+          await pc.setLocalDescription(offer);
+          await fetch(`${API_URL}/api/screen-share/offer`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ sdp: offer.sdp, exam_type: examType, chapter_id: chapterId })
+          });
+
+          const pollAnswer = setInterval(async () => {
+            if (!screenSharePCRef.current) { clearInterval(pollAnswer); return; }
+            try {
+              const res = await fetch(`${API_URL}/api/screen-share/check-answer`, { headers: { 'Authorization': `Bearer ${token}` } });
+              if (res.ok) {
+                const data = await res.json();
+                if (data.has_answer && data.sdp) {
+                  clearInterval(pollAnswer);
+                  await screenSharePCRef.current.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: data.sdp }));
+                }
+              }
+            } catch (e) {}
+          }, 2000);
+          setTimeout(() => clearInterval(pollAnswer), 120000);
+
+          screenStream.getVideoTracks()[0].onended = () => {
+            console.log('Screen share stopped by user');
+            stopScreenSharing();
+          };
+        } catch (e) {
+          console.log('getDisplayMedia not available, screenshots will continue:', e);
+        }
+      }, 500);
     } catch (e) {
       console.log('Screen share start error:', e);
     }
   };
-  
-  // Function to stop screen sharing
+
   const stopScreenSharing = async () => {
     try {
       setIsScreenSharing(false);
-      if (screenShareInterval) {
-        clearInterval(screenShareInterval);
-        setScreenShareInterval(null);
+      screenShareActiveRef.current = false;
+      if (screenShareInterval) { clearInterval(screenShareInterval); setScreenShareInterval(null); }
+      if (screenShareStreamRef.current) {
+        screenShareStreamRef.current.getTracks().forEach(t => t.stop());
+        screenShareStreamRef.current = null;
       }
-      // Notify backend that screen sharing has stopped
+      if (screenSharePCRef.current) {
+        screenSharePCRef.current.close();
+        screenSharePCRef.current = null;
+      }
+      stopCameraMicSharing();
       await fetch(`${API_URL}/api/exam/screen-share/stop`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
         body: JSON.stringify({ reason: 'exam_completed' })
       });
+    } catch (e) { console.log('Screen share stop error:', e); }
+  };
+
+  const cameraMicPCRef= useRef(null);
+  const cameraMicStreamRef = useRef(null);
+  const warningPollRef = useRef(null);
+
+  const startCameraMicSharing = async (token) => {
+    try {
+      const stream = await mediaDevices.getUserMedia({ video: { width: 320, height: 240, frameRate: 15 }, audio: true });
+      cameraMicStreamRef.current = stream;
+      const pc = new RTCPeerConnection(webrtcConfig);
+      cameraMicPCRef.current = pc;
+      stream.getTracks().forEach(track => pc.addTrack(track, stream));
+      pc.onicecandidate = async (event) => {
+        if (event.candidate) {
+          try {
+            await fetch(`${API_URL}/api/camera-mic/ice-candidate`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+              body: JSON.stringify({ target_user_id: 1, candidate: event.candidate.candidate, sdp_mid: event.candidate.sdpMid, sdp_m_line_index: event.candidate.sdpMLineIndex })
+            });
+          } catch (e) {}
+        }
+      };
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      await fetch(`${API_URL}/api/exam/camera-mic/offer`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ sdp: offer.sdp })
+      });
+      const camAnswerPoll = setInterval(async () => {
+        try {
+          const resp = await fetch(`${API_URL}/api/exam/camera-mic/check-answer`, { headers: { 'Authorization': `Bearer ${token}` } });
+          if (resp.ok) {
+            const d = await resp.json();
+            if (d.has_answer && d.sdp && cameraMicPCRef.current) {
+              clearInterval(camAnswerPoll);
+              await cameraMicPCRef.current.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: d.sdp }));
+            }
+          }
+        } catch (e) {}
+      }, 2000);
+      setTimeout(() => clearInterval(camAnswerPoll), 120000);
     } catch (e) {
-      console.log('Screen share stop error:', e);
+      console.log('Camera/mic sharing error:', e);
+    }
+  };
+
+  const startWarningPolling = (token) => {
+    if (warningPollRef.current) clearInterval(warningPollRef.current);
+    warningPollRef.current = setInterval(async () => {
+      try {
+        const resp = await fetch(`${API_URL}/api/exam/check-warning`, { headers: { 'Authorization': `Bearer ${token}` } });
+        if (resp.ok) {
+          const d = await resp.json();
+          if (d.warning) {
+            Alert.alert('Warning from Admin', d.message || 'Please focus on your exam!');
+          }
+        }
+      } catch (e) {}
+    }, 3000);
+  };
+
+  const stopCameraMicSharing = () => {
+    if (cameraMicStreamRef.current) {
+      cameraMicStreamRef.current.getTracks().forEach(t => t.stop());
+      cameraMicStreamRef.current = null;
+    }
+    if (cameraMicPCRef.current) {
+      try { cameraMicPCRef.current.close(); } catch (e) {}
+      cameraMicPCRef.current = null;
+    }
+    if (warningPollRef.current) {
+      clearInterval(warningPollRef.current);
+      warningPollRef.current = null;
+    }
+  };
+
+  const requestExamPermissions = async () => {
+    try {
+      const { status: camStatus } = await Camera.requestCameraPermissionsAsync();
+      console.log('Exam camera permission:', camStatus);
+      const { status: micStatus } = await Camera.requestMicrophonePermissionsAsync();
+      console.log('Exam microphone permission:', micStatus);
+      await Audio.requestPermissionsAsync();
+      console.log('Exam audio permission granted');
+      if (Platform.OS === 'android') {
+        await PermissionsAndroid.requestMultiple([
+          PermissionsAndroid.PERMISSIONS.CAMERA,
+          PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+        ]);
+      }
+      return true;
+    } catch (e) {
+      console.log('Exam permission request error:', e);
+      return false;
     }
   };
 
   const startQuiz = () => {
-    // Show exam proctoring instructions first with screen sharing permission request
     Alert.alert(
-      'Screen Sharing Permission Required',
-      'GANITA PRAKASH needs to monitor your screen during the exam to ensure fair assessment.\n\nIMPORTANT RULES:\n\n1. Your screen will be monitored during the exam\n2. If you leave the app, your exam will be auto-submitted\n3. Any cheating will result in automatic submission\n4. You have limited time to complete\n5. Make sure you are in a quiet place\n\nBy clicking "Allow & Start", you agree to screen monitoring.',
+      'Camera, Microphone & Screen Permission Required',
+      'GANITA PRAKASH needs access to your camera, microphone, and screen during the exam.\n\nEXAM FORMAT:\n- Section A: MCQ (Select option)\n- Section B: Case-Based (Select option)\n- Section C: Very Short Answer (Write + Photo)\n- Section D: Short Answer (Write + Photo)\n- Section E: Long Answer (Write + Photo)\n\nBy clicking "Allow & Start", you agree to monitoring.',
       [
         { text: 'Cancel', style: 'cancel' },
         { 
           text: 'Allow & Start Exam', 
-          onPress: () => {
-            // Start screen sharing and monitoring
+          onPress: async () => {
+            await requestExamPermissions();
             startScreenSharing();
+            startCameraMicSharing(authToken);
+            startWarningPolling(authToken);
             Alert.alert(
-              'Screen Monitoring Active',
-              'Your screen is now being monitored and visible to admin. Do not switch apps or minimize during the exam.',
+              'Monitoring Active',
+              'Your camera, microphone, and screen are now being monitored. Do not switch apps or minimize during the exam.',
               [{ text: 'OK', onPress: () => {
                 setIsMonitoring(true);
                 setCurrentQuestion(0);
                 setScore(0);
                 setSelectedOption(null);
                 setIsFinalExam(false);
+                setExamPhaseIndex(0);
+                setExamPhaseQuestionIndex(0);
+                setShowPhaseIntro(true);
+                setExamPhotos([]);
+                setExamAnswerLog([]);
                 setScreen('quiz');
               }}]
             );
@@ -6543,20 +6974,21 @@ export default function App() {
       Alert.alert('Locked', 'Complete all 10 chapters first!');
       return;
     }
-    // Show screen sharing permission request first
     Alert.alert(
-      'Screen & Camera Permission Required',
-      'GANITA PRAKASH needs to monitor your screen and camera during the Final Exam to ensure fair assessment.\n\nIMPORTANT RULES:\n\n1. Your screen and camera will be monitored\n2. If you leave the app, your exam will be auto-submitted\n3. Any cheating will result in automatic submission and failure\n4. This exam has MCQ and Written sections\n5. You need 80% to pass\n6. Make sure you are in a quiet, well-lit place\n\nBy clicking "Allow & Start", you agree to screen and camera monitoring.',
+      'Camera, Microphone & Screen Permission Required',
+      'GANITA PRAKASH needs access to your camera, microphone, and screen during the Final Exam to ensure fair assessment.\n\nIMPORTANT RULES:\n\n1. Your camera, microphone & screen will be monitored\n2. If you leave the app, your exam will be auto-submitted\n3. Any cheating will result in automatic submission and failure\n4. This exam has MCQ and Written sections\n5. You need 80% to pass\n6. Make sure you are in a quiet, well-lit place\n\nBy clicking "Allow & Start", you agree to camera, microphone & screen monitoring.',
       [
         { text: 'Cancel', style: 'cancel' },
         { 
           text: 'Allow & Start Final Exam', 
-          onPress: () => {
-            // Start screen sharing and monitoring
+          onPress: async () => {
+            await requestExamPermissions();
             startScreenSharing();
+            startCameraMicSharing(authToken);
+            startWarningPolling(authToken);
             Alert.alert(
               'Monitoring Active',
-              'Your screen and camera are now being monitored and visible to admin. Do not switch apps or minimize during the exam.',
+              'Your camera, microphone, and screen are now being monitored. Do not switch apps or minimize during the exam.',
               [{ text: 'OK', onPress: () => {
                 setIsMonitoring(true);
                 setCurrentQuestion(0);
@@ -6579,27 +7011,100 @@ export default function App() {
     setSelectedOption(index);
   };
 
-  const submitAnswer = () => {
-    const questions = isFinalExam ? finalExamMCQ : currentChapter.questions;
-    const question = questions[currentQuestion];
-    
-    let newScore = score;
-    if (selectedOption === question.answer) {
-      newScore = score + (isFinalExam ? 2 : 1);
-      setScore(newScore);
+  const captureExamPhoto = async () => {
+    const phase = isFinalExam ? 'finalMcq' : examPhasesList[examPhaseIndex];
+    const qIdx = isFinalExam ? currentQuestion : examPhaseQuestionIndex;
+    try {
+      const result = await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.7 });
+      if (!result.canceled && result.assets && result.assets[0]) {
+        setExamPhotos([...examPhotos, { question: qIdx, phase: phase, photo: result.assets[0].uri }]);
+        Alert.alert('Photo Attached', 'Your paper answer photo has been attached to this question.');
+      }
+    } catch (e) {
+      try {
+        const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.7 });
+        if (!result.canceled && result.assets && result.assets[0]) {
+          setExamPhotos([...examPhotos, { question: qIdx, phase: phase, photo: result.assets[0].uri }]);
+          Alert.alert('Photo Attached', 'Your paper answer photo has been attached.');
+        }
+      } catch (e2) { console.log('Photo capture error:', e2); }
     }
+  };
 
-    if (currentQuestion + 1 >= questions.length) {
-      if (isFinalExam) {
+  const submitExamToBackend = async (finalScore, totalQ) => {
+    try {
+      await fetch(API_URL + '/api/exam/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
+        body: JSON.stringify({
+          exam_type: isFinalExam ? 'final' : 'chapter',
+          chapter_id: currentChapter ? currentChapter.id : null,
+          score: finalScore,
+          total: totalQ,
+          answers: examAnswerLog,
+          photos: examPhotos
+        })
+      });
+    } catch (e) { console.log('Exam submit error:', e); }
+  };
+
+  const submitAnswer = () => {
+    if (isFinalExam) {
+      const questions = finalExamMCQ;
+      const question = questions[currentQuestion];
+      const newLog = [...examAnswerLog, { selected: selectedOption, correct: question.answer, question: question.q, options: question.options }];
+      setExamAnswerLog(newLog);
+      let newScore = score;
+      if (selectedOption === question.answer) {
+        newScore = score + 2;
+        setScore(newScore);
+      }
+      if (currentQuestion + 1 >= questions.length) {
         setMcqScore(newScore);
         setExamPhase('penPaper');
         setCurrentQuestion(0);
         setSelectedOption(null);
       } else {
-        showResults(newScore, questions.length);
+        setCurrentQuestion(currentQuestion + 1);
+        setSelectedOption(null);
+      }
+      return;
+    }
+
+    const phase = examPhasesList[examPhaseIndex];
+    const phaseQs = getPhaseQuestions(currentChapter)[phase];
+    const question = phaseQs[examPhaseQuestionIndex];
+    const isWritten = (phase === 'veryShort' || phase === 'short' || phase === 'long');
+
+    let newScore = score;
+    if (isWritten) {
+      newScore = score + 1;
+      setScore(newScore);
+      const newLog = [...examAnswerLog, { selected: -1, correct: question.answer, question: question.q, options: question.options || [], type: phase, photoSubmitted: true }];
+      setExamAnswerLog(newLog);
+    } else {
+      if (selectedOption === question.answer) {
+        newScore = score + 1;
+        setScore(newScore);
+      }
+      const newLog = [...examAnswerLog, { selected: selectedOption, correct: question.answer, question: question.q, options: question.options, type: phase }];
+      setExamAnswerLog(newLog);
+    }
+
+    const nextQIdx = examPhaseQuestionIndex + 1;
+    if (nextQIdx >= phaseQs.length) {
+      const nextPhaseIdx = examPhaseIndex + 1;
+      if (nextPhaseIdx >= examPhasesList.length) {
+        submitExamToBackend(newScore, currentChapter.questions.length);
+        showResults(newScore, currentChapter.questions.length);
+      } else {
+        setExamPhaseIndex(nextPhaseIdx);
+        setExamPhaseQuestionIndex(0);
+        setSelectedOption(null);
+        setShowPhaseIntro(true);
       }
     } else {
-      setCurrentQuestion(currentQuestion + 1);
+      setExamPhaseQuestionIndex(nextQIdx);
       setSelectedOption(null);
     }
   };
@@ -6686,11 +7191,11 @@ export default function App() {
         {/* Header - Command Bridge Style */}
         <View style={styles.homeHeader}>
           <View style={styles.headerLeft}>
-            <View style={styles.userAvatarCircle}>
+            <TouchableOpacity style={styles.userAvatarCircle} onPress={() => { setEditName(studentName); setShowProfileModal(true); }}>
               <Text style={styles.userAvatarText}>
                 {studentName ? studentName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'GP'}
               </Text>
-            </View>
+            </TouchableOpacity>
             <View>
               <Text style={styles.welcomeText}>WELCOME</Text>
               <Text style={styles.userName}>{studentName || 'Student'}</Text>
@@ -6745,7 +7250,7 @@ export default function App() {
 
       {/* Continue Mission */}
       <Text style={styles.sectionTitle}>CONTINUE MISSION</Text>
-      {chapters.slice(0, 1).map((chapter) => (
+      {[ (chapters.find(c => chapterProgress[c.id] !== 'completed') || chapters[0]) ].map((chapter) => (
         <TouchableOpacity 
           key={chapter.id} 
           style={styles.continueCard}
@@ -6765,31 +7270,31 @@ export default function App() {
       <View style={styles.quickActionsGrid}>
         <TouchableOpacity style={styles.quickActionCard} onPress={() => { setAiMessages([]); setShowLanguageSelector(true); setScreen('aiAssistant'); }}>
           <View style={styles.quickActionIconBox}>
-            <Text style={styles.quickActionIconText}>◈</Text>
+            <Text style={styles.quickActionIconText}>🤖</Text>
           </View>
-          <Text style={styles.quickActionTitle}>Neural AI</Text>
-          <Text style={styles.quickActionSubtitle}>Query system</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.quickActionCard} onPress={() => Alert.alert('Transmissions', 'Visual transmissions loading...')}>
-          <View style={styles.quickActionIconBox}>
-            <Text style={styles.quickActionIconText}>◉</Text>
-          </View>
-          <Text style={styles.quickActionTitle}>Transmissions</Text>
-          <Text style={styles.quickActionSubtitle}>Visual data</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.quickActionCard} onPress={() => setShowResources(true)}>
-          <View style={styles.quickActionIconBox}>
-            <Text style={styles.quickActionIconText}>⬡</Text>
-          </View>
-          <Text style={styles.quickActionTitle}>Holograms</Text>
-          <Text style={styles.quickActionSubtitle}>3D models</Text>
+          <Text style={styles.quickActionTitle}>AI Assistant</Text>
+          <Text style={styles.quickActionSubtitle}>Ask doubts</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.quickActionCard} onPress={() => { loadChatMessages(); setScreen('chat'); }}>
           <View style={styles.quickActionIconBox}>
-            <Text style={styles.quickActionIconText}>◎</Text>
+            <Text style={styles.quickActionIconText}>💬</Text>
           </View>
-          <Text style={styles.quickActionTitle}>Command Link</Text>
-          <Text style={styles.quickActionSubtitle}>Contact base</Text>
+          <Text style={styles.quickActionTitle}>Connect with Master</Text>
+          <Text style={styles.quickActionSubtitle}>Chat & support</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.quickActionCard} onPress={() => setScreen('progress')}>
+          <View style={styles.quickActionIconBox}>
+            <Text style={styles.quickActionIconText}>📊</Text>
+          </View>
+          <Text style={styles.quickActionTitle}>Progress</Text>
+          <Text style={styles.quickActionSubtitle}>Track learning</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.quickActionCard} onPress={() => setScreen('certificates')}>
+          <View style={styles.quickActionIconBox}>
+            <Text style={styles.quickActionIconText}>🏅</Text>
+          </View>
+          <Text style={styles.quickActionTitle}>Certificates</Text>
+          <Text style={styles.quickActionSubtitle}>Achievements</Text>
         </TouchableOpacity>
       </View>
 
@@ -6812,10 +7317,10 @@ export default function App() {
       <Text style={styles.sectionTitle}>COSMIC SECTORS</Text>
       {chapters.map((chapter, index) => {
         const isCompleted = chapterProgress[chapter.id] === 'completed';
-        // Chapter is locked if previous chapter is not completed (Chapter 1 always unlocked, Admin sees all unlocked)
         const previousChapterId = index > 0 ? chapters[index - 1].id : null;
         const isPreviousCompleted = previousChapterId ? chapterProgress[previousChapterId] === 'completed' : true;
-        const isLocked = !isAdmin && index > 0 && !isPreviousCompleted;
+        const isBackendUnlocked = chapterUnlockMap[index + 1] === true || chapterUnlockMap[index + 1] === 1;
+        const isLocked = !isAdmin && index > 0 && !chaptersUnlocked && !isBackendUnlocked && !isPreviousCompleted;
         
         return (
           <TouchableOpacity
@@ -7171,23 +7676,13 @@ export default function App() {
         <ScrollView style={styles.container}>
           <Text style={styles.sectionTitle}>Final Exam - Pen and Paper Section</Text>
           <Text style={styles.examInfo}>MCQ Score: {mcqScore}/50 | Pen-Paper: 50 marks (5 questions x 10 marks)</Text>
-
           {finalExamPenPaper.map((question, index) => (
             <View key={index} style={styles.questionCard}>
               <Text style={styles.questionNumber}>Question {index + 1} ({question.marks} marks)</Text>
               <Text style={styles.questionText}>{question.q}</Text>
-              <TextInput
-                style={styles.textArea}
-                multiline
-                numberOfLines={4}
-                placeholder="Write your answer here..."
-                placeholderTextColor="#888"
-                value={penPaperAnswers[index] || ''}
-                onChangeText={(text) => submitPenPaperAnswer(index, text)}
-              />
+              <TextInput style={styles.textArea} multiline numberOfLines={4} placeholder="Write your answer here..." placeholderTextColor="#888" value={penPaperAnswers[index] || ''} onChangeText={(text) => submitPenPaperAnswer(index, text)} />
             </View>
           ))}
-
           <TouchableOpacity style={styles.primaryBtn} onPress={submitFinalExam}>
             <Text style={styles.primaryBtnText}>Submit Final Exam</Text>
           </TouchableOpacity>
@@ -7196,47 +7691,139 @@ export default function App() {
       );
     }
 
-    const questions = isFinalExam ? finalExamMCQ : currentChapter.questions;
-    const question = questions[currentQuestion];
-    const total = questions.length;
+    if (isFinalExam) {
+      const questions = finalExamMCQ;
+      const question = questions[currentQuestion];
+      const total = questions.length;
+      const hasPhoto = examPhotos.some(p => p.question === currentQuestion);
+      return (
+        <View ref={screenViewRef} collapsable={false} style={{flex: 1}}>
+        <ScrollView style={styles.container}>
+          <Text style={styles.sectionTitle}>Final Exam - MCQ Section (25 x 2 = 50 marks)</Text>
+          <View style={styles.progressContainer}>
+            <View style={[styles.progressBar, { width: ((currentQuestion / total) * 100) + '%' }]} />
+          </View>
+          <Text style={styles.progressText}>Question {currentQuestion + 1} of {total}</Text>
+          <View style={styles.questionCard}>
+            <Text style={styles.questionNumber}>Question {currentQuestion + 1} (2 marks)</Text>
+            <Text style={styles.questionText}>{question.q}</Text>
+            <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(33,150,243,0.1)', padding: 10, borderRadius: 8, marginVertical: 10, borderWidth: 1, borderColor: 'rgba(33,150,243,0.3)'}}>
+              <Text style={{color: '#aaa', fontSize: 12, flex: 1}}>Select option OR submit on paper</Text>
+              <TouchableOpacity onPress={captureExamPhoto} style={{backgroundColor: '#2196F3', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8}}>
+                <Text style={{color: '#fff', fontSize: 13}}>📷 Photo</Text>
+              </TouchableOpacity>
+              {hasPhoto && <Text style={{color: '#4CAF50', fontSize: 11, marginLeft: 6}}>Attached</Text>}
+            </View>
+            {question.options.map((option, idx) => (
+              <TouchableOpacity key={idx} style={[styles.option, selectedOption === idx && styles.optionSelected]} onPress={() => selectOption(idx)}>
+                <Text style={styles.optionText}>{String.fromCharCode(65 + idx)}. {option}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <TouchableOpacity style={[styles.primaryBtn, (selectedOption === null && !hasPhoto) && styles.btnDisabled]} onPress={submitAnswer} disabled={selectedOption === null && !hasPhoto}>
+            <Text style={styles.primaryBtnText}>{currentQuestion === total - 1 ? 'Next: Pen-Paper Section' : 'Next Question'}</Text>
+          </TouchableOpacity>
+        </ScrollView>
+        </View>
+      );
+    }
+
+    const phase = examPhasesList[examPhaseIndex];
+    const phaseQs = getPhaseQuestions(currentChapter)[phase];
+    const isWritten = (phase === 'veryShort' || phase === 'short' || phase === 'long');
+
+    if (showPhaseIntro) {
+      return (
+        <View ref={screenViewRef} collapsable={false} style={{flex: 1}}>
+        <ScrollView style={styles.container} contentContainerStyle={{alignItems: 'center', paddingVertical: 40}}>
+          <Text style={{fontSize: 50, marginBottom: 15}}>{isWritten ? '📝' : '📋'}</Text>
+          <Text style={{color: '#E94560', fontSize: 22, fontWeight: 'bold', marginBottom: 10}}>{examPhaseLabels[phase]}</Text>
+          <Text style={{color: '#aaa', fontSize: 14, marginBottom: 10, textAlign: 'center', paddingHorizontal: 20}}>{examPhaseDescs[phase]}</Text>
+          <Text style={{color: '#fff', fontSize: 16, fontWeight: 'bold', marginBottom: 5}}>{phaseQs.length} Questions</Text>
+          {isWritten ? (
+            <Text style={{color: '#2196F3', fontSize: 14, marginBottom: 20, textAlign: 'center', paddingHorizontal: 30}}>Write your answer on paper, then use the camera to take a photo of your work.</Text>
+          ) : (
+            <Text style={{color: '#4CAF50', fontSize: 14, marginBottom: 20, textAlign: 'center'}}>Select the correct answer from the given options.</Text>
+          )}
+          <View style={{backgroundColor: 'rgba(255,255,255,0.05)', padding: 15, borderRadius: 10, marginBottom: 15}}>
+            <Text style={{fontSize: 13, color: '#888'}}>Section {examPhaseIndex + 1} of 5</Text>
+          </View>
+          <TouchableOpacity style={styles.primaryBtn} onPress={() => { setShowPhaseIntro(false); setExamPhaseQuestionIndex(0); }}>
+            <Text style={styles.primaryBtnText}>Start {examPhaseLabels[phase]}</Text>
+          </TouchableOpacity>
+        </ScrollView>
+        </View>
+      );
+    }
+
+    const question = phaseQs[examPhaseQuestionIndex];
+    const total = phaseQs.length;
+    const hasPhoto = examPhotos.some(p => p.question === examPhaseQuestionIndex && p.phase === phase);
+    const isLastInPhase = (examPhaseQuestionIndex === total - 1);
+    const isLastPhase = (examPhaseIndex === examPhasesList.length - 1);
+    const nextBtnText = isLastInPhase ? (isLastPhase ? 'Finish Exam' : 'Next Section') : 'Next Question';
+
+    if (isWritten) {
+      return (
+        <View ref={screenViewRef} collapsable={false} style={{flex: 1}}>
+        <ScrollView style={styles.container}>
+          <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10}}>
+            <Text style={{color: '#FF9800', fontSize: 13, fontWeight: 'bold'}}>{examPhaseLabels[phase]}</Text>
+            <Text style={{color: '#888', fontSize: 12}}>Section {examPhaseIndex + 1}/5</Text>
+          </View>
+          <View style={styles.progressContainer}>
+            <View style={[styles.progressBar, { width: ((examPhaseQuestionIndex / total) * 100) + '%', backgroundColor: '#FF9800' }]} />
+          </View>
+          <Text style={styles.progressText}>Question {examPhaseQuestionIndex + 1} of {total}</Text>
+          <View style={[styles.questionCard, {borderLeftWidth: 4, borderLeftColor: '#FF9800'}]}>
+            <Text style={[styles.questionNumber, {color: '#FF9800'}]}>Question {examPhaseQuestionIndex + 1} ({phase === 'long' ? 'Long Answer' : phase === 'short' ? 'Short Answer' : 'Very Short Answer'})</Text>
+            <Text style={[styles.questionText, {fontSize: 17, lineHeight: 26, marginBottom: 20}]}>{question.q}</Text>
+            <View style={{backgroundColor: 'rgba(255,152,0,0.1)', borderWidth: 2, borderStyle: 'dashed', borderColor: 'rgba(255,152,0,0.4)', borderRadius: 12, padding: 25, alignItems: 'center', marginVertical: 15}}>
+              <Text style={{color: '#FF9800', fontSize: 15, fontWeight: 'bold', marginBottom: 15}}>Write your answer on paper</Text>
+              <Text style={{color: '#aaa', fontSize: 13, marginBottom: 20}}>Then take a photo of your handwritten work</Text>
+              <TouchableOpacity onPress={captureExamPhoto} style={{backgroundColor: '#FF9800', paddingHorizontal: 28, paddingVertical: 14, borderRadius: 10}}>
+                <Text style={{color: '#fff', fontSize: 15, fontWeight: 'bold'}}>📷 Take Photo of Your Answer</Text>
+              </TouchableOpacity>
+              {hasPhoto && <Text style={{color: '#4CAF50', fontSize: 14, fontWeight: 'bold', marginTop: 12}}>Photo Attached</Text>}
+            </View>
+          </View>
+          <TouchableOpacity style={[styles.primaryBtn, !hasPhoto && styles.btnDisabled]} onPress={submitAnswer} disabled={!hasPhoto}>
+            <Text style={styles.primaryBtnText}>{nextBtnText}</Text>
+          </TouchableOpacity>
+        </ScrollView>
+        </View>
+      );
+    }
 
     return (
       <View ref={screenViewRef} collapsable={false} style={{flex: 1}}>
       <ScrollView style={styles.container}>
-        <Text style={styles.sectionTitle}>
-          {isFinalExam ? 'Final Exam - MCQ Section (25 x 2 = 50 marks)' : 'Chapter ' + currentChapter.number + ' Quiz'}
-        </Text>
-
-        <View style={styles.progressContainer}>
-          <View style={[styles.progressBar, { width: ((currentQuestion / total) * 100) + '%' }]} />
+        <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10}}>
+          <Text style={{color: '#4CAF50', fontSize: 13, fontWeight: 'bold'}}>{examPhaseLabels[phase]}</Text>
+          <Text style={{color: '#888', fontSize: 12}}>Section {examPhaseIndex + 1}/5</Text>
         </View>
-        <Text style={styles.progressText}>Question {currentQuestion + 1} of {total}</Text>
-
+        <View style={styles.progressContainer}>
+          <View style={[styles.progressBar, { width: ((examPhaseQuestionIndex / total) * 100) + '%' }]} />
+        </View>
+        <Text style={styles.progressText}>Question {examPhaseQuestionIndex + 1} of {total}</Text>
         <View style={styles.questionCard}>
-          <Text style={styles.questionNumber}>
-            Question {currentQuestion + 1} {isFinalExam ? '(2 marks)' : ''}
-          </Text>
+          <Text style={styles.questionNumber}>Question {examPhaseQuestionIndex + 1} ({phase === 'mcq' ? 'MCQ' : 'Case-Based'})</Text>
           <Text style={styles.questionText}>{question.q}</Text>
-
-          {question.options.map((option, index) => (
-            <TouchableOpacity
-              key={index}
-              style={[styles.option, selectedOption === index && styles.optionSelected]}
-              onPress={() => selectOption(index)}
-            >
-              <Text style={styles.optionText}>{String.fromCharCode(65 + index)}. {option}</Text>
+          <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(33,150,243,0.1)', padding: 10, borderRadius: 8, marginVertical: 10, borderWidth: 1, borderColor: 'rgba(33,150,243,0.3)'}}>
+            <Text style={{color: '#aaa', fontSize: 12, flex: 1}}>Select option <Text style={{color: '#fff', fontWeight: 'bold'}}>OR</Text> submit on paper</Text>
+            <TouchableOpacity onPress={captureExamPhoto} style={{backgroundColor: '#2196F3', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8}}>
+              <Text style={{color: '#fff', fontSize: 13}}>📷 Photo</Text>
+            </TouchableOpacity>
+            {hasPhoto && <Text style={{color: '#4CAF50', fontSize: 11, marginLeft: 6}}>Attached</Text>}
+          </View>
+          {question.options.map((option, idx) => (
+            <TouchableOpacity key={idx} style={[styles.option, selectedOption === idx && styles.optionSelected]} onPress={() => selectOption(idx)}>
+              <Text style={styles.optionText}>{String.fromCharCode(65 + idx)}. {option}</Text>
             </TouchableOpacity>
           ))}
         </View>
-
-        <TouchableOpacity
-          style={[styles.primaryBtn, selectedOption === null && styles.btnDisabled]}
-          onPress={submitAnswer}
-          disabled={selectedOption === null}
-        >
-          <Text style={styles.primaryBtnText}>
-            {currentQuestion === total - 1 ? (isFinalExam ? 'Next: Pen-Paper Section' : 'Finish') : 'Next Question'}
-          </Text>
+        <TouchableOpacity style={[styles.primaryBtn, (selectedOption === null && !hasPhoto) && styles.btnDisabled]} onPress={submitAnswer} disabled={selectedOption === null && !hasPhoto}>
+          <Text style={styles.primaryBtnText}>{nextBtnText}</Text>
         </TouchableOpacity>
       </ScrollView>
       </View>
@@ -7275,6 +7862,41 @@ export default function App() {
     );
   };
 
+  const renderPoints = () => (
+    <ScrollView style={styles.container}>
+      <TouchableOpacity style={styles.backBtn} onPress={() => setScreen('home')}>
+        <Text style={styles.backBtnText}>Back</Text>
+      </TouchableOpacity>
+
+      <Text style={styles.sectionTitle}>My Points</Text>
+
+      {(() => {
+        const totalPoints = Object.values(chapterScores).reduce((sum, s) => sum + (s || 0), 0);
+        const completedCount = Object.keys(chapterProgress).filter(k => chapterProgress[k] === 'completed').length;
+        return (
+          <View>
+            <View style={styles.progressContainer}>
+              <View style={[styles.progressBar, { width: Math.min(100, Math.round((completedCount/chapters.length)*100)) + '%' }]} />
+            </View>
+            <Text style={styles.progressText}>{totalPoints} pts • {completedCount}/{chapters.length} Chapters Completed</Text>
+          </View>
+        );
+      })()}
+
+      {chapters.map(chapter => (
+        <View key={chapter.id} style={styles.progressCard}>
+          <Text style={styles.progressChapterNum}>{chapter.number}</Text>
+          <View style={styles.progressChapterInfo}>
+            <Text style={styles.progressChapterTitle}>{chapter.title}</Text>
+            <Text style={chapterProgress[chapter.id] === 'completed' ? styles.statusCompletedText : styles.statusLockedText}>
+              {(chapterScores[chapter.id] || 0)} pts
+            </Text>
+          </View>
+        </View>
+      ))}
+    </ScrollView>
+  );
+
   const renderCertificates = () => (
     <ScrollView style={styles.container}>
       <TouchableOpacity style={styles.backBtn} onPress={() => setScreen('home')}>
@@ -7291,6 +7913,7 @@ export default function App() {
       ) : (
         certificates.map((cert, index) => (
           <View key={index} style={styles.certificate}>
+            <Image source={require('./assets/icon.png')} style={{width:60,height:60,alignSelf:'center',marginBottom:10}} />
             <Text style={styles.certTitle}>
               {cert.type === 'master' ? 'MASTER CERTIFICATE' : 
                cert.type === 'final' ? 'FINAL EXAM CERTIFICATE' : 
@@ -7323,6 +7946,9 @@ export default function App() {
         
         // Check Google Play Services
         await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+        
+        // Sign out first to force account picker every time
+        try { await GoogleSignin.signOut(); } catch (e) {}
         
         // Sign in with Google using Firebase
         const signInResult = await GoogleSignin.signIn();
@@ -7373,9 +7999,8 @@ export default function App() {
           
           if (checkResponse.ok) {
             const checkData = await checkResponse.json();
-            if (checkData.exists && checkData.user) {
+            if (checkData.exists) {
               userExistsOnBackend = true;
-              backendUserData = checkData.user;
             }
           }
         } catch (e) {
@@ -7383,7 +8008,7 @@ export default function App() {
         }
         
         // Login existing user
-        if (userExistsOnBackend && backendUserData) {
+        if (userExistsOnBackend) {
           try {
             const loginResponse = await fetch(`${API_URL}/api/auth/google-login`, {
               method: 'POST',
@@ -7405,6 +8030,7 @@ export default function App() {
               setAuthToken(loginData.access_token);
               setStudentName(loginData.user.name);
               setIsAdmin(loginData.user.is_admin);
+              setIsGoogleUser(true);
               setIsLoggedIn(true);
               setScreen('home');
               loadData();
@@ -7519,6 +8145,7 @@ export default function App() {
         setAuthToken(finalToken);
         setStudentName(fullName);
         setIsAdmin(isAdminUser);
+        setIsGoogleUser(true);
         setIsLoggedIn(true);
         setScreen('home');
         loadData();
@@ -7584,6 +8211,7 @@ export default function App() {
         setAuthToken(finalToken);
         setStudentName(displayName);
         setIsAdmin(isAdminUser);
+        setIsGoogleUser(true);
         setIsLoggedIn(true);
         setScreen('home');
         loadData();
@@ -7695,6 +8323,7 @@ export default function App() {
         setAuthToken(finalToken);
         setStudentName(finalName);
         setIsAdmin(isAdminUser);
+        setIsGoogleUser(true);
         setIsLoggedIn(true);
         setScreen('home');
         loadData();
@@ -7836,6 +8465,12 @@ export default function App() {
       <View style={styles.chatInfoBanner}>
         <Text style={styles.chatInfoIcon}>ℹ️</Text>
         <Text style={styles.chatInfoText}>Send messages, voice notes, or photos. We will call you as soon as possible.</Text>
+      </View>
+
+      {/* Support Email Banner */}
+      <View style={{flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, backgroundColor: 'rgba(33,150,243,0.1)', borderBottomWidth: 1, borderBottomColor: 'rgba(33,150,243,0.3)', gap: 8}}>
+        <Text style={{fontSize: 16}}>📧</Text>
+        <Text style={{color: '#aaa', fontSize: 12, flex: 1}}>For any issues please mail at: <Text style={{color: '#2196F3', fontWeight: 'bold'}}>cbseailearnersmathematics@gmail.com</Text></Text>
       </View>
 
       {/* Messages */}
@@ -8110,59 +8745,144 @@ export default function App() {
   const [activeCall, setActiveCall] = useState(null);
   const [callType, setCallType] = useState(null);
 
-  // Function to initiate WebRTC voice/video call - opens in-app WebView
   const initiateWebRTCCall = async (user, type) => {
+    isCallActiveRef.current = true;
     setCallingUser(user);
     setCallType(type);
-    setCallStatus('Initiating ' + type + ' call...');
+    setCallStatus('Calling ' + user.name + '...');
+    setNativeCallType(type);
+    setNativeCallPeer({ id: user.id, name: user.name });
+    setShowNativeCallUI(true);
+    setCallDuration(0);
+    callTimerRef.current = setInterval(() => setCallDuration(d => d + 1), 1000);
+
     try {
-      const response = await fetch(`${API_URL}/api/webrtc/offer`, {
+      await cleanupWebRTC();
+      const isVideo = type === 'video';
+      const stream = await mediaDevices.getUserMedia({ audio: true, video: isVideo ? { facingMode: 'user', width: { ideal: 320 }, height: { ideal: 240 }, frameRate: { ideal: 15 } } : false });
+      localStreamRef.current = stream;
+      setLocalStreamUrl(stream.toURL());
+
+      const pc = new RTCPeerConnection(webrtcConfig);
+      peerConnectionRef.current = pc;
+
+      pc.ontrack = (event) => {
+        if (event.streams && event.streams[0]) {
+          remoteStreamRef.current = event.streams[0];
+          setRemoteStreamUrl(event.streams[0].toURL());
+        }
+      };
+
+      pc.oniceconnectionstatechange = () => {
+        console.log('Caller ICE state:', pc.iceConnectionState);
+        if (pc.iceConnectionState === 'failed') {
+          console.log('ICE failed, restarting...');
+          pc.restartIce();
+        }
+      };
+
+      pc.onconnectionstatechange = () => {
+        console.log('Caller connection state:', pc.connectionState);
+      };
+
+      pc.onicecandidate = async (event) => {
+        if (event.candidate) {
+          try {
+            await fetch(`${API_URL}/api/webrtc/candidate`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+              body: JSON.stringify({ target_user_id: user.id, candidate: event.candidate.candidate, sdp_mid: event.candidate.sdpMid || '0', sdp_m_line_index: event.candidate.sdpMLineIndex || 0 })
+            });
+          } catch (e) { console.log('ICE send error:', e); }
+        }
+      };
+
+      stream.getTracks().forEach(track => pc.addTrack(track, stream));
+
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+
+      const offerRes = await fetch(`${API_URL}/api/webrtc/offer`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-        body: JSON.stringify({ 
-          target_user_id: user.id, 
-          sdp: 'mobile_call_request',
-          call_type: type 
-        })
+        body: JSON.stringify({ target_user_id: user.id, sdp: offer.sdp, call_type: type })
       });
-      if (response.ok) {
-        const data = await response.json();
-        setActiveCall(data.call_id);
-        setCallStatus('Calling ' + user.name + '...');
-        
-        // Open in-app WebView for WebRTC call instead of external browser
-        const callUrl = `https://cbse-ai-learning-app-o4rl0um1.devinapps.com?autoLogin=true&token=${authToken}&callId=${data.call_id}&callType=${type}&targetUserId=${user.id}&mode=call`;
-        setCallWebViewUrl(callUrl);
-        setCallWebViewTitle(type === 'video' ? 'Video Call with ' + user.name : 'Voice Call with ' + user.name);
-        setShowCallWebView(true);
-      } else {
-        setCallStatus('Call failed');
-        Alert.alert('Error', 'Failed to initiate call. Please try again.');
-      }
-    } catch (error) {
-      setCallStatus('Call failed');
-      Alert.alert('Error', 'Network error. Please check your connection.');
+      const offerData = await offerRes.json();
+      const callId = offerData.call_id || '';
+
+      let answerReceived = false;
+      const pollAnswer = setInterval(async () => {
+        if (!peerConnectionRef.current) { clearInterval(pollAnswer); return; }
+        try {
+          const res = await fetch(`${API_URL}/api/notifications`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+          });
+          if (res.ok) {
+            const notifications = await res.json();
+            for (const notif of notifications) {
+              if (notif.notification_type === 'call_answered' && !notif.is_read && !answerReceived) {
+                const data = JSON.parse(notif.message);
+                answerReceived = true;
+                await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: data.sdp }));
+                try { await fetch(`${API_URL}/api/notifications/${notif.id}/read`, { method: 'POST', headers: { 'Authorization': `Bearer ${authToken}` } }); } catch (e) {}
+              } else if (notif.notification_type === 'ice_candidate' && !notif.is_read) {
+                const data = JSON.parse(notif.message);
+                try {
+                  await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate({ candidate: data.candidate, sdpMid: data.sdp_mid, sdpMLineIndex: data.sdp_m_line_index }));
+                } catch (e) {}
+                try { await fetch(`${API_URL}/api/notifications/${notif.id}/read`, { method: 'POST', headers: { 'Authorization': `Bearer ${authToken}` } }); } catch (e) {}
+              } else if (notif.notification_type === 'call_ended' && !notif.is_read) {
+                clearInterval(pollAnswer);
+                endNativeCall();
+                try { await fetch(`${API_URL}/api/notifications/${notif.id}/read`, { method: 'POST', headers: { 'Authorization': `Bearer ${authToken}` } }); } catch (e) {}
+              }
+            }
+          }
+        } catch (e) {}
+      }, 1000);
+      setTimeout(() => clearInterval(pollAnswer), 120000);
+
+      setCallingUser(null);
+      setCallStatus('');
+    } catch (e) {
+      console.log('Initiate call error:', e);
+      Alert.alert('Call Error', 'Failed to start call. Please try again.');
+      isCallActiveRef.current = false;
+      setShowNativeCallUI(false);
+      setCallingUser(null);
+      setCallStatus('');
     }
-    setTimeout(() => { setCallingUser(null); setCallStatus(''); setActiveCall(null); setCallType(null); }, 5000);
   };
 
-  // Function to end WebRTC call
   const endWebRTCCall = async () => {
-    if (activeCall) {
-      try {
-        await fetch(`${API_URL}/api/webrtc/end-call`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify({ call_id: activeCall })
-        });
-      } catch (error) {
-        console.log('Error ending call:', error);
-      }
-    }
+    await endNativeCall();
     setCallingUser(null);
     setCallStatus('');
     setActiveCall(null);
     setCallType(null);
+  };
+
+  const toggleMute = () => {
+    if (localStreamRef.current) {
+      const audioTracks = localStreamRef.current.getAudioTracks();
+      audioTracks.forEach(track => { track.enabled = !track.enabled; });
+      setIsMuted(!isMuted);
+    }
+  };
+
+  const toggleSpeaker = async () => {
+    try {
+      await Audio.setAudioModeAsync({ playThroughEarpieceAndroid: isSpeakerOn });
+      setIsSpeakerOn(!isSpeakerOn);
+    } catch (e) { console.log('Speaker toggle error:', e); }
+  };
+
+  const flipCamera = () => {
+    if (localStreamRef.current) {
+      const videoTracks = localStreamRef.current.getVideoTracks();
+      videoTracks.forEach(track => { track._switchCamera(); });
+      setIsFrontCamera(!isFrontCamera);
+    }
   };
 
   // Function to initiate Gemini AI voice call
@@ -8170,9 +8890,9 @@ export default function App() {
     setCallingUser(user);
     setCallStatus('Initiating call...');
     try {
-      const response = await fetch(`${API_URL}/admin/gemini-call`, {
+      const response = await fetch(`${API_URL}/api/admin/gemini-call`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
         body: JSON.stringify({ user_id: user.id, action: 'initiate_call' })
       });
       if (response.ok) {
@@ -8278,47 +8998,85 @@ export default function App() {
         </View>
       </View>
 
-      {/* Exam Monitoring Section - See all student screens during exams */}
-      <Text style={styles.adminSectionTitle}>Exam Monitoring</Text>
-      <View style={{backgroundColor: '#2A2A4E', borderRadius: 12, padding: 16, marginBottom: 16}}>
-        <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12}}>
-          <Text style={{color: '#fff', fontSize: 16, fontWeight: 'bold'}}>Users Taking Exam</Text>
-          <View style={{backgroundColor: '#EF4444', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12}}>
-            <Text style={{color: '#fff', fontSize: 12, fontWeight: 'bold'}}>LIVE</Text>
+      {/* Exam Monitoring Section - Compact thumbnail grid */}
+      <Text style={styles.adminSectionTitle}>Exam Monitor</Text>
+      <View style={{backgroundColor: '#2A2A4E', borderRadius: 12, padding: 12, marginBottom: 16}}>
+        <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10}}>
+          <Text style={{color: '#aaa', fontSize: 12}}>{(adminUsers || []).length} student(s) | Tap tile for fullscreen</Text>
+          <View style={{flexDirection: 'row', alignItems: 'center', gap: 6}}>
+            <View style={{width: 8, height: 8, borderRadius: 4, backgroundColor: '#EF4444'}} />
+            <Text style={{color: '#EF4444', fontSize: 11, fontWeight: 'bold'}}>LIVE</Text>
           </View>
         </View>
         {(!adminUsers || adminUsers.length === 0) ? (
           <View style={{alignItems: 'center', padding: 20}}>
-            <Text style={{fontSize: 40, marginBottom: 10}}>📝</Text>
-            <Text style={{color: '#888', fontSize: 14, textAlign: 'center'}}>No students are currently taking exams.</Text>
+            <Text style={{fontSize: 32, marginBottom: 8}}>📝</Text>
+            <Text style={{color: '#888', fontSize: 13, textAlign: 'center'}}>No students currently taking exams.</Text>
           </View>
         ) : (
-          <View style={{flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between'}}>
-            {(adminUsers || []).slice(0, 6).map((user, index) => (
-              <View key={index} style={{width: '48%', backgroundColor: '#1A1A2E', borderRadius: 8, padding: 10, marginBottom: 10}}>
-                <View style={{flexDirection: 'row', alignItems: 'center', marginBottom: 8}}>
-                  <View style={{width: 30, height: 30, borderRadius: 15, backgroundColor: '#8B5CF6', justifyContent: 'center', alignItems: 'center', marginRight: 8}}>
-                    <Text style={{color: '#fff', fontWeight: 'bold'}}>{(user.name || 'U')[0].toUpperCase()}</Text>
-                  </View>
-                  <View style={{flex: 1}}>
-                    <Text style={{color: '#fff', fontSize: 12, fontWeight: 'bold'}} numberOfLines={1}>{user.name || 'User'}</Text>
-                    <Text style={{color: '#14B8A6', fontSize: 10}}>Taking Exam</Text>
-                  </View>
+          <View style={{flexDirection: 'row', flexWrap: 'wrap', gap: 8}}>
+            {(adminUsers || []).map((user, index) => (
+              <TouchableOpacity key={index} onPress={() => setMonitorFullscreenUser(user)} style={{width: 100, backgroundColor: '#1A1A2E', borderRadius: 8, padding: 5, borderWidth: 2, borderColor: '#E94560'}}>
+                <View style={{width: '100%', height: 65, backgroundColor: '#111', borderRadius: 5, justifyContent: 'center', alignItems: 'center', marginBottom: 4}}>
+                  <Text style={{fontSize: 20}}>🖥️</Text>
                 </View>
-                <View style={{backgroundColor: '#2A2A4E', height: 60, borderRadius: 6, justifyContent: 'center', alignItems: 'center'}}>
-                  <Text style={{color: '#666', fontSize: 10}}>Screen Preview</Text>
-                  <Text style={{color: '#8B5CF6', fontSize: 14}}>Q{Math.floor(Math.random() * 10) + 1}/10</Text>
+                <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
+                  <Text style={{color: '#fff', fontSize: 9, fontWeight: 'bold', flex: 1}} numberOfLines={1}>{user.name || 'Student'}</Text>
+                  <View style={{width: 6, height: 6, borderRadius: 3, backgroundColor: '#EF4444'}} />
                 </View>
-              </View>
+              </TouchableOpacity>
             ))}
           </View>
         )}
-        {(adminUsers || []).length > 6 && (
-          <TouchableOpacity style={{backgroundColor: '#8B5CF6', padding: 10, borderRadius: 8, alignItems: 'center', marginTop: 8}}>
-            <Text style={{color: '#fff', fontWeight: 'bold'}}>View All {adminUsers.length} Students</Text>
-          </TouchableOpacity>
-        )}
       </View>
+
+      {/* Fullscreen Monitor Modal */}
+      {monitorFullscreenUser && (
+        <Modal visible={true} animationType="slide" onRequestClose={() => setMonitorFullscreenUser(null)}>
+          <View style={{flex: 1, backgroundColor: '#000'}}>
+            <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)'}}>
+              <View style={{flexDirection: 'row', alignItems: 'center', gap: 10}}>
+                <View style={{backgroundColor: '#ff0000', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 12}}>
+                  <Text style={{color: '#fff', fontSize: 11, fontWeight: 'bold'}}>LIVE</Text>
+                </View>
+                <Text style={{color: '#fff', fontSize: 15, fontWeight: 'bold'}}>{monitorFullscreenUser.name || 'Student'}</Text>
+              </View>
+              <TouchableOpacity onPress={() => setMonitorFullscreenUser(null)} style={{backgroundColor: '#E94560', paddingHorizontal: 16, paddingVertical: 6, borderRadius: 15}}>
+                <Text style={{color: '#fff', fontWeight: 'bold', fontSize: 13}}>Close</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={{flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#111'}}>
+              <Text style={{position: 'absolute', top: 8, left: 10, color: '#00ff88', fontSize: 10, fontWeight: 'bold', backgroundColor: 'rgba(0,0,0,0.7)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 5, zIndex: 1}}>SCREEN SHARE</Text>
+              <Text style={{fontSize: 48, marginBottom: 10}}>🖥️</Text>
+              <Text style={{color: '#555'}}>Screen share stream</Text>
+            </View>
+            <View style={{width: '100%', backgroundColor: '#0a0a1a', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)'}}>
+              <View style={{alignItems: 'center', padding: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)'}}>
+                <Text style={{color: '#2196F3', fontSize: 10, fontWeight: 'bold', letterSpacing: 1, marginBottom: 6}}>CAMERA FEED</Text>
+                <View style={{width: 180, height: 120, backgroundColor: '#000', borderRadius: 8, borderWidth: 2, borderColor: 'rgba(33,150,243,0.4)', justifyContent: 'center', alignItems: 'center'}}>
+                  <Text style={{fontSize: 24, marginBottom: 4}}>📷</Text>
+                  <Text style={{color: '#444', fontSize: 10}}>Camera feed</Text>
+                  <Text style={{color: '#333', fontSize: 9}}>Available when student shares</Text>
+                </View>
+              </View>
+              <View style={{flexDirection: 'row', padding: 10, gap: 8}}>
+                <TouchableOpacity onPress={() => setMonitorMicOn(!monitorMicOn)} style={{flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 10, backgroundColor: monitorMicOn ? 'rgba(76,175,80,0.15)' : 'rgba(244,67,54,0.15)', borderWidth: 1, borderColor: monitorMicOn ? 'rgba(76,175,80,0.4)' : 'rgba(244,67,54,0.4)', borderRadius: 8}}>
+                  <Text style={{fontSize: 14}}>{monitorMicOn ? '🎤' : '🔇'}</Text>
+                  <Text style={{color: monitorMicOn ? '#4CAF50' : '#f44336', fontSize: 12, fontWeight: 'bold'}}>Mic {monitorMicOn ? 'ON' : 'OFF'}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => { Alert.alert('Warning Sent', 'Student has been warned.'); }} style={{flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 10, backgroundColor: 'rgba(255,152,0,0.15)', borderWidth: 1, borderColor: 'rgba(255,152,0,0.4)', borderRadius: 8}}>
+                  <Text style={{fontSize: 14}}>📢</Text>
+                  <Text style={{color: '#FF9800', fontSize: 12, fontWeight: 'bold'}}>Warn</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => { Alert.alert('Force Submit', 'Are you sure?', [{text: 'Cancel'}, {text: 'Submit', style: 'destructive', onPress: () => { adminAction(monitorFullscreenUser.id, 'force_submit'); setMonitorFullscreenUser(null); }}]); }} style={{flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 10, backgroundColor: 'rgba(244,67,54,0.15)', borderWidth: 1, borderColor: 'rgba(244,67,54,0.4)', borderRadius: 8}}>
+                  <Text style={{fontSize: 14}}>⚠️</Text>
+                  <Text style={{color: '#f44336', fontSize: 12, fontWeight: 'bold'}}>Force</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
 
       {/* User Chats Section - Each user separately with call options */}
       <Text style={styles.adminSectionTitle}>User Chats</Text>
@@ -8538,6 +9296,58 @@ export default function App() {
         </View>
       </Modal>
 
+      <Modal visible={showProfileModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={{width: 80, height: 80, borderRadius: 40, backgroundColor: '#00d4ff', alignSelf: 'center', alignItems: 'center', justifyContent: 'center', marginBottom: 15}}>
+              <Text style={{fontSize: 28, fontWeight: 'bold', color: '#fff'}}>{studentName ? studentName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'GP'}</Text>
+            </View>
+            <Text style={styles.modalTitle}>My Account</Text>
+            <Text style={{color: '#888', textAlign: 'center', marginBottom: 15, fontSize: 13}}>
+              {isGoogleUser ? 'Google Account - You can edit your name' : 'You can edit your name'}
+            </Text>
+            <TextInput
+              style={styles.input}
+              value={editName}
+              onChangeText={setEditName}
+              placeholder="Your name"
+              placeholderTextColor="#888"
+            />
+            {isGoogleUser && (
+              <Text style={{color: '#666', fontSize: 12, textAlign: 'center', marginTop: 5, marginBottom: 10}}>Password change is not available for Google accounts</Text>
+            )}
+            <View style={{flexDirection: 'row', gap: 10, marginTop: 10}}>
+              <TouchableOpacity style={[styles.primaryBtn, {flex: 1, backgroundColor: '#333'}]} onPress={() => setShowProfileModal(false)}>
+                <Text style={styles.primaryBtnText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.primaryBtn, {flex: 1}]} onPress={async () => {
+                if (editName.trim()) {
+                  const newName = editName.trim();
+                  setStudentName(newName);
+                  await AsyncStorage.setItem('studentName', newName);
+                  const ud = await AsyncStorage.getItem('userData');
+                  if (ud) {
+                    const parsed = JSON.parse(ud);
+                    parsed.name = newName;
+                    await AsyncStorage.setItem('userData', JSON.stringify(parsed));
+                  }
+                  try {
+                    await fetch(`${API_URL}/api/user/update-name`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+                      body: JSON.stringify({ name: newName })
+                    });
+                  } catch (e) { console.log('Name sync error:', e); }
+                  setShowProfileModal(false);
+                }
+              }}>
+                <Text style={styles.primaryBtnText}>Save</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       <Modal visible={showResult} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -8552,12 +9362,48 @@ export default function App() {
                 (resultData.isFinal ? 
                   'Congratulations! You passed the Final Exam!\n\nBe ready for Science Curiosity - Thanks!\n\nWe will update when our new app is available. We will inform you. OK Bye!' :
                   'Congratulations! You passed!\nYou can now proceed to the next chapter.') :
-                'Keep trying! You need 80% to pass.\nReview the chapter and try again.'}
+                'Keep trying! You need 35 out of 40 to pass.\nReview the chapter and try again.'}
             </Text>
+            <TouchableOpacity style={{backgroundColor: '#2196F3', padding: 14, borderRadius: 10, marginBottom: 10, width: '100%', alignItems: 'center'}} onPress={() => setShowAnswerReview(true)}>
+              <Text style={styles.primaryBtnText}>View Answers</Text>
+            </TouchableOpacity>
             <TouchableOpacity style={styles.primaryBtn} onPress={closeResult}>
               <Text style={styles.primaryBtnText}>Continue</Text>
             </TouchableOpacity>
           </View>
+        </View>
+      </Modal>
+
+      <Modal visible={showAnswerReview} transparent animationType="slide">
+        <View style={{flex: 1, backgroundColor: 'rgba(0,0,0,0.95)'}}>
+          <ScrollView style={{flex: 1, padding: 20}}>
+            <Text style={{color: '#E94560', fontSize: 22, fontWeight: 'bold', marginBottom: 10}}>Answer Review</Text>
+            <Text style={{color: '#aaa', marginBottom: 15}}>Score: {resultData.score}/{resultData.total}</Text>
+            {examAnswerLog.map((a, i) => {
+              const isCorrect = a.selected === a.correct;
+              return (
+                <View key={i} style={{padding: 15, marginBottom: 12, backgroundColor: 'rgba(255,255,255,0.05)', borderLeftWidth: 4, borderLeftColor: isCorrect ? '#4CAF50' : '#f44336', borderRadius: 8}}>
+                  <Text style={{color: '#fff', fontWeight: 'bold', marginBottom: 8}}>Q{i+1}. {a.question}</Text>
+                  {a.options.map((opt, j) => {
+                    let optColor = '#aaa';
+                    let optBg = 'transparent';
+                    let label = '';
+                    if (j === a.correct) { optColor = '#4CAF50'; optBg = 'rgba(76,175,80,0.15)'; label = ' (Correct)'; }
+                    if (j === a.selected && !isCorrect) { optColor = '#f44336'; optBg = 'rgba(244,67,54,0.15)'; label = ' (Your Answer)'; }
+                    if (j === a.selected && isCorrect) { label = ' (Your Answer)'; }
+                    return (
+                      <View key={j} style={{padding: 8, marginVertical: 2, borderRadius: 5, backgroundColor: optBg}}>
+                        <Text style={{color: optColor}}>{String.fromCharCode(65+j)}. {opt}{label}</Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              );
+            })}
+            <TouchableOpacity onPress={() => setShowAnswerReview(false)} style={{backgroundColor: '#E94560', padding: 14, borderRadius: 10, alignItems: 'center', marginVertical: 20}}>
+              <Text style={{color: '#fff', fontWeight: 'bold', fontSize: 16}}>Close Review</Text>
+            </TouchableOpacity>
+          </ScrollView>
         </View>
       </Modal>
 
@@ -8655,40 +9501,64 @@ export default function App() {
             </View>
           </Modal>
 
-          {/* In-App WebRTC Call WebView Modal */}
-          <Modal visible={showCallWebView} transparent={false} animationType="slide" onRequestClose={() => setShowCallWebView(false)}>
-            <SafeAreaView style={{flex: 1, backgroundColor: '#1A1A2E'}}>
-              <View style={{flexDirection: 'row', alignItems: 'center', padding: 15, backgroundColor: '#16213E', borderBottomWidth: 1, borderBottomColor: '#0F3460'}}>
-                <TouchableOpacity onPress={() => { setShowCallWebView(false); setCallWebViewUrl(''); }} style={{padding: 10}}>
-                  <Text style={{color: '#fff', fontSize: 18}}>✕</Text>
-                </TouchableOpacity>
-                <Text style={{color: '#fff', fontSize: 16, fontWeight: 'bold', marginLeft: 15, flex: 1}}>{callWebViewTitle || 'Call'}</Text>
-                <TouchableOpacity onPress={() => { setShowCallWebView(false); setCallWebViewUrl(''); Alert.alert('Call Ended', 'The call has been ended.'); }} style={{backgroundColor: '#EF4444', paddingHorizontal: 15, paddingVertical: 8, borderRadius: 20}}>
-                  <Text style={{color: '#fff', fontWeight: 'bold'}}>End Call</Text>
-                </TouchableOpacity>
-              </View>
-              {callWebViewUrl ? (
-                <WebView
-                  source={{ uri: callWebViewUrl }}
-                  style={{flex: 1}}
-                  javaScriptEnabled={true}
-                  domStorageEnabled={true}
-                  mediaPlaybackRequiresUserAction={false}
-                  allowsInlineMediaPlayback={true}
-                  startInLoadingState={true}
-                  renderLoading={() => (
-                    <View style={{flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#1A1A2E'}}>
-                      <ActivityIndicator size="large" color="#E94560" />
-                      <Text style={{color: '#fff', marginTop: 10}}>Connecting call...</Text>
+          {/* Native WebRTC Call UI Modal */}
+          <Modal visible={showNativeCallUI} transparent={false} animationType="slide" onRequestClose={endNativeCall}>
+            <View style={{flex: 1, backgroundColor: '#0A0A1A'}}>
+              {nativeCallType === 'video' && remoteStreamUrl ? (
+                <RTCView streamURL={remoteStreamUrl} style={{flex: 1}} objectFit="cover" zOrder={0} />
+              ) : (
+                <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+                  <View style={{width: 140, height: 140, borderRadius: 70, backgroundColor: nativeCallType === 'video' ? 'rgba(139,92,246,0.2)' : 'rgba(16,185,129,0.2)', borderWidth: 3, borderColor: nativeCallType === 'video' ? '#8B5CF6' : '#10B981', justifyContent: 'center', alignItems: 'center', marginBottom: 28}}>
+                    <Text style={{fontSize: 56}}>{nativeCallType === 'video' ? '📹' : '📞'}</Text>
+                  </View>
+                  <Text style={{fontSize: 30, fontWeight: 'bold', color: '#fff', marginBottom: 8}}>{nativeCallPeer?.name || 'Unknown'}</Text>
+                  <Text style={{fontSize: 14, color: '#8B5CF6', marginBottom: 20, letterSpacing: 1}}>GANITA PRAKASH</Text>
+                  {!remoteStreamUrl && (
+                    <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                      <ActivityIndicator size="small" color="#10B981" />
+                      <Text style={{color: '#10B981', marginLeft: 10, fontSize: 14}}>Connecting...</Text>
                     </View>
                   )}
-                  onError={(e) => {
-                    console.log('WebView error:', e);
-                    Alert.alert('Connection Error', 'Failed to connect. Please check your internet connection.');
-                  }}
-                />
+                </View>
+              )}
+              {nativeCallType === 'video' && localStreamUrl ? (
+                <View style={{position: 'absolute', top: 50, right: 16, width: 120, height: 160, borderRadius: 12, overflow: 'hidden', borderWidth: 2, borderColor: '#8B5CF6', elevation: 10}}>
+                  <RTCView streamURL={localStreamUrl} style={{flex: 1}} objectFit="cover" zOrder={1} mirror={isFrontCamera} />
+                </View>
               ) : null}
-            </SafeAreaView>
+              <View style={{position: 'absolute', top: 50, left: 16}}>
+                <View style={{backgroundColor: 'rgba(16,185,129,0.2)', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: '#10B981'}}>
+                  <Text style={{fontSize: 20, color: '#10B981', fontWeight: 'bold'}}>{formatCallDuration(callDuration)}</Text>
+                </View>
+              </View>
+              <View style={{position: 'absolute', bottom: 40, left: 0, right: 0, paddingHorizontal: 30}}>
+                <View style={{flexDirection: 'row', justifyContent: 'space-around', marginBottom: 24}}>
+                  <TouchableOpacity onPress={toggleMute} style={{alignItems: 'center'}}>
+                    <View style={{width: 60, height: 60, borderRadius: 30, backgroundColor: isMuted ? '#EF4444' : 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center'}}>
+                      <Text style={{fontSize: 24}}>{isMuted ? '🔇' : '🎤'}</Text>
+                    </View>
+                    <Text style={{color: '#fff', marginTop: 6, fontSize: 11}}>{isMuted ? 'Unmute' : 'Mute'}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={toggleSpeaker} style={{alignItems: 'center'}}>
+                    <View style={{width: 60, height: 60, borderRadius: 30, backgroundColor: isSpeakerOn ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center'}}>
+                      <Text style={{fontSize: 24}}>{isSpeakerOn ? '🔊' : '🔈'}</Text>
+                    </View>
+                    <Text style={{color: '#fff', marginTop: 6, fontSize: 11}}>{isSpeakerOn ? 'Speaker' : 'Earpiece'}</Text>
+                  </TouchableOpacity>
+                  {nativeCallType === 'video' && (
+                    <TouchableOpacity onPress={flipCamera} style={{alignItems: 'center'}}>
+                      <View style={{width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center'}}>
+                        <Text style={{fontSize: 24}}>🔄</Text>
+                      </View>
+                      <Text style={{color: '#fff', marginTop: 6, fontSize: 11}}>Flip</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+                <TouchableOpacity onPress={endNativeCall} style={{backgroundColor: '#EF4444', paddingVertical: 16, borderRadius: 30, alignItems: 'center', shadowColor: '#EF4444', shadowOffset: {width: 0, height: 4}, shadowOpacity: 0.5, shadowRadius: 12, elevation: 10}}>
+                  <Text style={{color: '#fff', fontSize: 18, fontWeight: 'bold'}}>End Call</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           </Modal>
 
           {/* Colorful Festival Wish Modal */}
@@ -8736,97 +9606,6 @@ export default function App() {
             </Modal>
           )}
 
-          {/* Native In-App Call UI Modal */}
-          {showNativeCall && nativeCallData && (
-            <Modal visible={true} transparent={false} animationType="slide" onRequestClose={endNativeCall}>
-              <View style={{flex: 1, backgroundColor: '#1A1A2E'}}>
-                {/* Call Header */}
-                <View style={{flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 60}}>
-                  <View style={{
-                    width: 120,
-                    height: 120,
-                    borderRadius: 60,
-                    backgroundColor: nativeCallData.callType === 'video' ? '#8B5CF6' : '#10B981',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    marginBottom: 24,
-                    shadowColor: nativeCallData.callType === 'video' ? '#8B5CF6' : '#10B981',
-                    shadowOffset: {width: 0, height: 0},
-                    shadowOpacity: 0.6,
-                    shadowRadius: 20,
-                    elevation: 10,
-                  }}>
-                    <Text style={{fontSize: 50}}>{nativeCallData.callType === 'video' ? '📹' : '📞'}</Text>
-                  </View>
-                  <Text style={{fontSize: 28, fontWeight: 'bold', color: '#fff', marginBottom: 8}}>
-                    {nativeCallData.callerName}
-                  </Text>
-                  <Text style={{fontSize: 16, color: '#8B5CF6', marginBottom: 16}}>
-                    GANITA PRAKASH Admin
-                  </Text>
-                  <View style={{
-                    backgroundColor: 'rgba(16, 185, 129, 0.2)',
-                    paddingHorizontal: 20,
-                    paddingVertical: 8,
-                    borderRadius: 20,
-                    borderWidth: 1,
-                    borderColor: '#10B981',
-                  }}>
-                    <Text style={{fontSize: 24, color: '#10B981', fontWeight: 'bold'}}>
-                      {formatCallDuration(callDuration)}
-                    </Text>
-                  </View>
-                  <Text style={{fontSize: 14, color: '#888', marginTop: 16}}>
-                    {nativeCallData.callType === 'video' ? 'Video Call Connected' : 'Voice Call Connected'}
-                  </Text>
-                </View>
-                
-                {/* Call Controls */}
-                <View style={{paddingBottom: 60, paddingHorizontal: 40}}>
-                  <View style={{flexDirection: 'row', justifyContent: 'space-around', marginBottom: 30}}>
-                    <TouchableOpacity style={{alignItems: 'center'}}>
-                      <View style={{width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(255,255,255,0.1)', justifyContent: 'center', alignItems: 'center'}}>
-                        <Text style={{fontSize: 24}}>🔇</Text>
-                      </View>
-                      <Text style={{color: '#888', marginTop: 8, fontSize: 12}}>Mute</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={{alignItems: 'center'}}>
-                      <View style={{width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(255,255,255,0.1)', justifyContent: 'center', alignItems: 'center'}}>
-                        <Text style={{fontSize: 24}}>🔊</Text>
-                      </View>
-                      <Text style={{color: '#888', marginTop: 8, fontSize: 12}}>Speaker</Text>
-                    </TouchableOpacity>
-                    {nativeCallData.callType === 'video' && (
-                      <TouchableOpacity style={{alignItems: 'center'}}>
-                        <View style={{width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(255,255,255,0.1)', justifyContent: 'center', alignItems: 'center'}}>
-                          <Text style={{fontSize: 24}}>🔄</Text>
-                        </View>
-                        <Text style={{color: '#888', marginTop: 8, fontSize: 12}}>Flip</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                  
-                  {/* End Call Button */}
-                  <TouchableOpacity 
-                    onPress={endNativeCall}
-                    style={{
-                      backgroundColor: '#EF4444',
-                      paddingVertical: 18,
-                      borderRadius: 30,
-                      alignItems: 'center',
-                      shadowColor: '#EF4444',
-                      shadowOffset: {width: 0, height: 4},
-                      shadowOpacity: 0.4,
-                      shadowRadius: 10,
-                      elevation: 8,
-                    }}
-                  >
-                    <Text style={{color: '#fff', fontSize: 18, fontWeight: 'bold'}}>End Call</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </Modal>
-          )}
 
           {/* Incoming Call Modal */}
           {incomingCall && (

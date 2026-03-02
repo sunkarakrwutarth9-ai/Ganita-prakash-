@@ -29,3 +29,5 @@ Thumbs.db
 __pycache__/
 *.pyc
 .venv/
+backend/.env
+*.env
