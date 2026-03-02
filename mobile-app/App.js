@@ -5465,6 +5465,8 @@ export default function App() {
   const [adminUsers, setAdminUsers] = useState([]);
   const [adminStats, setAdminStats] = useState({});
   const [adminMessages, setAdminMessages] = useState([]);
+  const [monitorFullscreenUser, setMonitorFullscreenUser] = useState(null);
+  const [monitorMicOn, setMonitorMicOn] = useState(true);
 
   // 3D Models state
   const [selectedModel, setSelectedModel] = useState(null);
@@ -8908,47 +8910,85 @@ export default function App() {
         </View>
       </View>
 
-      {/* Exam Monitoring Section - See all student screens during exams */}
-      <Text style={styles.adminSectionTitle}>Exam Monitoring</Text>
-      <View style={{backgroundColor: '#2A2A4E', borderRadius: 12, padding: 16, marginBottom: 16}}>
-        <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12}}>
-          <Text style={{color: '#fff', fontSize: 16, fontWeight: 'bold'}}>Users Taking Exam</Text>
-          <View style={{backgroundColor: '#EF4444', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12}}>
-            <Text style={{color: '#fff', fontSize: 12, fontWeight: 'bold'}}>LIVE</Text>
+      {/* Exam Monitoring Section - Compact thumbnail grid */}
+      <Text style={styles.adminSectionTitle}>Exam Monitor</Text>
+      <View style={{backgroundColor: '#2A2A4E', borderRadius: 12, padding: 12, marginBottom: 16}}>
+        <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10}}>
+          <Text style={{color: '#aaa', fontSize: 12}}>{(adminUsers || []).length} student(s) | Tap tile for fullscreen</Text>
+          <View style={{flexDirection: 'row', alignItems: 'center', gap: 6}}>
+            <View style={{width: 8, height: 8, borderRadius: 4, backgroundColor: '#EF4444'}} />
+            <Text style={{color: '#EF4444', fontSize: 11, fontWeight: 'bold'}}>LIVE</Text>
           </View>
         </View>
         {(!adminUsers || adminUsers.length === 0) ? (
           <View style={{alignItems: 'center', padding: 20}}>
-            <Text style={{fontSize: 40, marginBottom: 10}}>📝</Text>
-            <Text style={{color: '#888', fontSize: 14, textAlign: 'center'}}>No students are currently taking exams.</Text>
+            <Text style={{fontSize: 32, marginBottom: 8}}>📝</Text>
+            <Text style={{color: '#888', fontSize: 13, textAlign: 'center'}}>No students currently taking exams.</Text>
           </View>
         ) : (
-          <View style={{flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between'}}>
-            {(adminUsers || []).slice(0, 6).map((user, index) => (
-              <View key={index} style={{width: '48%', backgroundColor: '#1A1A2E', borderRadius: 8, padding: 10, marginBottom: 10}}>
-                <View style={{flexDirection: 'row', alignItems: 'center', marginBottom: 8}}>
-                  <View style={{width: 30, height: 30, borderRadius: 15, backgroundColor: '#8B5CF6', justifyContent: 'center', alignItems: 'center', marginRight: 8}}>
-                    <Text style={{color: '#fff', fontWeight: 'bold'}}>{(user.name || 'U')[0].toUpperCase()}</Text>
-                  </View>
-                  <View style={{flex: 1}}>
-                    <Text style={{color: '#fff', fontSize: 12, fontWeight: 'bold'}} numberOfLines={1}>{user.name || 'User'}</Text>
-                    <Text style={{color: '#14B8A6', fontSize: 10}}>Taking Exam</Text>
-                  </View>
+          <View style={{flexDirection: 'row', flexWrap: 'wrap', gap: 8}}>
+            {(adminUsers || []).map((user, index) => (
+              <TouchableOpacity key={index} onPress={() => setMonitorFullscreenUser(user)} style={{width: 100, backgroundColor: '#1A1A2E', borderRadius: 8, padding: 5, borderWidth: 2, borderColor: '#E94560'}}>
+                <View style={{width: '100%', height: 65, backgroundColor: '#111', borderRadius: 5, justifyContent: 'center', alignItems: 'center', marginBottom: 4}}>
+                  <Text style={{fontSize: 20}}>🖥️</Text>
                 </View>
-                <View style={{backgroundColor: '#2A2A4E', height: 60, borderRadius: 6, justifyContent: 'center', alignItems: 'center'}}>
-                  <Text style={{color: '#666', fontSize: 10}}>Screen Preview</Text>
-                  <Text style={{color: '#8B5CF6', fontSize: 14}}>Q{Math.floor(Math.random() * 10) + 1}/10</Text>
+                <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
+                  <Text style={{color: '#fff', fontSize: 9, fontWeight: 'bold', flex: 1}} numberOfLines={1}>{user.name || 'Student'}</Text>
+                  <View style={{width: 6, height: 6, borderRadius: 3, backgroundColor: '#EF4444'}} />
                 </View>
-              </View>
+              </TouchableOpacity>
             ))}
           </View>
         )}
-        {(adminUsers || []).length > 6 && (
-          <TouchableOpacity style={{backgroundColor: '#8B5CF6', padding: 10, borderRadius: 8, alignItems: 'center', marginTop: 8}}>
-            <Text style={{color: '#fff', fontWeight: 'bold'}}>View All {adminUsers.length} Students</Text>
-          </TouchableOpacity>
-        )}
       </View>
+
+      {/* Fullscreen Monitor Modal */}
+      {monitorFullscreenUser && (
+        <Modal visible={true} animationType="slide" onRequestClose={() => setMonitorFullscreenUser(null)}>
+          <View style={{flex: 1, backgroundColor: '#000'}}>
+            <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)'}}>
+              <View style={{flexDirection: 'row', alignItems: 'center', gap: 10}}>
+                <View style={{backgroundColor: '#ff0000', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 12}}>
+                  <Text style={{color: '#fff', fontSize: 11, fontWeight: 'bold'}}>LIVE</Text>
+                </View>
+                <Text style={{color: '#fff', fontSize: 15, fontWeight: 'bold'}}>{monitorFullscreenUser.name || 'Student'}</Text>
+              </View>
+              <TouchableOpacity onPress={() => setMonitorFullscreenUser(null)} style={{backgroundColor: '#E94560', paddingHorizontal: 16, paddingVertical: 6, borderRadius: 15}}>
+                <Text style={{color: '#fff', fontWeight: 'bold', fontSize: 13}}>Close</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={{flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#111'}}>
+              <Text style={{position: 'absolute', top: 8, left: 10, color: '#00ff88', fontSize: 10, fontWeight: 'bold', backgroundColor: 'rgba(0,0,0,0.7)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 5, zIndex: 1}}>SCREEN SHARE</Text>
+              <Text style={{fontSize: 48, marginBottom: 10}}>🖥️</Text>
+              <Text style={{color: '#555'}}>Screen share stream</Text>
+            </View>
+            <View style={{width: '100%', backgroundColor: '#0a0a1a', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)'}}>
+              <View style={{alignItems: 'center', padding: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)'}}>
+                <Text style={{color: '#2196F3', fontSize: 10, fontWeight: 'bold', letterSpacing: 1, marginBottom: 6}}>CAMERA FEED</Text>
+                <View style={{width: 180, height: 120, backgroundColor: '#000', borderRadius: 8, borderWidth: 2, borderColor: 'rgba(33,150,243,0.4)', justifyContent: 'center', alignItems: 'center'}}>
+                  <Text style={{fontSize: 24, marginBottom: 4}}>📷</Text>
+                  <Text style={{color: '#444', fontSize: 10}}>Camera feed</Text>
+                  <Text style={{color: '#333', fontSize: 9}}>Available when student shares</Text>
+                </View>
+              </View>
+              <View style={{flexDirection: 'row', padding: 10, gap: 8}}>
+                <TouchableOpacity onPress={() => setMonitorMicOn(!monitorMicOn)} style={{flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 10, backgroundColor: monitorMicOn ? 'rgba(76,175,80,0.15)' : 'rgba(244,67,54,0.15)', borderWidth: 1, borderColor: monitorMicOn ? 'rgba(76,175,80,0.4)' : 'rgba(244,67,54,0.4)', borderRadius: 8}}>
+                  <Text style={{fontSize: 14}}>{monitorMicOn ? '🎤' : '🔇'}</Text>
+                  <Text style={{color: monitorMicOn ? '#4CAF50' : '#f44336', fontSize: 12, fontWeight: 'bold'}}>Mic {monitorMicOn ? 'ON' : 'OFF'}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => { Alert.alert('Warning Sent', 'Student has been warned.'); }} style={{flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 10, backgroundColor: 'rgba(255,152,0,0.15)', borderWidth: 1, borderColor: 'rgba(255,152,0,0.4)', borderRadius: 8}}>
+                  <Text style={{fontSize: 14}}>📢</Text>
+                  <Text style={{color: '#FF9800', fontSize: 12, fontWeight: 'bold'}}>Warn</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => { Alert.alert('Force Submit', 'Are you sure?', [{text: 'Cancel'}, {text: 'Submit', style: 'destructive', onPress: () => { adminAction(monitorFullscreenUser.id, 'force_submit'); setMonitorFullscreenUser(null); }}]); }} style={{flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 10, backgroundColor: 'rgba(244,67,54,0.15)', borderWidth: 1, borderColor: 'rgba(244,67,54,0.4)', borderRadius: 8}}>
+                  <Text style={{fontSize: 14}}>⚠️</Text>
+                  <Text style={{color: '#f44336', fontSize: 12, fontWeight: 'bold'}}>Force</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
 
       {/* User Chats Section - Each user separately with call options */}
       <Text style={styles.adminSectionTitle}>User Chats</Text>
