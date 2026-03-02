@@ -7403,7 +7403,7 @@ function stopScreenShareAutoConnect() {
     }
 }
 
-// Render active screen shares in the monitor section with live video + screenshot fallback
+// Render active screen shares in the monitor section with compact thumbnail grid
 function renderScreenShares(screenShares) {
     var monitorDiv = document.getElementById('screen-share-monitor');
     if (!monitorDiv) return;
@@ -7413,36 +7413,19 @@ function renderScreenShares(screenShares) {
         return;
     }
     
-    monitorDiv.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;align-items:start;">' + screenShares.map(function(share) {
-        var startTime = share.started_at ? new Date(share.started_at).toLocaleTimeString() : 'Unknown';
-        var examType = share.exam_type === 'chapter_quiz' ? 'Chapter Quiz' : 'Final Exam';
-        var progress = share.current_question + '/' + share.total_questions;
+    monitorDiv.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><span style="color:#aaa;font-size:0.85em;">' + screenShares.length + ' student(s) in exam | Click any tile for fullscreen</span></div>' +
+        '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;align-items:start;">' + screenShares.map(function(share) {
         var hasLiveConnection = !!adminScreenShareConnections[share.user_id];
+        var statusColor = share.is_active ? '#00ff88' : '#ff4444';
         
-        return '<div style="background: linear-gradient(135deg, rgba(0,255,136,0.1), rgba(0,255,255,0.1)); border: 2px solid #00ff88; border-radius: 15px; padding: 20px;">' +
-            '<div style="display: flex; justify-content: space-between; align-items: center;">' +
-            '<div>' +
-            '<div style="color: #00ff88; font-family: \'Orbitron\', monospace; font-size: 1.2em; margin-bottom: 5px;">' + (share.user_name || 'Unknown User') + '</div>' +
-            '<div style="color: #888; font-size: 0.9em;">' + examType + (share.chapter_id ? ' - Chapter ' + share.chapter_id : '') + '</div>' +
+        return '<div onclick="openLiveFullscreen(' + share.user_id + ')" style="background:rgba(0,0,0,0.4);border:2px solid ' + statusColor + ';border-radius:10px;padding:6px;cursor:pointer;transition:transform 0.2s,box-shadow 0.2s;position:relative;" onmouseover="this.style.transform=\'scale(1.05)\';this.style.boxShadow=\'0 4px 20px rgba(0,255,136,0.3)\';" onmouseout="this.style.transform=\'scale(1)\';this.style.boxShadow=\'none\';">' +
+            '<div id="live-video-container-' + share.user_id + '" style="width:100%;height:90px;background:#000;border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center;">' +
+            (hasLiveConnection ? '<video id="screen-video-' + share.user_id + '" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;border-radius:6px;"></video>' :
+            '<div id="screenshot-container-' + share.user_id + '" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;"><div style="color:#555;font-size:10px;text-align:center;">Connecting...</div></div>') +
             '</div>' +
-            '<div style="text-align: right;">' +
-            '<span id="live-label-' + share.user_id + '" style="display:' + (hasLiveConnection ? 'inline-block' : 'none') + ';background:#ff0000;color:#fff;padding:3px 10px;border-radius:10px;font-size:0.75em;font-weight:bold;animation:pulse 1.5s infinite;margin-right:8px;">LIVE</span>' +
-            '<span id="screenshot-label-' + share.user_id + '" style="display:' + (hasLiveConnection ? 'none' : 'inline-block') + ';background:#FF9800;color:#fff;padding:3px 10px;border-radius:10px;font-size:0.75em;font-weight:bold;">SCREENSHOTS</span>' +
-            '<div style="color: #00ffff; font-size: 1.5em; font-family: \'Orbitron\', monospace; margin-top:5px;">' + progress + '</div>' +
-            '</div>' +
-            '</div>' +
-            '<div style="margin-top: 15px; position:relative;">' +
-            '<div id="live-video-container-' + share.user_id + '" style="width:100%;min-height:200px;background:#000;border-radius:10px;margin-bottom:10px;display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;" ondblclick="openLiveFullscreen(' + share.user_id + ')">' +
-            (hasLiveConnection ? '<video id="screen-video-' + share.user_id + '" autoplay playsinline muted style="width:100%;height:auto;border-radius:10px;"></video>' :
-            '<div id="screenshot-container-' + share.user_id + '" style="width:100%;min-height:200px;display:flex;align-items:center;justify-content:center;"><div style="color:#888;text-align:center;padding:20px;">Connecting live stream...<br><small>Falling back to screenshots</small></div></div>') +
-            '</div>' +
-            '</div>' +
-            '<div style="margin-top: 10px; display: flex; justify-content: space-between; align-items: center; flex-wrap:wrap; gap:8px;">' +
-            '<div style="color: #888; font-size: 0.85em;">Started: ' + startTime + '</div>' +
-            '<div style="display: flex; gap: 10px; flex-wrap:wrap;">' +
-            '<span style="background: ' + (share.is_active ? '#00ff88' : '#ff4444') + '; color: #000; padding: 5px 15px; border-radius: 20px; font-size: 0.8em; font-weight: bold;">' + (share.is_active ? 'ACTIVE' : 'PAUSED') + '</span>' +
-            '<button onclick="adminForceSubmit(' + share.user_id + ', \'' + (share.user_name || 'Student').replace(/'/g, '') + '\')" style="padding: 8px 20px; background: linear-gradient(135deg, #ff4444, #ff6666); border: none; border-radius: 20px; color: #fff; font-family: Orbitron, monospace; font-weight: bold; cursor: pointer;">AUTO SUBMIT</button>' +
-            '</div>' +
+            '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">' +
+            '<span style="color:#fff;font-size:10px;font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px;" title="' + (share.user_name || 'Student') + '">' + (share.user_name || 'Student') + '</span>' +
+            '<span style="width:8px;height:8px;border-radius:50%;background:' + (hasLiveConnection ? '#ff0000' : '#FF9800') + ';display:inline-block;' + (hasLiveConnection ? 'animation:pulse 1.5s infinite;' : '') + '"></span>' +
             '</div>' +
             '</div>';
     }).join('') + '</div>';
@@ -7710,15 +7693,44 @@ function openLiveFullscreen(userId) {
     var videoEl = document.getElementById('screen-video-' + userId);
     var overlay = document.createElement('div');
     overlay.id = 'monitor-fullscreen-overlay';
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:10002;display:flex;align-items:center;justify-content:center;flex-direction:column;';
-    if (videoEl && videoEl.srcObject) {
+    overlay.style.cssText = 'position:fixed;inset:0;background:#000;z-index:10002;display:flex;flex-direction:column;';
+
+    var topBar = document.createElement('div');
+    topBar.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:10px 20px;background:rgba(0,0,0,0.8);border-bottom:1px solid rgba(255,255,255,0.1);';
+    var isLive = videoEl && videoEl.srcObject;
+    var userName = 'Student #' + userId;
+    try {
+        var nameEl = document.querySelector('[title]');
+        var tiles = document.querySelectorAll('#screen-share-monitor [onclick*="' + userId + '"]');
+        if (tiles.length > 0) {
+            var nameSpan = tiles[0].querySelector('span[title]');
+            if (nameSpan) userName = nameSpan.getAttribute('title');
+        }
+    } catch(e) {}
+    topBar.innerHTML = '<div style="display:flex;align-items:center;gap:12px;">' +
+        '<span style="background:' + (isLive ? '#ff0000' : '#FF9800') + ';color:#fff;padding:4px 12px;border-radius:15px;font-size:12px;font-weight:bold;' + (isLive ? 'animation:pulse 1.5s infinite;' : '') + '">' + (isLive ? 'LIVE' : 'SCREENSHOT') + '</span>' +
+        '<span style="color:#fff;font-size:16px;font-weight:bold;">' + userName + '</span></div>' +
+        '<button onclick="closeMonitorFullscreen()" style="padding:8px 20px;border:none;border-radius:20px;background:#E94560;color:#fff;cursor:pointer;font-weight:bold;font-size:14px;">Close</button>';
+    overlay.appendChild(topBar);
+
+    var mainContent = document.createElement('div');
+    mainContent.style.cssText = 'flex:1;display:flex;gap:0;overflow:hidden;';
+
+    var screenArea = document.createElement('div');
+    screenArea.style.cssText = 'flex:1;display:flex;align-items:center;justify-content:center;background:#111;position:relative;';
+    var screenLabel = document.createElement('div');
+    screenLabel.style.cssText = 'position:absolute;top:10px;left:10px;background:rgba(0,0,0,0.7);color:#00ff88;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:bold;z-index:1;';
+    screenLabel.textContent = 'SCREEN SHARE';
+    screenArea.appendChild(screenLabel);
+
+    if (isLive) {
         var fullVideo = document.createElement('video');
         fullVideo.autoplay = true;
         fullVideo.playsInline = true;
         fullVideo.muted = true;
         fullVideo.srcObject = videoEl.srcObject;
-        fullVideo.style.cssText = 'max-width:95vw;max-height:85vh;border-radius:8px;box-shadow:0 10px 40px rgba(0,255,136,0.3);';
-        overlay.appendChild(fullVideo);
+        fullVideo.style.cssText = 'max-width:100%;max-height:100%;object-fit:contain;';
+        screenArea.appendChild(fullVideo);
         fullVideo.play().catch(function(e){});
     } else {
         var container = document.getElementById('screenshot-container-' + userId);
@@ -7726,21 +7738,58 @@ function openLiveFullscreen(userId) {
         if (img) {
             var fullImg = document.createElement('img');
             fullImg.src = img.src;
-            fullImg.style.cssText = 'max-width:95vw;max-height:85vh;border-radius:8px;box-shadow:0 10px 40px rgba(0,0,0,0.6);';
-            overlay.appendChild(fullImg);
+            fullImg.style.cssText = 'max-width:100%;max-height:100%;object-fit:contain;';
+            screenArea.appendChild(fullImg);
+        } else {
+            var noScreen = document.createElement('div');
+            noScreen.style.cssText = 'color:#555;text-align:center;';
+            noScreen.innerHTML = '<div style="font-size:48px;margin-bottom:10px;">🖥️</div><div>No screen data available</div>';
+            screenArea.appendChild(noScreen);
         }
     }
-    var closeBtn = document.createElement('button');
-    closeBtn.textContent = 'Close';
-    closeBtn.style.cssText = 'position:absolute;top:20px;right:20px;padding:10px 20px;border:none;border-radius:20px;background:#E94560;color:#fff;cursor:pointer;font-weight:bold;font-size:16px;';
-    closeBtn.onclick = closeMonitorFullscreen;
-    overlay.appendChild(closeBtn);
-    var liveTag = document.createElement('div');
-    liveTag.style.cssText = 'position:absolute;top:20px;left:20px;background:#ff0000;color:#fff;padding:6px 16px;border-radius:20px;font-weight:bold;font-size:14px;animation:pulse 1.5s infinite;';
-    liveTag.textContent = videoEl && videoEl.srcObject ? 'LIVE' : 'SCREENSHOT';
-    overlay.appendChild(liveTag);
+    mainContent.appendChild(screenArea);
+
+    var sidePanel = document.createElement('div');
+    sidePanel.style.cssText = 'width:260px;background:#0a0a1a;border-left:1px solid rgba(255,255,255,0.1);display:flex;flex-direction:column;';
+
+    var cameraSection = document.createElement('div');
+    cameraSection.style.cssText = 'flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:15px;border-bottom:1px solid rgba(255,255,255,0.1);';
+    cameraSection.innerHTML = '<div style="color:#2196F3;font-size:11px;font-weight:bold;margin-bottom:8px;letter-spacing:1px;">CAMERA FEED</div>' +
+        '<div id="fullscreen-camera-' + userId + '" style="width:220px;height:165px;background:#000;border-radius:10px;border:2px solid rgba(33,150,243,0.4);display:flex;align-items:center;justify-content:center;overflow:hidden;">' +
+        '<div style="color:#444;text-align:center;font-size:12px;"><div style="font-size:32px;margin-bottom:6px;">📷</div>Camera feed<br><small style="color:#333;">Available when student shares camera</small></div></div>';
+    sidePanel.appendChild(cameraSection);
+
+    var controlsSection = document.createElement('div');
+    controlsSection.style.cssText = 'padding:15px;display:flex;flex-direction:column;gap:10px;';
+    controlsSection.innerHTML = '<div style="color:#FF9800;font-size:11px;font-weight:bold;margin-bottom:4px;letter-spacing:1px;">CONTROLS</div>' +
+        '<button id="mic-toggle-' + userId + '" onclick="toggleAdminMic(' + userId + ')" style="display:flex;align-items:center;gap:10px;padding:12px;background:rgba(76,175,80,0.15);border:1px solid rgba(76,175,80,0.4);border-radius:10px;color:#4CAF50;cursor:pointer;font-size:13px;font-weight:bold;width:100%;">🎤 Microphone ON</button>' +
+        '<button onclick="adminForceSubmit(' + userId + ', \'' + userName.replace(/'/g, '') + '\')" style="display:flex;align-items:center;gap:10px;padding:12px;background:rgba(244,67,54,0.15);border:1px solid rgba(244,67,54,0.4);border-radius:10px;color:#f44336;cursor:pointer;font-size:13px;font-weight:bold;width:100%;">⚠️ Force Submit Exam</button>' +
+        '<button onclick="sendExamWarning(' + userId + ')" style="display:flex;align-items:center;gap:10px;padding:12px;background:rgba(255,152,0,0.15);border:1px solid rgba(255,152,0,0.4);border-radius:10px;color:#FF9800;cursor:pointer;font-size:13px;font-weight:bold;width:100%;">📢 Send Warning</button>';
+    sidePanel.appendChild(controlsSection);
+
+    mainContent.appendChild(sidePanel);
+    overlay.appendChild(mainContent);
     document.body.appendChild(overlay);
 }
+
+var adminMicStates = {};
+function toggleAdminMic(userId) {
+    var btn = document.getElementById('mic-toggle-' + userId);
+    if (!btn) return;
+    adminMicStates[userId] = !adminMicStates[userId];
+    if (adminMicStates[userId]) {
+        btn.style.background = 'rgba(244,67,54,0.15)';
+        btn.style.borderColor = 'rgba(244,67,54,0.4)';
+        btn.style.color = '#f44336';
+        btn.innerHTML = '🔇 Microphone OFF';
+    } else {
+        btn.style.background = 'rgba(76,175,80,0.15)';
+        btn.style.borderColor = 'rgba(76,175,80,0.4)';
+        btn.style.color = '#4CAF50';
+        btn.innerHTML = '🎤 Microphone ON';
+    }
+}
+
 function openMonitorFullscreen(userId) { openLiveFullscreen(userId); }
 function closeMonitorFullscreen() {
     var overlay = document.getElementById('monitor-fullscreen-overlay');
@@ -9034,17 +9083,16 @@ renderAdminDashboard = function(data) {
     }
     
     var examUsers = (data.users || []).filter(function(u) { return u.is_in_exam; });
-    screenMonitorDiv.innerHTML = '<h3 style="color:#E94560;margin-bottom:15px;display:flex;align-items:center;gap:10px;"><span style="width:12px;height:12px;background:#E94560;border-radius:50%;animation:pulse 1.5s infinite;"></span> Screen Sharing Monitor</h3>' +
+    screenMonitorDiv.innerHTML = '<h3 style="color:#E94560;margin-bottom:10px;display:flex;align-items:center;gap:10px;"><span style="width:12px;height:12px;background:#E94560;border-radius:50%;animation:pulse 1.5s infinite;"></span> Exam Monitor <span style="color:#aaa;font-size:0.6em;font-weight:normal;">(' + examUsers.length + ' students) Click tile for fullscreen</span></h3>' +
         (examUsers.length > 0 ? 
-            '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:15px;">' +
+            '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;">' +
             examUsers.map(function(user) {
-                return '<div style="background:rgba(0,0,0,0.3);border-radius:10px;padding:15px;border:1px solid rgba(233,69,96,0.5);">' +
-                    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">' +
-                    '<span style="color:#fff;font-weight:bold;">' + user.name + '</span>' +
-                    '<span style="background:#E94560;color:#fff;padding:3px 8px;border-radius:10px;font-size:0.75em;">LIVE</span></div>' +
-                    '<div style="color:#aaa;font-size:0.85em;">Taking: ' + (user.current_exam || 'Final Exam') + '</div>' +
-                    '<div style="color:#888;font-size:0.8em;margin-top:5px;">Started: ' + (user.exam_start_time ? new Date(user.exam_start_time).toLocaleTimeString() : 'Just now') + '</div>' +
-                    '<button onclick="viewUserScreen(' + user.id + ')" style="margin-top:10px;width:100%;padding:8px;background:linear-gradient(135deg,#8B5CF6,#EC4899);border:none;border-radius:8px;color:#fff;cursor:pointer;font-size:0.85em;">View Screen</button></div>';
+                return '<div onclick="openLiveFullscreen(' + user.id + ')" style="background:rgba(0,0,0,0.4);border:2px solid #E94560;border-radius:8px;padding:6px;cursor:pointer;transition:transform 0.2s;" onmouseover="this.style.transform=\'scale(1.05)\'" onmouseout="this.style.transform=\'scale(1)\'">' +
+                    '<div style="width:100%;height:70px;background:#111;border-radius:5px;display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:4px;">' +
+                    '<div style="color:#444;font-size:24px;">🖥️</div></div>' +
+                    '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+                    '<span style="color:#fff;font-size:10px;font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:70px;" title="' + user.name + '">' + user.name + '</span>' +
+                    '<span style="width:8px;height:8px;border-radius:50%;background:#E94560;animation:pulse 1.5s infinite;"></span></div></div>';
             }).join('') + '</div>' :
             '<p style="color:#888;text-align:center;padding:20px;">No students currently taking exams. When students start exams with screen sharing enabled, they will appear here.</p>');
     
