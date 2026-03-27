@@ -6182,6 +6182,7 @@ export default function App() {
         body: JSON.stringify({ 
           exam_type: isFinalExam ? 'final' : 'chapter',
           chapter_id: currentChapter?.id || null,
+          class_num: selectedClass || '6',
           violation_type: reason,
           timestamp: new Date().toISOString()
         })
@@ -6194,7 +6195,7 @@ export default function App() {
     setIsMonitoring(false);
     if (isFinalExam) {
       const totalScore = mcqScore + Object.keys(penPaperAnswers).length * 2;
-      showResults(totalScore, finalExamMCQ.length + finalExamPenPaper.length);
+      showResults(totalScore, getActiveFinalExamMCQ().length + getActiveFinalExamPenPaper().length);
     } else {
       showResults(score, currentChapter?.questions?.length || 10);
     }
@@ -6570,7 +6571,7 @@ export default function App() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          message: userMessage + (currentChapter ? ` (Context: Chapter ${currentChapter.id} - ${currentChapter.title})` : ''),
+          message: userMessage + (currentChapter ? ` (Context: Class ${selectedClass || '6'}, Chapter ${currentChapter.id} - ${currentChapter.title})` : ` (Context: Class ${selectedClass || '6'} Mathematics)`),
           chapter_id: currentChapter?.id || null
         }),
       });
@@ -6816,6 +6817,8 @@ const navigateTo = (newScreen) => {
   };
 
   const [showExamInstructions, setShowExamInstructions] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [editName, setEditName] = useState('');
   const [isMonitoring, setIsMonitoring] = useState(false);
   const appStateRef = useRef(AppState.currentState);
 
@@ -6833,7 +6836,7 @@ const navigateTo = (newScreen) => {
               if (isFinalExam) {
                 // Auto-submit final exam with current scores
                 const totalScore = mcqScore + Object.keys(penPaperAnswers).length * 2;
-                showResults(totalScore, finalExamMCQ.length + finalExamPenPaper.length);
+                showResults(totalScore, getActiveFinalExamMCQ().length + getActiveFinalExamPenPaper().length);
               } else {
                 // Auto-submit chapter quiz with current score
                 showResults(score, currentChapter?.questions?.length || 10);
@@ -6880,7 +6883,7 @@ const navigateTo = (newScreen) => {
           body: JSON.stringify({ 
             screenshot: uri,
             current_question: currentQuestion + 1,
-            total_questions: isFinalExam ? finalExamMCQ.length : (currentChapter?.questions?.length || 10),
+            total_questions: isFinalExam ? getActiveFinalExamMCQ().length : (currentChapter?.questions?.length || 10),
             timestamp: new Date().toISOString()
           })
         });
@@ -6917,7 +6920,7 @@ const navigateTo = (newScreen) => {
               headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
               body: JSON.stringify({ 
                 current_question: currentQuestion + 1,
-                total_questions: isFinalExam ? finalExamMCQ.length : (currentChapter?.questions?.length || 10),
+                total_questions: isFinalExam ? getActiveFinalExamMCQ().length : (currentChapter?.questions?.length || 10),
                 is_active: true
               })
             });
@@ -7169,15 +7172,15 @@ const navigateTo = (newScreen) => {
         {/* Header - Command Bridge Style */}
         <View style={styles.homeHeader}>
           <View style={styles.headerLeft}>
-            <View style={styles.userAvatarCircle}>
+            <TouchableOpacity style={styles.userAvatarCircle} onPress={() => setShowProfileModal(true)}>
               <Text style={styles.userAvatarText}>
                 {studentName ? studentName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'GP'}
               </Text>
-            </View>
-            <View>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setShowProfileModal(true)}>
               <Text style={styles.welcomeText}>WELCOME</Text>
               <Text style={styles.userName}>{studentName || 'Student'}</Text>
-            </View>
+            </TouchableOpacity>
           </View>
           <View style={styles.headerIcons}>
             <TouchableOpacity style={[styles.headerIconBtn, {backgroundColor: selectedClass === '7' ? 'rgba(142,36,170,0.3)' : 'rgba(0,229,255,0.15)'}]} onPress={() => setScreen('classSelect')}>
@@ -7212,7 +7215,7 @@ const navigateTo = (newScreen) => {
             <View style={styles.statIconBox}>
               <Text style={styles.statIconText}>◎</Text>
             </View>
-            <Text style={styles.statValue}>{completedChapters}/10</Text>
+            <Text style={styles.statValue}>{completedChapters}/{activeChaptersS.length}</Text>
             <Text style={styles.statLabel}>MISSIONS</Text>
           </View>
         </View>
@@ -7226,7 +7229,7 @@ const navigateTo = (newScreen) => {
         <View style={styles.progressBarBg}>
           <View style={[styles.progressBarFill, {width: avgProgress + '%'}]} />
         </View>
-        <Text style={styles.progressSubtext}>{completedChapters} of 10 cosmic sectors explored</Text>
+        <Text style={styles.progressSubtext}>{completedChapters} of {activeChaptersS.length} cosmic sectors explored</Text>
       </View>
 
       {/* Continue Mission */}
@@ -7510,7 +7513,7 @@ const navigateTo = (newScreen) => {
               </TouchableOpacity>
             </View>
             <ScrollView>
-              {(chapter3DModels[currentChapter.id] || []).map((model) => (
+              {(chapter3DModels[selectedClass === '7' ? `7_${currentChapter.id}` : currentChapter.id] || chapter3DModels[currentChapter.id] || []).map((model) => (
                 <TouchableOpacity
                   key={model.id}
                   style={styles.modelCard}
@@ -7659,7 +7662,7 @@ const navigateTo = (newScreen) => {
           <Text style={styles.sectionTitle}>Final Exam - Pen and Paper Section</Text>
           <Text style={styles.examInfo}>MCQ Score: {mcqScore}/50 | Pen-Paper: 50 marks (5 questions x 10 marks)</Text>
 
-          {finalExamPenPaper.map((question, index) => (
+          {getActiveFinalExamPenPaper().map((question, index) => (
             <View key={index} style={styles.questionCard}>
               <Text style={styles.questionNumber}>Question {index + 1} ({question.marks} marks)</Text>
               <Text style={styles.questionText}>{question.q}</Text>
@@ -7683,7 +7686,7 @@ const navigateTo = (newScreen) => {
       );
     }
 
-    const questions = isFinalExam ? finalExamMCQ : currentChapter.questions;
+    const questions = isFinalExam ? getActiveFinalExamMCQ() : currentChapter.questions;
     const question = questions[currentQuestion];
     const total = questions.length;
 
@@ -7805,29 +7808,39 @@ const navigateTo = (newScreen) => {
     </ScrollView>
   );
 
-    // Google Sign-In - Firebase ONLY
+    // Google Sign-In - Try native Firebase first, fall back to modal
     const handleGoogleSignIn = async () => {
       try {
         setLoading(true);
         
-        // Check Google Play Services
-        await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+        let userEmail = '';
+        let displayName = '';
         
-        // Sign in with Google using Firebase
-        const signInResult = await GoogleSignin.signIn();
-        const idToken = signInResult.data?.idToken || signInResult.idToken;
-        
-        if (!idToken) {
-          throw new Error('No ID token received');
+        // Try native Google Sign-In first
+        try {
+          await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+          const signInResult = await GoogleSignin.signIn();
+          const idToken = signInResult.data?.idToken || signInResult.idToken;
+          
+          if (idToken) {
+            const googleCredential = auth.GoogleAuthProvider.credential(idToken);
+            const firebaseUserCredential = await auth().signInWithCredential(googleCredential);
+            const firebaseUser = firebaseUserCredential.user;
+            userEmail = firebaseUser.email || '';
+            displayName = firebaseUser.displayName || '';
+          }
+        } catch (nativeErr) {
+          console.log('Native Google Sign-In not available:', nativeErr.message);
+          setLoading(false);
+          setShowGoogleSignInModal(true);
+          return;
         }
         
-        // Firebase authentication
-        const googleCredential = auth.GoogleAuthProvider.credential(idToken);
-        const firebaseUserCredential = await auth().signInWithCredential(googleCredential);
-        const firebaseUser = firebaseUserCredential.user;
-        
-        const userEmail = firebaseUser.email;
-        const displayName = firebaseUser.displayName || '';
+        if (!userEmail) {
+          setLoading(false);
+          setShowGoogleSignInModal(true);
+          return;
+        }
         const nameParts = displayName.split(' ');
         const firstName = nameParts[0] || '';
         const surname = nameParts.slice(1).join(' ') || '';
@@ -9024,6 +9037,68 @@ const navigateTo = (newScreen) => {
     </ScrollView>
   );
 
+  // Profile Modal
+  const profileModal = (
+    <Modal visible={showProfileModal} transparent animationType="slide">
+      <View style={styles.modalOverlay}>
+        <View style={[styles.resourcesModal, {maxHeight: 400}]}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>My Profile</Text>
+            <TouchableOpacity onPress={() => setShowProfileModal(false)}>
+              <Text style={styles.closeBtn}>X</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView style={{padding: 20}}>
+            <View style={{alignItems: 'center', marginBottom: 20}}>
+              <View style={[styles.userAvatarCircle, {width: 80, height: 80, borderRadius: 40}]}>
+                <Text style={[styles.userAvatarText, {fontSize: 28}]}>
+                  {studentName ? studentName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'GP'}
+                </Text>
+              </View>
+            </View>
+            <Text style={{color: 'rgba(255,255,255,0.6)', fontSize: 12, marginBottom: 4, letterSpacing: 1}}>NAME</Text>
+            <TextInput
+              style={{backgroundColor: 'rgba(0,229,255,0.08)', borderRadius: 12, padding: 14, color: '#fff', fontSize: 16, borderWidth: 1, borderColor: 'rgba(0,229,255,0.2)', marginBottom: 16}}
+              value={editName || studentName || ''}
+              onChangeText={setEditName}
+              placeholder="Enter your name"
+              placeholderTextColor="rgba(255,255,255,0.3)"
+            />
+            <Text style={{color: 'rgba(255,255,255,0.6)', fontSize: 12, marginBottom: 4, letterSpacing: 1}}>CLASS</Text>
+            <Text style={{color: '#00E5FF', fontSize: 18, fontWeight: 'bold', marginBottom: 16}}>Class {selectedClass || '6'}</Text>
+            <Text style={{color: 'rgba(255,255,255,0.6)', fontSize: 12, marginBottom: 4, letterSpacing: 1}}>PROGRESS</Text>
+            <Text style={{color: '#fff', fontSize: 16, marginBottom: 20}}>{completedChapters} of {activeChaptersS.length} chapters completed ({avgProgress}%)</Text>
+            <TouchableOpacity
+              style={{backgroundColor: '#00E5FF', borderRadius: 12, padding: 14, alignItems: 'center', marginBottom: 12}}
+              onPress={async () => {
+                if (editName && editName.trim() && editName.trim() !== studentName) {
+                  setStudentName(editName.trim());
+                  await AsyncStorage.setItem('studentName', editName.trim());
+                  const userData = await AsyncStorage.getItem('userData');
+                  if (userData) {
+                    const parsed = JSON.parse(userData);
+                    parsed.name = editName.trim();
+                    await AsyncStorage.setItem('userData', JSON.stringify(parsed));
+                  }
+                }
+                setShowProfileModal(false);
+                setEditName('');
+              }}
+            >
+              <Text style={{color: '#1A1A2E', fontWeight: 'bold', fontSize: 16}}>Save Changes</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{backgroundColor: 'rgba(142,36,170,0.2)', borderRadius: 12, padding: 14, alignItems: 'center', borderWidth: 1, borderColor: '#8E24AA'}}
+              onPress={() => { setShowProfileModal(false); setScreen('classSelect'); }}
+            >
+              <Text style={{color: '#8E24AA', fontWeight: 'bold', fontSize: 16}}>Switch Class</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" backgroundColor="#1A1A2E" />
@@ -9081,6 +9156,7 @@ const navigateTo = (newScreen) => {
         </View>
       </Modal>
 
+          {profileModal}
           {/* Google Sign-In Modal - Works on Android */}
           <Modal visible={showGoogleModal} transparent animationType="fade">
             <View style={styles.modalOverlay}>

@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ganita Prakash - NCERT Class 6 & Class 7 Mathematics</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&family=Orbitron:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary: #00d4ff;
+            --secondary: #ff00ff;
+            --accent: #00ff88;
+            --dark: #0a0a1a;
+            --darker: #050510;
+        }
+        html { scroll-behavior: smooth; }
+        body { font-family: 'Poppins', sans-serif; background: var(--darker); color: #fff; overflow-x: hidden; }
+
+        /* Animated Background */
+        .bg-animation {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;
+            background: radial-gradient(ellipse at 20% 50%, rgba(0,212,255,0.08) 0%, transparent 50%),
+                        radial-gradient(ellipse at 80% 20%, rgba(255,0,255,0.06) 0%, transparent 50%),
+                        radial-gradient(ellipse at 50% 80%, rgba(0,255,136,0.05) 0%, transparent 50%),
+                        var(--darker);
+        }
+        .stars { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; }
+        .star {
+            position: absolute; border-radius: 50%; background: #fff;
+            animation: twinkle var(--duration) infinite alternate;
+        }
+        @keyframes twinkle { 0% { opacity: 0.2; } 100% { opacity: 1; } }
+
+        /* Navbar */
+        nav {
+            position: fixed; top: 0; width: 100%; z-index: 1000;
+            background: rgba(5,5,16,0.85); backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(0,212,255,0.15);
+            padding: 15px 0;
+        }
+        .nav-container {
+            max-width: 1200px; margin: 0 auto; padding: 0 30px;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .nav-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+        .nav-logo img { width: 40px; height: 40px; border-radius: 10px; }
+        .nav-logo span { font-family: 'Orbitron', monospace; font-weight: 700; font-size: 18px; color: var(--primary); }
+        .nav-links { display: flex; gap: 30px; list-style: none; }
+        .nav-links a {
+            color: #aaa; text-decoration: none; font-size: 14px; font-weight: 500;
+            transition: color 0.3s; position: relative;
+        }
+        .nav-links a:hover { color: var(--primary); }
+        .nav-cta {
+            padding: 10px 24px; border-radius: 25px; border: none;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: #fff; font-weight: 600; font-size: 14px; cursor: pointer;
+            text-decoration: none; transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .nav-cta:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(0,212,255,0.4); }
+
+        /* Hero Section */
+        .hero {
+            min-height: 100vh; display: flex; align-items: center; justify-content: center;
+            text-align: center; padding: 120px 30px 80px;
+            position: relative;
+        }
+        .hero-content { max-width: 800px; }
+        .hero-badge {
+            display: inline-block; padding: 8px 20px; border-radius: 25px;
+            background: rgba(0,212,255,0.1); border: 1px solid rgba(0,212,255,0.3);
+            font-size: 13px; color: var(--primary); font-weight: 500; margin-bottom: 25px;
+            font-family: 'Orbitron', monospace;
+        }
+        .hero h1 {
+            font-family: 'Orbitron', monospace; font-size: clamp(36px, 6vw, 72px);
+            font-weight: 900; line-height: 1.1; margin-bottom: 20px;
+            background: linear-gradient(135deg, #fff 0%, var(--primary) 50%, var(--secondary) 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .hero p { font-size: 18px; color: #aaa; line-height: 1.7; margin-bottom: 40px; max-width: 600px; margin-left: auto; margin-right: auto; }
+        .hero-buttons { display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; }
+        .btn-primary {
+            padding: 16px 36px; border-radius: 12px; border: none;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: #fff; font-weight: 700; font-size: 16px; cursor: pointer;
+            text-decoration: none; transition: all 0.3s; display: inline-flex; align-items: center; gap: 10px;
+        }
+        .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 10px 30px rgba(0,212,255,0.4); }
+        .btn-secondary {
+            padding: 16px 36px; border-radius: 12px;
+            border: 2px solid rgba(0,212,255,0.4); background: rgba(0,212,255,0.05);
+            color: var(--primary); font-weight: 700; font-size: 16px; cursor: pointer;
+            text-decoration: none; transition: all 0.3s; display: inline-flex; align-items: center; gap: 10px;
+        }
+        .btn-secondary:hover { background: rgba(0,212,255,0.15); transform: translateY(-3px); }
+        .hero-stats {
+            display: flex; justify-content: center; gap: 50px; margin-top: 60px;
+            padding-top: 40px; border-top: 1px solid rgba(255,255,255,0.05);
+        }
+        .hero-stat h3 { font-family: 'Orbitron', monospace; font-size: 36px; color: var(--primary); }
+        .hero-stat p { font-size: 13px; color: #888; margin-top: 5px; }
+
+        /* Section Styles */
+        section { padding: 100px 30px; }
+        .section-header { text-align: center; margin-bottom: 60px; }
+        .section-tag {
+            display: inline-block; padding: 6px 16px; border-radius: 20px;
+            background: rgba(0,212,255,0.1); border: 1px solid rgba(0,212,255,0.2);
+            font-size: 12px; color: var(--primary); font-family: 'Orbitron', monospace;
+            font-weight: 600; letter-spacing: 2px; margin-bottom: 15px;
+        }
+        .section-header h2 {
+            font-family: 'Orbitron', monospace; font-size: clamp(28px, 4vw, 42px);
+            font-weight: 800; margin-bottom: 15px;
+        }
+        .section-header p { font-size: 16px; color: #888; max-width: 600px; margin: 0 auto; }
+
+        /* Features Grid */
+        .features-grid {
+            max-width: 1200px; margin: 0 auto;
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+        }
+        .feature-card {
+            background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 16px; padding: 30px; transition: all 0.4s;
+            position: relative; overflow: hidden;
+        }
+        .feature-card:hover {
+            border-color: rgba(0,212,255,0.3); transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+        .feature-card::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            opacity: 0; transition: opacity 0.4s;
+        }
+        .feature-card:hover::before { opacity: 1; }
+        .feature-icon {
+            width: 50px; height: 50px; border-radius: 12px; display: flex;
+            align-items: center; justify-content: center; font-size: 24px;
+            margin-bottom: 20px;
+        }
+        .feature-card h3 { font-size: 18px; font-weight: 700; margin-bottom: 10px; }
+        .feature-card p { font-size: 14px; color: #888; line-height: 1.6; }
+
+        /* Festival Section */
+        .festival-section { background: rgba(0,212,255,0.02); }
+        .festival-grid {
+            max-width: 1000px; margin: 0 auto;
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px;
+        }
+        .festival-card {
+            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 16px; padding: 25px; text-align: center; transition: all 0.4s;
+        }
+        .festival-card:hover { border-color: rgba(255,0,255,0.4); transform: scale(1.05); }
+        .festival-emoji { font-size: 48px; margin-bottom: 12px; display: block; }
+        .festival-card h4 { font-size: 15px; font-weight: 600; margin-bottom: 6px; color: var(--primary); }
+        .festival-card p { font-size: 12px; color: #888; }
+
+        /* Birthday Section */
+        .birthday-section { position: relative; }
+        .birthday-showcase {
+            max-width: 600px; margin: 0 auto; text-align: center;
+            background: linear-gradient(135deg, rgba(255,0,255,0.08), rgba(0,212,255,0.08));
+            border: 2px solid rgba(255,0,255,0.2); border-radius: 24px;
+            padding: 50px 30px; position: relative; overflow: hidden;
+        }
+        .birthday-showcase::before {
+            content: ''; position: absolute; top: -50%; left: -50%;
+            width: 200%; height: 200%;
+            background: conic-gradient(from 0deg, transparent, rgba(255,0,255,0.1), transparent, rgba(0,212,255,0.1), transparent);
+            animation: birthdayRotate 8s linear infinite;
+        }
+        @keyframes birthdayRotate { 100% { transform: rotate(360deg); } }
+        .birthday-content { position: relative; z-index: 1; }
+        .birthday-cake { font-size: 80px; margin-bottom: 20px; display: block; }
+        .birthday-content h3 { font-family: 'Orbitron', monospace; font-size: 24px; margin-bottom: 10px; color: var(--secondary); }
+        .birthday-content p { color: #aaa; font-size: 15px; line-height: 1.7; }
+
+        /* Chapters Section */
+        .chapters-scroll {
+            max-width: 1200px; margin: 0 auto;
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;
+        }
+        .chapter-card {
+            background: linear-gradient(135deg, rgba(0,212,255,0.05), rgba(255,0,255,0.03));
+            border: 1px solid rgba(0,212,255,0.15); border-radius: 16px;
+            padding: 25px; transition: all 0.4s; cursor: default;
+        }
+        .chapter-card:hover { border-color: var(--primary); transform: translateY(-4px); box-shadow: 0 15px 30px rgba(0,0,0,0.3); }
+        .chapter-num {
+            font-family: 'Orbitron', monospace; font-size: 12px; color: var(--primary);
+            font-weight: 700; margin-bottom: 8px; letter-spacing: 2px;
+        }
+        .chapter-card h4 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+        .chapter-card p { font-size: 13px; color: #888; line-height: 1.5; }
+
+        /* CTA Section */
+        .cta-section {
+            text-align: center; padding: 120px 30px;
+            background: linear-gradient(180deg, transparent 0%, rgba(0,212,255,0.05) 50%, transparent 100%);
+        }
+        .cta-section h2 { font-family: 'Orbitron', monospace; font-size: clamp(28px, 5vw, 48px); font-weight: 900; margin-bottom: 20px; }
+        .cta-section p { font-size: 18px; color: #aaa; margin-bottom: 40px; max-width: 500px; margin-left: auto; margin-right: auto; }
+        .cta-buttons { display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; }
+
+        /* Footer */
+        footer {
+            text-align: center; padding: 40px 30px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+        footer p { font-size: 13px; color: #666; }
+        footer a { color: var(--primary); text-decoration: none; }
+
+        /* Animations */
+        .fade-up {
+            opacity: 0; transform: translateY(30px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        .fade-up.visible { opacity: 1; transform: translateY(0); }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav-links { display: none; }
+            .hero-stats { flex-direction: column; gap: 20px; }
+            .features-grid { grid-template-columns: 1fr; }
+            .hero-buttons { flex-direction: column; align-items: center; }
+        }
+
+        /* Floating particles */
+        .floating-particle {
+            position: fixed; border-radius: 50%; pointer-events: none;
+            animation: floatUp linear infinite;
+        }
+        @keyframes floatUp {
+            0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(-100vh) rotate(720deg); opacity: 0; }
+        }
+
+        /* Confetti for birthday */
+        .confetti-piece {
+            position: absolute; width: 8px; height: 8px; border-radius: 2px;
+            animation: confettiFall 3s ease-out infinite;
+        }
+        @keyframes confettiFall {
+            0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(400px) rotate(720deg); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-animation"></div>
+    <div class="stars" id="stars"></div>
+
+    <!-- Navbar -->
+    <nav>
+        <div class="nav-container">
+            <a href="#" class="nav-logo">
+                <img src="logo.png" alt="Logo">
+                <span>GANITA PRAKASH</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="#features">Features</a></li>
+                <li><a href="#chapters">Chapters</a></li>
+                <li><a href="#festivals">Celebrations</a></li>
+                <li><a href="#communication">Communication</a></li>
+            </ul>
+            <a href="https://session-cloner-app-rclopkey.devinapps.com/GanitaPrakash.apk" class="nav-cta" download="https://session-cloner-app-7b8yxlgi.devinapps.com/GanitaPrakash.apk">Download APK</a>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content fade-up">
+            <span class="hero-badge">NCERT CLASS VI & VII MATHEMATICS</span>
+            <h1>Ganita Prakash</h1>
+            <p>The ultimate interactive learning app for Class 6 & Class 7 Mathematics. Choose your class after login and master every chapter with quizzes, AI assistance, live communication, and beautiful certificates.</p>
+            <div class="hero-buttons">
+                                <a href="https://session-cloner-app-rclopkey.devinapps.com/GanitaPrakash.apk" class="btn-primary" download="https://session-cloner-app-7b8yxlgi.devinapps.com/GanitaPrakash.apk">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                    Download APK
+                                </a>
+                            <a href="https://ganita-prakash-math-learning.web.app" target="_blank" class="btn-secondary">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                                Open Web App
+                            </a>
+                        </div>
+                        <div class="hero-stats">
+                <div class="hero-stat">
+                    <h3>25+</h3>
+                    <p>CHAPTERS</p>
+                </div>
+                <div class="hero-stat">
+                        <h3>1000+</h3>
+                        <p>QUIZ QUESTIONS</p>
+                </div>
+                <div class="hero-stat">
+                    <h3>AI</h3>
+                    <p>POWERED</p>
+                </div>
+                <div class="hero-stat">
+                    <h3>24/7</h3>
+                    <p>LEARNING</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features">
+        <div class="section-header fade-up">
+            <span class="section-tag">FEATURES</span>
+            <h2>Everything You Need to Learn</h2>
+            <p>A comprehensive suite of tools designed to make mathematics learning interactive, engaging, and fun.</p>
+        </div>
+        <div class="features-grid">
+            <div class="feature-card fade-up">
+                <div class="feature-icon" style="background:rgba(0,212,255,0.1);">📖</div>
+                <h3>25 Complete Chapters</h3>
+                <p>10 Class 6 + 15 Class 7 NCERT Mathematics chapters with detailed topics, explanations, and interactive content for thorough understanding.</p>
+            </div>
+            <div class="feature-card fade-up">
+                <div class="feature-icon" style="background:rgba(255,0,255,0.1);">📝</div>
+                <h3>MCQ + Photo-Verified Exams</h3>
+                <p>5-phase exams: MCQ, Case-Based, Very Short, Short &amp; Long Answer. Written answers verified by AI using photo capture + OCR. Progressive chapter unlocking!</p>
+            </div>
+            <div class="feature-card fade-up">
+                <div class="feature-icon" style="background:rgba(0,255,136,0.1);">🤖</div>
+                <h3>AI Assistant (Grok)</h3>
+                <p>Powered by Grok AI. Ask any math question, get instant explanations in multiple languages including Hindi, Telugu, and more.</p>
+            </div>
+            <div class="feature-card fade-up">
+                <div class="feature-icon" style="background:rgba(255,165,0,0.1);">📞</div>
+                <h3>WebRTC Audio/Video Calling</h3>
+                <p>Real-time audio and video calls between students and admin. Built-in native calling with ringtone, mute, speaker, and camera controls.</p>
+            </div>
+            <div class="feature-card fade-up">
+                <div class="feature-icon" style="background:rgba(255,0,100,0.1);">💬</div>
+                <h3>Live Chat & Voice Messages</h3>
+                <p>Direct messaging with admin. Send text messages and voice recordings. Real-time updates with auto-refresh.</p>
+            </div>
+            <div class="feature-card fade-up">
+                <div class="feature-icon" style="background:rgba(100,0,255,0.1);">🖥️</div>
+                <h3>Live Screen Sharing</h3>
+                <p>During exams, student screens are shared with admin for monitoring. Ensures academic integrity with real-time oversight.</p>
+            </div>
+            <div class="feature-card fade-up">
+                <div class="feature-icon" style="background:rgba(0,200,200,0.1);">🏆</div>
+                <h3>Certificates & Progress</h3>
+                <p>Earn beautiful certificates for each chapter and the final exam. Track your progress with detailed stats and completion percentage.</p>
+            </div>
+            <div class="feature-card fade-up">
+                <div class="feature-icon" style="background:rgba(200,200,0,0.1);">🔒</div>
+                <h3>Chapter Locking System</h3>
+                <p>Progressive learning: complete each chapter before moving to the next. Admin can unlock chapters for all students.</p>
+            </div>
+            <div class="feature-card fade-up">
+                <div class="feature-icon" style="background:rgba(0,150,255,0.1);">📱</div>
+                <h3>APK + Web App</h3>
+                <p>Available as Android APK and web application. Both fully synced with the same backend. Learn anywhere, anytime.</p>
+            </div>
+            <div class="feature-card fade-up">
+                <div class="feature-icon" style="background:rgba(255,100,0,0.1);">🔐</div>
+                <h3>Google Sign-In + Email</h3>
+                <p>Login with Google account or email/password. Secure authentication with JWT tokens. Profile editing for all users.</p>
+            </div>
+            <div class="feature-card fade-up">
+                <div class="feature-icon" style="background:rgba(0,255,200,0.1);">🎵</div>
+                <h3>Phone Ringtone for Calls</h3>
+                <p>Incoming calls use your phone's default ringtone with vibration. All permissions requested upfront on first launch.</p>
+            </div>
+            <div class="feature-card fade-up">
+                <div class="feature-icon" style="background:rgba(255,50,50,0.1);">👨‍💼</div>
+                <h3>Admin Dashboard</h3>
+                <p>Full admin panel: manage users, monitor exams, initiate calls, send messages, unlock chapters, view screen shares, and more.</p>
+            </div>
+            <div class="feature-card fade-up">
+                <div class="feature-icon" style="background:rgba(150,0,255,0.1);">🔍</div>
+                <h3>AI Cheating Detection</h3>
+                <p>Grok AI monitors student behavior during exams. Auto-submits exam with warning message if cheating is detected.</p>
+            </div>
+            <div class="feature-card fade-up">
+                <div class="feature-icon" style="background:rgba(0,255,100,0.1);">📄</div>
+                <h3>Inbuilt PDF Viewer</h3>
+                <p>Chapter textbooks and PDFs open directly inside the app. No need for external apps. Full-screen reading mode available.</p>
+            </div>
+            <div class="feature-card fade-up">
+                <div class="feature-icon" style="background:rgba(255,200,0,0.1);">🎬</div>
+                <h3>Video Lessons</h3>
+                <p>Each chapter includes video content for visual learning. Inbuilt video player with full-screen support.</p>
+            </div>
+            <div class="feature-card fade-up">
+                <div class="feature-icon" style="background:rgba(0,100,255,0.1);">🧊</div>
+                <h3>3D Models</h3>
+                <p>Interactive 3D models for all 25 chapters across both classes. Progressive unlocking tied to chapter completion. Explore math concepts visually!</p>
+            </div>
+            <div class="feature-card fade-up">
+                <div class="feature-icon" style="background:rgba(255,0,200,0.1);">🌍</div>
+                <h3>Multi-Language AI</h3>
+                <p>AI Assistant supports Hindi, Telugu, Tamil, Kannada, Malayalam, Bengali, Marathi, Gujarati, Urdu, and English.</p>
+            </div>
+            <div class="feature-card fade-up">
+                <div class="feature-icon" style="background:rgba(100,255,0,0.1);">🛡️</div>
+                <h3>Security Hardened</h3>
+                <p>Penetration tested. Protected against SQL injection, XSS, user enumeration. Rate limiting on all sensitive endpoints.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Chapters Section -->
+    <section id="chapters" style="background: rgba(0,212,255,0.01);">
+        <div class="section-header fade-up">
+            <span class="section-tag">CURRICULUM</span>
+            <h2>Class 6 & Class 7 Chapters</h2>
+            <p>Complete coverage of NCERT Class 6 (10 chapters) and Class 7 (15 chapters) Mathematics syllabus with interactive quizzes.</p>
+        </div>
+        <div class="chapters-scroll">
+            <div class="chapter-card fade-up">
+                <div class="chapter-num">CHAPTER 01</div>
+                <h4>Patterns in Mathematics</h4>
+                <p>Discover the beauty of patterns in numbers, shapes, and nature.</p>
+            </div>
+            <div class="chapter-card fade-up">
+                <div class="chapter-num">CHAPTER 02</div>
+                <h4>Lines and Angles</h4>
+                <p>Explore types of lines, angles, and their measurements.</p>
+            </div>
+            <div class="chapter-card fade-up">
+                <div class="chapter-num">CHAPTER 03</div>
+                <h4>Number Play</h4>
+                <p>Fun with numbers - divisibility, factors, multiples, and tricks.</p>
+            </div>
+            <div class="chapter-card fade-up">
+                <div class="chapter-num">CHAPTER 04</div>
+                <h4>Data Handling and Presentation</h4>
+                <p>Collecting, organizing, and presenting data using charts and graphs.</p>
+            </div>
+            <div class="chapter-card fade-up">
+                <div class="chapter-num">CHAPTER 05</div>
+                <h4>Prime Time</h4>
+                <p>Prime numbers, composite numbers, and prime factorization.</p>
+            </div>
+            <div class="chapter-card fade-up">
+                <div class="chapter-num">CHAPTER 06</div>
+                <h4>Perimeter and Area</h4>
+                <p>Calculate perimeter and area of different shapes and figures.</p>
+            </div>
+            <div class="chapter-card fade-up">
+                <div class="chapter-num">CHAPTER 07</div>
+                <h4>Fractions</h4>
+                <p>Understanding fractions, operations, and real-world applications.</p>
+            </div>
+            <div class="chapter-card fade-up">
+                <div class="chapter-num">CHAPTER 08</div>
+                <h4>Playing with Constructions</h4>
+                <p>Geometric constructions using compass, ruler, and protractor.</p>
+            </div>
+            <div class="chapter-card fade-up">
+                <div class="chapter-num">CHAPTER 09</div>
+                <h4>Symmetry</h4>
+                <p>Line symmetry, rotational symmetry, and patterns in nature.</p>
+            </div>
+            <div class="chapter-card fade-up">
+                <div class="chapter-num">CHAPTER 10</div>
+                <h4>The Other Side of Zero</h4>
+                <p>Introduction to negative numbers and the number line.</p>
+            </div>
+        </div>
+        <div class="section-header fade-up" style="margin-top:60px;">
+            <span class="section-tag" style="background:rgba(233,69,96,0.1);border-color:rgba(233,69,96,0.3);color:#E94560;">CLASS VII</span>
+            <h2 style="color:#E94560;">15 NCERT Class 7 Chapters</h2>
+        </div>
+        <div class="chapters-scroll">
+            <div class="chapter-card fade-up" style="border-color:rgba(233,69,96,0.15);">
+                <div class="chapter-num" style="color:#E94560;">CHAPTER 01</div>
+                <h4>Large Numbers Around Us</h4>
+                <p>Exploring lakhs, crores, place value, patterns in products, and real-world applications of big numbers.</p>
+            </div>
+            <div class="chapter-card fade-up" style="border-color:rgba(233,69,96,0.15);">
+                <div class="chapter-num" style="color:#E94560;">CHAPTER 02</div>
+                <h4>Arithmetic Expressions</h4>
+                <p>Understanding and evaluating expressions, order of operations, and reading complex mathematical phrases.</p>
+            </div>
+            <div class="chapter-card fade-up" style="border-color:rgba(233,69,96,0.15);">
+                <div class="chapter-num" style="color:#E94560;">CHAPTER 03</div>
+                <h4>A Peek Beyond the Point</h4>
+                <p>Introduction to decimals - tenths, hundredths, place value, units of measurement, and arithmetic with decimals.</p>
+            </div>
+            <div class="chapter-card fade-up" style="border-color:rgba(233,69,96,0.15);">
+                <div class="chapter-num" style="color:#E94560;">CHAPTER 04</div>
+                <h4>Expressions Using Letter-Numbers</h4>
+                <p>Algebraic thinking - using letters to represent unknowns, forming and simplifying expressions.</p>
+            </div>
+            <div class="chapter-card fade-up" style="border-color:rgba(233,69,96,0.15);">
+                <div class="chapter-num" style="color:#E94560;">CHAPTER 05</div>
+                <h4>Parallel and Intersecting Lines</h4>
+                <p>Intersecting lines, perpendicular lines, parallel lines, transversals, and corresponding angles.</p>
+            </div>
+            <div class="chapter-card fade-up" style="border-color:rgba(233,69,96,0.15);">
+                <div class="chapter-num" style="color:#E94560;">CHAPTER 06</div>
+                <h4>Number Play</h4>
+                <p>Number patterns, parity, grid explorations, Virahanka-Fibonacci sequence, and digit puzzles.</p>
+            </div>
+            <div class="chapter-card fade-up" style="border-color:rgba(233,69,96,0.15);">
+                <div class="chapter-num" style="color:#E94560;">CHAPTER 07</div>
+                <h4>A Tale of Three Intersecting Lines</h4>
+                <p>Properties of triangles - equilateral triangles, construction, altitudes, and types of triangles.</p>
+            </div>
+            <div class="chapter-card fade-up" style="border-color:rgba(233,69,96,0.15);">
+                <div class="chapter-num" style="color:#E94560;">CHAPTER 08</div>
+                <h4>Working with Fractions</h4>
+                <p>Multiplication and division of fractions with real-world applications.</p>
+            </div>
+            <div class="chapter-card fade-up" style="border-color:rgba(233,69,96,0.15);">
+                <div class="chapter-num" style="color:#E94560;">CHAPTER 09</div>
+                <h4>Geometric Twins</h4>
+                <p>Understanding congruence - congruent figures, congruence of triangles, and criteria for congruence.</p>
+            </div>
+            <div class="chapter-card fade-up" style="border-color:rgba(233,69,96,0.15);">
+                <div class="chapter-num" style="color:#E94560;">CHAPTER 10</div>
+                <h4>Operations with Integers</h4>
+                <p>Recap of integers, multiplication and division of positive and negative integers.</p>
+            </div>
+            <div class="chapter-card fade-up" style="border-color:rgba(233,69,96,0.15);">
+                <div class="chapter-num" style="color:#E94560;">CHAPTER 11</div>
+                <h4>Finding Common Ground</h4>
+                <p>Highest Common Factor (HCF) and Lowest Common Multiple (LCM) - properties and applications.</p>
+            </div>
+            <div class="chapter-card fade-up" style="border-color:rgba(233,69,96,0.15);">
+                <div class="chapter-num" style="color:#E94560;">CHAPTER 12</div>
+                <h4>Another Peek Beyond the Point</h4>
+                <p>Multiplication and division of decimals - extending operations with real-world applications.</p>
+            </div>
+            <div class="chapter-card fade-up" style="border-color:rgba(233,69,96,0.15);">
+                <div class="chapter-num" style="color:#E94560;">CHAPTER 13</div>
+                <h4>Connecting the Dots</h4>
+                <p>Statistical thinking - collecting data, representative values (mean, median, mode), and interpretation.</p>
+            </div>
+            <div class="chapter-card fade-up" style="border-color:rgba(233,69,96,0.15);">
+                <div class="chapter-num" style="color:#E94560;">CHAPTER 14</div>
+                <h4>Constructions and Tilings</h4>
+                <p>Geometric constructions, perpendicular bisectors, angle bisectors, and tessellation patterns.</p>
+            </div>
+            <div class="chapter-card fade-up" style="border-color:rgba(233,69,96,0.15);">
+                <div class="chapter-num" style="color:#E94560;">CHAPTER 15</div>
+                <h4>Finding the Unknown</h4>
+                <p>Introduction to equations - balancing scales, setting up equations, and solving systematically.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Festival Wishing Section -->
+    <section id="festivals" class="festival-section">
+        <div class="section-header fade-up">
+            <span class="section-tag">CELEBRATIONS</span>
+            <h2>Festival & Holiday Wishes</h2>
+            <p>The app automatically greets you on special occasions with beautiful popups and messages.</p>
+        </div>
+        <div class="festival-grid">
+            <div class="festival-card fade-up">
+                <span class="festival-emoji">🎉</span>
+                <h4>New Year's Day</h4>
+                <p>January 1</p>
+            </div>
+            <div class="festival-card fade-up">
+                <span class="festival-emoji">🙏</span>
+                <h4>Guru Gobind Singh Jayanti</h4>
+                <p>January 5</p>
+            </div>
+            <div class="festival-card fade-up">
+                <span class="festival-emoji">🔥</span>
+                <h4>Lohri</h4>
+                <p>January 13</p>
+            </div>
+            <div class="festival-card fade-up">
+                <span class="festival-emoji">🌾</span>
+                <h4>Pongal / Makar Sankranti</h4>
+                <p>January 14</p>
+            </div>
+            <div class="festival-card fade-up">
+                <span class="festival-emoji">📚</span>
+                <h4>Basant Panchami</h4>
+                <p>January 23</p>
+            </div>
+            <div class="festival-card fade-up">
+                <span class="festival-emoji">🇮🇳</span>
+                <h4>Republic Day</h4>
+                <p>January 26</p>
+            </div>
+            <div class="festival-card fade-up">
+                <span class="festival-emoji">🔱</span>
+                <h4>Maha Shivaratri</h4>
+                <p>February 15</p>
+            </div>
+            <div class="festival-card fade-up">
+                <span class="festival-emoji">🎨</span>
+                <h4>Holi</h4>
+                <p>March 4</p>
+            </div>
+            <div class="festival-card fade-up">
+                <span class="festival-emoji">🌸</span>
+                <h4>Ugadi / Gudi Padwa</h4>
+                <p>March 19</p>
+            </div>
+            <div class="festival-card fade-up">
+                <span class="festival-emoji">🏹</span>
+                <h4>Ram Navami</h4>
+                <p>March 26</p>
+            </div>
+            <div class="festival-card fade-up">
+                <span class="festival-emoji">🐒</span>
+                <h4>Hanuman Jayanti</h4>
+                <p>April 2</p>
+            </div>
+            <div class="festival-card fade-up">
+                <span class="festival-emoji">🌾</span>
+                <h4>Baisakhi</h4>
+                <p>April 14</p>
+            </div>
+            <div class="festival-card fade-up">
+                <span class="festival-emoji">🪷</span>
+                <h4>Buddha Purnima</h4>
+                <p>May 1</p>
+            </div>
+            <div class="festival-card fade-up">
+                <span class="festival-emoji">🛕</span>
+                <h4>Jagannath Rath Yatra</h4>
+                <p>July 16</p>
+            </div>
+            <div class="festival-card fade-up">
+                <span class="festival-emoji">🇮🇳</span>
+                <h4>Independence Day</h4>
+                <p>August 15</p>
+            </div>
+            <div class="festival-card fade-up">
+                <span class="festival-emoji">🎀</span>
+                <h4>Raksha Bandhan</h4>
+                <p>August 28</p>
+            </div>
+            <div class="festival-card fade-up">
+                <span class="festival-emoji">🦚</span>
+                <h4>Janmashtami</h4>
+                <p>September 4</p>
+            </div>
+            <div class="festival-card fade-up">
+                <span class="festival-emoji">🐘</span>
+                <h4>Ganesh Chaturthi</h4>
+                <p>September 14</p>
+            </div>
+            <div class="festival-card fade-up">
+                <span class="festival-emoji">👩‍🏫</span>
+                <h4>Teachers' Day</h4>
+                <p>September 15</p>
+            </div>
+            <div class="festival-card fade-up">
+                <span class="festival-emoji">🕊️</span>
+                <h4>Gandhi Jayanti</h4>
+                <p>October 2</p>
+            </div>
+            <div class="festival-card fade-up">
+                <span class="festival-emoji">🏹</span>
+                <h4>Dussehra</h4>
+                <p>October 20</p>
+            </div>
+            <div class="festival-card fade-up">
+                <span class="festival-emoji">🪔</span>
+                <h4>Diwali</h4>
+                <p>November 8</p>
+            </div>
+            <div class="festival-card fade-up">
+                <span class="festival-emoji">👫</span>
+                <h4>Bhai Dooj</h4>
+                <p>November 10</p>
+            </div>
+            <div class="festival-card fade-up">
+                <span class="festival-emoji">👧</span>
+                <h4>Children's Day</h4>
+                <p>November 14</p>
+            </div>
+            <div class="festival-card fade-up">
+                <span class="festival-emoji">🌅</span>
+                <h4>Chhath Puja</h4>
+                <p>November 15</p>
+            </div>
+            <div class="festival-card fade-up">
+                <span class="festival-emoji">🙏</span>
+                <h4>Guru Nanak Jayanti</h4>
+                <p>November 24</p>
+            </div>
+            <div class="festival-card fade-up">
+                <span class="festival-emoji">🎄</span>
+                <h4>Christmas</h4>
+                <p>December 25</p>
+            </div>
+            <div class="festival-card fade-up">
+                <span class="festival-emoji">🥂</span>
+                <h4>New Year's Eve</h4>
+                <p>December 31</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Birthday Wishing Section -->
+    <section class="birthday-section">
+        <div class="section-header fade-up">
+            <span class="section-tag">SPECIAL</span>
+            <h2>Birthday Wishes</h2>
+            <p>Students receive a personalized birthday greeting when they open the app on their special day.</p>
+        </div>
+        <div class="birthday-showcase fade-up">
+            <div class="birthday-content">
+                <span class="birthday-cake">🎂</span>
+                <h3>Happy Birthday!</h3>
+                <p>The app remembers your date of birth and surprises you with a beautiful birthday popup, complete with confetti animation and a warm message from the Ganita Prakash team. Every student feels special on their big day!</p>
+                <div style="margin-top:25px;display:flex;gap:15px;justify-content:center;flex-wrap:wrap;">
+                    <span style="padding:8px 16px;border-radius:20px;background:rgba(255,0,255,0.1);border:1px solid rgba(255,0,255,0.3);font-size:13px;">🎈 Confetti Animation</span>
+                    <span style="padding:8px 16px;border-radius:20px;background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.3);font-size:13px;">🎁 Personalized Message</span>
+                    <span style="padding:8px 16px;border-radius:20px;background:rgba(0,255,136,0.1);border:1px solid rgba(0,255,136,0.3);font-size:13px;">🎵 Special Greeting</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Communication Section -->
+    <section id="communication" style="background: rgba(255,0,255,0.01);">
+        <div class="section-header fade-up">
+            <span class="section-tag">COMMUNICATION</span>
+            <h2>Stay Connected</h2>
+            <p>Seamless communication between students and teachers with multiple channels.</p>
+        </div>
+        <div class="features-grid" style="max-width:900px;">
+            <div class="feature-card fade-up">
+                <div class="feature-icon" style="background:rgba(0,212,255,0.1);">📞</div>
+                <h3>Audio Calling</h3>
+                <p>Crystal-clear voice calls using WebRTC technology. Works like WhatsApp with ringtone, mute, and speaker controls.</p>
+            </div>
+            <div class="feature-card fade-up">
+                <div class="feature-icon" style="background:rgba(255,0,255,0.1);">📹</div>
+                <h3>Video Calling</h3>
+                <p>Face-to-face video calls between student and admin. Camera flip, picture-in-picture, and full-screen remote video.</p>
+            </div>
+            <div class="feature-card fade-up">
+                <div class="feature-icon" style="background:rgba(0,255,136,0.1);">💬</div>
+                <h3>Text Chat</h3>
+                <p>Instant messaging with admin. Send and receive text messages in real-time with auto-refresh.</p>
+            </div>
+            <div class="feature-card fade-up">
+                <div class="feature-icon" style="background:rgba(255,165,0,0.1);">🎤</div>
+                <h3>Voice Messages</h3>
+                <p>Record and send voice messages when typing isn't convenient. Play received voice messages with one tap.</p>
+            </div>
+            <div class="feature-card fade-up">
+                <div class="feature-icon" style="background:rgba(255,50,50,0.1);">🖥️</div>
+                <h3>Screen Monitoring</h3>
+                <p>Admin can monitor student screens during exams. Live screen sharing with system permission for full transparency.</p>
+            </div>
+            <div class="feature-card fade-up">
+                <div class="feature-icon" style="background:rgba(100,0,255,0.1);">🔔</div>
+                <h3>Push Notifications</h3>
+                <p>Receive instant notifications for incoming calls, messages, and important updates even when the app is in background.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section">
+        <div class="fade-up">
+            <h2>Start Learning Today</h2>
+            <p>Download the app or open the web version to begin your mathematics journey.</p>
+            <div class="cta-buttons">
+                                <a href="https://session-cloner-app-rclopkey.devinapps.com/GanitaPrakash.apk" class="btn-primary" download="https://session-cloner-app-7b8yxlgi.devinapps.com/GanitaPrakash.apk">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                    Download Android APK
+                                </a>
+                <a href="https://ganita-prakash-math-learning.web.app" target="_blank" class="btn-secondary">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                    Open Web App
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <p>Ganita Prakash &copy; 2026 | NCERT Class VI & VII Mathematics | Built by Ganita Prakash Team</p>
+    </footer>
+
+    <script>
+        // Generate stars
+        (function() {
+            var starsEl = document.getElementById('stars');
+            for (var i = 0; i < 100; i++) {
+                var star = document.createElement('div');
+                star.className = 'star';
+                var size = Math.random() * 2 + 1;
+                star.style.cssText = 'width:' + size + 'px;height:' + size + 'px;top:' + (Math.random() * 100) + '%;left:' + (Math.random() * 100) + '%;--duration:' + (Math.random() * 3 + 1) + 's;animation-delay:' + (Math.random() * 3) + 's;';
+                starsEl.appendChild(star);
+            }
+        })();
+
+        // Floating particles
+        (function() {
+            var colors = ['rgba(0,212,255,0.3)', 'rgba(255,0,255,0.3)', 'rgba(0,255,136,0.3)'];
+            for (var i = 0; i < 8; i++) {
+                var p = document.createElement('div');
+                p.className = 'floating-particle';
+                var size = Math.random() * 4 + 2;
+                p.style.cssText = 'width:' + size + 'px;height:' + size + 'px;left:' + (Math.random() * 100) + '%;background:' + colors[Math.floor(Math.random() * colors.length)] + ';animation-duration:' + (Math.random() * 15 + 10) + 's;animation-delay:' + (Math.random() * 10) + 's;';
+                document.body.appendChild(p);
+            }
+        })();
+
+        // Fade-up animation on scroll
+        var observer = new IntersectionObserver(function(entries) {
+            entries.forEach(function(entry) {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+        document.querySelectorAll('.fade-up').forEach(function(el) { observer.observe(el); });
+
+        // Today's festival check
+        (function() {
+            var today = new Date();
+            var m = today.getMonth() + 1;
+            var d = today.getDate();
+            var festivals = {
+                '1-1': { name: 'Happy New Year 2026!', emoji: '🎉' },
+                '1-5': { name: 'Happy Guru Gobind Singh Jayanti!', emoji: '🙏' },
+                '1-13': { name: 'Happy Lohri!', emoji: '🔥' },
+                '1-14': { name: 'Happy Pongal / Makar Sankranti!', emoji: '🌾' },
+                '1-23': { name: 'Happy Basant Panchami!', emoji: '📚' },
+                '1-26': { name: 'Happy Republic Day! Jai Hind!', emoji: '🇮🇳' },
+                '2-15': { name: 'Om Namah Shivaya! Happy Maha Shivaratri!', emoji: '🔱' },
+                '3-3': { name: 'Happy Holika Dahan!', emoji: '🔥' },
+                '3-4': { name: 'Happy Holi!', emoji: '🎨' },
+                '3-19': { name: 'Happy Ugadi / Gudi Padwa!', emoji: '🌸' },
+                '3-26': { name: 'Happy Ram Navami! Jai Shri Ram!', emoji: '🏹' },
+                '3-31': { name: 'Happy Mahavir Jayanti!', emoji: '🙏' },
+                '4-2': { name: 'Happy Hanuman Jayanti!', emoji: '🐒' },
+                '4-14': { name: 'Happy Baisakhi!', emoji: '🌾' },
+                '5-1': { name: 'Happy Buddha Purnima!', emoji: '🪷' },
+                '7-16': { name: 'Happy Rath Yatra! Jai Jagannath!', emoji: '🛕' },
+                '7-29': { name: 'Happy Guru Purnima!', emoji: '👨‍🏫' },
+                '8-15': { name: 'Happy Independence Day! Jai Hind!', emoji: '🇮🇳' },
+                '8-28': { name: 'Happy Raksha Bandhan!', emoji: '🎀' },
+                '9-4': { name: 'Happy Janmashtami! Jai Shri Krishna!', emoji: '🦚' },
+                '9-14': { name: 'Ganpati Bappa Morya!', emoji: '🐘' },
+                '9-15': { name: 'Happy Teachers\' Day!', emoji: '👩‍🏫' },
+                '10-2': { name: 'Happy Gandhi Jayanti!', emoji: '🕊️' },
+                '10-20': { name: 'Happy Dussehra!', emoji: '🏹' },
+                '11-8': { name: 'Happy Diwali!', emoji: '🪔' },
+                '11-10': { name: 'Happy Bhai Dooj!', emoji: '👫' },
+                '11-14': { name: 'Happy Children\'s Day!', emoji: '👧' },
+                '11-15': { name: 'Happy Chhath Puja!', emoji: '🌅' },
+                '11-24': { name: 'Happy Guru Nanak Jayanti!', emoji: '🙏' },
+                '12-25': { name: 'Merry Christmas!', emoji: '🎄' },
+                '12-31': { name: 'Happy New Year\'s Eve!', emoji: '🥂' }
+            };
+            var key = m + '-' + d;
+            if (festivals[key]) {
+                var banner = document.createElement('div');
+                banner.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);z-index:999;background:linear-gradient(135deg,rgba(255,0,255,0.9),rgba(0,212,255,0.9));padding:15px 30px;border-radius:12px;text-align:center;animation:slideDown 0.5s ease-out;max-width:90%;';
+                banner.innerHTML = '<span style="font-size:24px;">' + festivals[key].emoji + '</span> <span style="font-weight:700;font-size:16px;margin-left:8px;">' + festivals[key].name + '</span>';
+                document.body.appendChild(banner);
+                setTimeout(function() { banner.style.opacity = '0'; banner.style.transition = 'opacity 1s'; setTimeout(function() { banner.remove(); }, 1000); }, 5000);
+            }
+        })();
+    </script>
+</body>
+</html>
