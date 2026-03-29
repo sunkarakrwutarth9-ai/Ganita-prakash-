@@ -7415,7 +7415,7 @@ const navigateTo = (newScreen) => {
                     <TouchableOpacity 
                       style={[styles.resourceCard, {backgroundColor: '#EC4899'}]}
                       onPress={() => {
-                        const media = chapterMedia[currentChapter.id];
+                        const media = selectedClass === '7' ? chapterMedia7[currentChapter.id] : chapterMedia[currentChapter.id];
                         if (media && media.tbUrl) {
                           setPdfTitle(media.tbTitle || 'Maths T.B.');
                           setPdfUrl(media.tbUrl);
@@ -7435,7 +7435,7 @@ const navigateTo = (newScreen) => {
                     <TouchableOpacity 
                       style={[styles.resourceCard, {backgroundColor: '#F97316'}]}
                       onPress={() => {
-                        const media = chapterMedia[currentChapter.id];
+                        const media = selectedClass === '7' ? chapterMedia7[currentChapter.id] : chapterMedia[currentChapter.id];
                         if (media && media.pptUrl) {
                           openPDF(currentChapter.id, media.pptTitle, setShowPdfViewer, setPdfBase64, setPdfTitle, setPdfUrl);
                         } else {
@@ -7453,7 +7453,7 @@ const navigateTo = (newScreen) => {
           <TouchableOpacity 
             style={[styles.resourceCard, {backgroundColor: '#14B8A6'}]}
             onPress={() => {
-              const media = chapterMedia[currentChapter.id];
+              const media = selectedClass === '7' ? chapterMedia7[currentChapter.id] : chapterMedia[currentChapter.id];
               if (media && media.videoUrl) {
                 openVideo(currentChapter.id, media.title + ' Video', setShowVideoPlayer, setVideoBase64, setVideoTitle, setVideoUrl);
               } else {
@@ -8684,7 +8684,7 @@ const navigateTo = (newScreen) => {
       try {
         await fetch(`${API_URL}/api/webrtc/end-call`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
           body: JSON.stringify({ call_id: activeCall })
         });
       } catch (error) {
@@ -8704,7 +8704,7 @@ const navigateTo = (newScreen) => {
     try {
       const response = await fetch(`${API_URL}/admin/gemini-call`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
         body: JSON.stringify({ user_id: user.id, action: 'initiate_call' })
       });
       if (response.ok) {
