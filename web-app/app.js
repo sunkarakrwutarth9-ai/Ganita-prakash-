@@ -5551,7 +5551,9 @@ function renderFormulaVideos() {
 }
 
 // ============================================
-// WHITEBOARD FEATURE
+// WHITEBOARD FEATURE - Ganita Prakash Sense Board
+// Inspired by Samsung S-Pen/Sense Board for smooth, pressure-sensitive drawing
+// Uses PointerEvents API, quadratic Bezier interpolation, requestAnimationFrame throttling
 // ============================================
 var whiteboardCanvas = null;
 var whiteboardCtx = null;
@@ -5568,6 +5570,10 @@ var whiteboardIsFullscreen = false;
 var whiteboardShowGrid = false;
 var whiteboardPressure = 0.5;
 var whiteboardShapeStart = null;
+var wbRafId = null; // requestAnimationFrame ID for 60fps throttling
+var wbPendingDraw = null; // pending draw operation for rAF
+var wbOffscreenCanvas = null; // offscreen canvas for compositing
+var wbOffscreenCtx = null;
 
 function renderWhiteboard() {
     var container = document.getElementById('whiteboard-container');
@@ -5576,6 +5582,12 @@ function renderWhiteboard() {
     var savedNotes = JSON.parse(localStorage.getItem('whiteboard_notes') || '[]');
     
     container.innerHTML = 
+        '<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">' +
+            '<div style="font-family:Orbitron,monospace;">' +
+                '<span style="font-size:1.3em;font-weight:bold;background:linear-gradient(135deg,#00d4ff,#ff6600);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Sense Board</span>' +
+                '<span style="font-size:0.75em;color:#888;margin-left:8px;">Ganita Prakash NCERT Math</span>' +
+            '</div>' +
+        '</div>' +
         '<div id="wb-toolbar-top" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:15px;">' +
             '<button onclick="newWhiteboardNote()" style="padding:10px 20px;background:linear-gradient(135deg,#00d4ff,#0099ff);color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:Orbitron,monospace;font-weight:bold;font-size:0.9em;">+ NEW NOTE</button>' +
             '<button onclick="clearWhiteboardCanvas()" style="padding:10px 20px;background:linear-gradient(135deg,#ff4444,#cc0000);color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:Orbitron,monospace;font-weight:bold;font-size:0.9em;">CLEAR</button>' +
@@ -5709,16 +5721,19 @@ function wbPointerDown(e) {
 function wbSetStrokeStyle(pressure) {
     var pressureFactor = 0.5 + pressure;
     if (whiteboardTool === 'eraser') {
+        // Eraser paints background color to erase strokes (works with dark canvas background)
         whiteboardCtx.strokeStyle = '#1a1a2e';
         whiteboardCtx.lineWidth = whiteboardSize * 5;
         whiteboardCtx.globalAlpha = 1;
         whiteboardCtx.globalCompositeOperation = 'source-over';
     } else if (whiteboardTool === 'highlighter') {
+        // Highlighter: semi-transparent overlay
         whiteboardCtx.strokeStyle = whiteboardColor;
         whiteboardCtx.lineWidth = whiteboardSize * 4 * pressureFactor;
         whiteboardCtx.globalAlpha = 0.3;
         whiteboardCtx.globalCompositeOperation = 'source-over';
     } else {
+        // Pen: pressure-sensitive width and opacity (S-Pen/Sense Board style)
         whiteboardCtx.strokeStyle = whiteboardColor;
         whiteboardCtx.lineWidth = whiteboardSize * pressureFactor;
         whiteboardCtx.globalAlpha = Math.min(1, 0.4 + pressure * 0.6);
@@ -5743,10 +5758,26 @@ function wbPointerMove(e) {
     // Collect points for smooth curve drawing
     whiteboardPoints.push(pos);
     
-    // Update pressure-based width dynamically
-    wbSetStrokeStyle(whiteboardPressure);
+    // Use requestAnimationFrame for 60fps throttled drawing (Sense Board performance)
+    wbPendingDraw = { pos: pos, pressure: whiteboardPressure };
+    if (!wbRafId) {
+        wbRafId = requestAnimationFrame(wbRenderFrame);
+    }
+}
+
+// requestAnimationFrame callback - draws at 60fps max for smooth Sense Board performance
+function wbRenderFrame() {
+    wbRafId = null;
+    if (!wbPendingDraw || !whiteboardDrawing) return;
     
-    // Smooth curve drawing using quadratic Bezier interpolation (S-Pen style)
+    var pos = wbPendingDraw.pos;
+    var pressure = wbPendingDraw.pressure;
+    wbPendingDraw = null;
+    
+    // Update pressure-based width dynamically
+    wbSetStrokeStyle(pressure);
+    
+    // Smooth curve drawing using quadratic Bezier interpolation (S-Pen/Sense Board style)
     if (whiteboardPoints.length >= 3) {
         var p1 = whiteboardPoints[whiteboardPoints.length - 3];
         var p2 = whiteboardPoints[whiteboardPoints.length - 2];
@@ -5771,6 +5802,26 @@ function wbPointerUp(e) {
     if (!whiteboardDrawing) return;
     
     if (e && e.pointerType === 'pen') whiteboardCanvas.removeAttribute('data-pen-active');
+    
+    // Cancel any pending rAF
+    if (wbRafId) { cancelAnimationFrame(wbRafId); wbRafId = null; }
+    wbPendingDraw = null;
+    
+    // Flush any remaining points before finalizing
+    if (whiteboardPoints.length >= 2 && whiteboardTool !== 'line' && whiteboardTool !== 'rect' && whiteboardTool !== 'circle') {
+        var lastPt = whiteboardPoints[whiteboardPoints.length - 1];
+        wbSetStrokeStyle(whiteboardPressure);
+        if (whiteboardPoints.length >= 3) {
+            var p1 = whiteboardPoints[whiteboardPoints.length - 3];
+            var p2 = whiteboardPoints[whiteboardPoints.length - 2];
+            var midX = (p2.x + lastPt.x) / 2;
+            var midY = (p2.y + lastPt.y) / 2;
+            whiteboardCtx.beginPath();
+            whiteboardCtx.moveTo((p1.x + p2.x) / 2, (p1.y + p2.y) / 2);
+            whiteboardCtx.quadraticCurveTo(p2.x, p2.y, midX, midY);
+            whiteboardCtx.stroke();
+        }
+    }
     
     // Finalize shape drawing
     if ((whiteboardTool === 'line' || whiteboardTool === 'rect' || whiteboardTool === 'circle') && whiteboardShapeStart) {
