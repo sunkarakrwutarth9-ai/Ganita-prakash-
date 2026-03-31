@@ -8,7 +8,7 @@
 const CLAUDE_API_KEY = '';
 
 // Backend API URL - must be at top before any functions use it
-const API_URL = "https://app-lqmnnlxp.fly.dev";
+const API_URL = "https://app-wjhbjpii.fly.dev";
 
 function sanitizeHTML(str) {
     if (!str) return '';
@@ -5441,6 +5441,7 @@ function showSection(section) {
         'progress': 'progress-section',
         'final-exam': 'final-exam-section',
         'formula-videos': 'formula-videos-section',
+        'whiteboard': 'whiteboard-section',
         'certificates': 'certificates-section',
         'certificate': 'certificates-section',
         '3d-models': '3d-models-section',
@@ -5475,6 +5476,7 @@ function showSection(section) {
     if (section === 'chat') { if (typeof loadChatMessages === 'function') loadChatMessages(); if (typeof startUserChatRefresh === 'function') startUserChatRefresh(); }
     if (section === 'admin' && appState.isAdmin) { if (typeof loadAdminDashboard === 'function') loadAdminDashboard(); if (typeof startAdminChatRefresh === 'function') startAdminChatRefresh(); if (typeof startScreenSharePolling === 'function') startScreenSharePolling(); if (typeof startScreenShareAutoConnect === 'function') startScreenShareAutoConnect(); }
     if (section === 'ai-assistant' && typeof renderAIMessages === 'function') renderAIMessages();
+    if (section === 'whiteboard') renderWhiteboard();
 }
 
 // Render chapters grid
@@ -5546,6 +5548,623 @@ function renderFormulaVideos() {
             </div>
         `;
     }).join('');
+}
+
+// ============================================
+// WHITEBOARD FEATURE - Ganita Prakash Sense Board
+// Inspired by Samsung S-Pen/Sense Board for smooth, pressure-sensitive drawing
+// Uses PointerEvents API, quadratic Bezier interpolation, requestAnimationFrame throttling
+// ============================================
+var whiteboardCanvas = null;
+var whiteboardCtx = null;
+var whiteboardDrawing = false;
+var whiteboardColor = '#00d4ff';
+var whiteboardSize = 3;
+var whiteboardTool = 'pen';
+var whiteboardHistory = [];
+var whiteboardRedoStack = [];
+var whiteboardCurrentNote = null;
+var whiteboardLastPos = null;
+var whiteboardPoints = [];
+var whiteboardIsFullscreen = false;
+var whiteboardShowGrid = false;
+var whiteboardPressure = 0.5;
+var whiteboardShapeStart = null;
+var wbRafId = null; // requestAnimationFrame ID for 60fps throttling
+var wbPendingDraw = null; // pending draw operation for rAF
+var wbOffscreenCanvas = null; // offscreen canvas for compositing
+var wbOffscreenCtx = null;
+
+function renderWhiteboard() {
+    var container = document.getElementById('whiteboard-container');
+    if (!container) return;
+    
+    var savedNotes = JSON.parse(localStorage.getItem('whiteboard_notes') || '[]');
+    
+    container.innerHTML = 
+        '<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">' +
+            '<div style="font-family:Orbitron,monospace;">' +
+                '<span style="font-size:1.3em;font-weight:bold;background:linear-gradient(135deg,#00d4ff,#ff6600);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Sense Board</span>' +
+                '<span style="font-size:0.75em;color:#888;margin-left:8px;">Ganita Prakash NCERT Math</span>' +
+            '</div>' +
+        '</div>' +
+        '<div id="wb-toolbar-top" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:15px;">' +
+            '<button onclick="newWhiteboardNote()" style="padding:10px 20px;background:linear-gradient(135deg,#00d4ff,#0099ff);color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:Orbitron,monospace;font-weight:bold;font-size:0.9em;">+ NEW NOTE</button>' +
+            '<button onclick="clearWhiteboardCanvas()" style="padding:10px 20px;background:linear-gradient(135deg,#ff4444,#cc0000);color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:Orbitron,monospace;font-weight:bold;font-size:0.9em;">CLEAR</button>' +
+            '<button onclick="saveWhiteboardNote()" style="padding:10px 20px;background:linear-gradient(135deg,#00ff88,#00cc66);color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:Orbitron,monospace;font-weight:bold;font-size:0.9em;">SAVE</button>' +
+            '<button onclick="undoWhiteboard()" style="padding:10px 15px;background:#333;color:#fff;border:1px solid #555;border-radius:8px;cursor:pointer;font-size:1.1em;" title="Undo">&#8617;</button>' +
+            '<button onclick="redoWhiteboard()" style="padding:10px 15px;background:#333;color:#fff;border:1px solid #555;border-radius:8px;cursor:pointer;font-size:1.1em;" title="Redo">&#8618;</button>' +
+            '<button onclick="downloadWhiteboardNote()" style="padding:10px 15px;background:#333;color:#fff;border:1px solid #555;border-radius:8px;cursor:pointer;font-size:0.9em;font-family:Orbitron,monospace;" title="Download as PNG">DOWNLOAD</button>' +
+            '<button onclick="toggleWhiteboardGrid()" id="wb-grid-btn" style="padding:10px 15px;background:#333;color:#fff;border:1px solid #555;border-radius:8px;cursor:pointer;font-size:0.9em;font-family:Orbitron,monospace;" title="Toggle Grid">GRID</button>' +
+            '<button onclick="toggleWhiteboardFullscreen()" id="wb-fullscreen-btn" style="padding:10px 20px;background:linear-gradient(135deg,#ff6600,#ff9900);color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:Orbitron,monospace;font-weight:bold;font-size:0.9em;" title="Fullscreen Mode">&#x26F6; FULLSCREEN</button>' +
+        '</div>' +
+        '<div id="wb-toolbar-tools" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:15px;align-items:center;">' +
+            '<label style="color:#aaa;font-size:0.9em;">Tool:</label>' +
+            '<button id="wb-pen" onclick="setWhiteboardTool(\'pen\')" style="padding:8px 16px;background:#00d4ff;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:0.85em;">Pen</button>' +
+            '<button id="wb-eraser" onclick="setWhiteboardTool(\'eraser\')" style="padding:8px 16px;background:#555;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:0.85em;">Eraser</button>' +
+            '<button id="wb-highlighter" onclick="setWhiteboardTool(\'highlighter\')" style="padding:8px 16px;background:#555;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:0.85em;">Highlighter</button>' +
+            '<button id="wb-text" onclick="setWhiteboardTool(\'text\')" style="padding:8px 16px;background:#555;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:0.85em;">Text</button>' +
+            '<button id="wb-line" onclick="setWhiteboardTool(\'line\')" style="padding:8px 16px;background:#555;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:0.85em;">Line</button>' +
+            '<button id="wb-rect" onclick="setWhiteboardTool(\'rect\')" style="padding:8px 16px;background:#555;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:0.85em;">Rect</button>' +
+            '<button id="wb-circle" onclick="setWhiteboardTool(\'circle\')" style="padding:8px 16px;background:#555;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:0.85em;">Circle</button>' +
+            '<label style="color:#aaa;font-size:0.9em;margin-left:10px;">Color:</label>' +
+            '<input type="color" id="wb-color" value="#00d4ff" onchange="whiteboardColor=this.value" style="width:36px;height:36px;border:none;border-radius:6px;cursor:pointer;background:transparent;">' +
+            '<label style="color:#aaa;font-size:0.9em;margin-left:10px;">Size:</label>' +
+            '<input type="range" id="wb-size" min="1" max="30" value="3" onchange="whiteboardSize=parseInt(this.value)" style="width:100px;">' +
+        '</div>' +
+        '<div id="wb-canvas-wrapper" style="border:2px solid #333;border-radius:12px;overflow:hidden;background:#1a1a2e;position:relative;">' +
+            '<canvas id="whiteboard-canvas" style="display:block;width:100%;cursor:crosshair;touch-action:none;"></canvas>' +
+        '</div>' +
+        (savedNotes.length > 0 ? 
+            '<h3 style="color:#00d4ff;margin-top:25px;font-family:Orbitron,monospace;">SAVED NOTES</h3>' +
+            '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:15px;margin-top:10px;">' +
+                savedNotes.map(function(note, i) {
+                    return '<div style="background:#1a1a2e;border:1px solid #333;border-radius:12px;padding:10px;cursor:pointer;transition:all 0.3s;" onmouseover="this.style.borderColor=\'#00d4ff\'" onmouseout="this.style.borderColor=\'#333\'">' +
+                        '<img src="' + note.thumbnail + '" style="width:100%;border-radius:8px;margin-bottom:8px;" onclick="loadWhiteboardNote(' + i + ')">' +
+                        '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+                            '<span style="color:#aaa;font-size:0.8em;">' + note.date + '</span>' +
+                            '<div>' +
+                                '<button onclick="loadWhiteboardNote(' + i + ')" style="background:none;border:none;color:#00d4ff;cursor:pointer;font-size:1.1em;" title="Open">&#9998;</button>' +
+                                '<button onclick="deleteWhiteboardNote(' + i + ')" style="background:none;border:none;color:#ff4444;cursor:pointer;font-size:1.1em;" title="Delete">&#10006;</button>' +
+                            '</div>' +
+                        '</div>' +
+                        '<div style="color:#fff;font-size:0.85em;margin-top:4px;">' + (note.name || 'Untitled Note') + '</div>' +
+                    '</div>';
+                }).join('') +
+            '</div>'
+        : '');
+    
+    initWhiteboardCanvas();
+}
+
+function initWhiteboardCanvas() {
+    whiteboardCanvas = document.getElementById('whiteboard-canvas');
+    if (!whiteboardCanvas) return;
+    
+    var container = whiteboardCanvas.parentElement;
+    var dpr = window.devicePixelRatio || 1;
+    var displayWidth = container.offsetWidth;
+    var displayHeight = Math.max(500, window.innerHeight * 0.5);
+    whiteboardCanvas.width = displayWidth * dpr;
+    whiteboardCanvas.height = displayHeight * dpr;
+    whiteboardCanvas.style.width = displayWidth + 'px';
+    whiteboardCanvas.style.height = displayHeight + 'px';
+    whiteboardCtx = whiteboardCanvas.getContext('2d');
+    whiteboardCtx.scale(dpr, dpr);
+    whiteboardCtx.fillStyle = '#1a1a2e';
+    whiteboardCtx.fillRect(0, 0, displayWidth, displayHeight);
+    if (whiteboardShowGrid) drawWhiteboardGrid();
+    whiteboardHistory = [];
+    whiteboardRedoStack = [];
+    saveWhiteboardState();
+    
+    // Use PointerEvents for pressure sensitivity (S-Pen, Apple Pencil, Wacom)
+    whiteboardCanvas.addEventListener('pointerdown', wbPointerDown);
+    whiteboardCanvas.addEventListener('pointermove', wbPointerMove);
+    whiteboardCanvas.addEventListener('pointerup', wbPointerUp);
+    whiteboardCanvas.addEventListener('pointerleave', wbPointerUp);
+    whiteboardCanvas.addEventListener('pointercancel', wbPointerUp);
+    // Prevent default touch behavior for palm rejection
+    whiteboardCanvas.addEventListener('touchstart', function(e) { e.preventDefault(); }, {passive: false});
+    whiteboardCanvas.addEventListener('touchmove', function(e) { e.preventDefault(); }, {passive: false});
+    
+    // Listen for fullscreen change to resize canvas
+    document.addEventListener('fullscreenchange', onWhiteboardFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', onWhiteboardFullscreenChange);
+}
+
+function getCanvasPos(e) {
+    var rect = whiteboardCanvas.getBoundingClientRect();
+    return {
+        x: (e.clientX - rect.left),
+        y: (e.clientY - rect.top)
+    };
+}
+
+// PointerEvent handlers for pressure-sensitive smooth drawing (S-Pen/Apple Pencil style)
+function wbPointerDown(e) {
+    // Palm rejection: ignore touch events when using a pen
+    if (e.pointerType === 'touch' && whiteboardCanvas.hasAttribute('data-pen-active')) return;
+    if (e.pointerType === 'pen') whiteboardCanvas.setAttribute('data-pen-active', 'true');
+    
+    e.preventDefault();
+    whiteboardCanvas.setPointerCapture(e.pointerId);
+    
+    if (whiteboardTool === 'text') {
+        var pos = getCanvasPos(e);
+        var text = prompt('Enter text:');
+        if (text) {
+            whiteboardCtx.font = (whiteboardSize * 5) + 'px Arial';
+            whiteboardCtx.fillStyle = whiteboardColor;
+            whiteboardCtx.fillText(text, pos.x, pos.y);
+            saveWhiteboardState();
+        }
+        return;
+    }
+    
+    whiteboardDrawing = true;
+    whiteboardPressure = e.pressure || 0.5;
+    whiteboardLastPos = getCanvasPos(e);
+    whiteboardPoints = [whiteboardLastPos];
+    
+    // Shape tools: save starting point and snapshot
+    if (whiteboardTool === 'line' || whiteboardTool === 'rect' || whiteboardTool === 'circle') {
+        whiteboardShapeStart = whiteboardLastPos;
+        whiteboardShapeSnapshot = whiteboardCanvas.toDataURL();
+        return;
+    }
+    
+    // Set stroke properties for pen/eraser/highlighter
+    wbSetStrokeStyle(e.pressure || 0.5);
+}
+
+function wbSetStrokeStyle(pressure) {
+    var pressureFactor = 0.5 + pressure;
+    if (whiteboardTool === 'eraser') {
+        // Eraser paints background color to erase strokes (works with dark canvas background)
+        whiteboardCtx.strokeStyle = '#1a1a2e';
+        whiteboardCtx.lineWidth = whiteboardSize * 5;
+        whiteboardCtx.globalAlpha = 1;
+        whiteboardCtx.globalCompositeOperation = 'source-over';
+    } else if (whiteboardTool === 'highlighter') {
+        // Highlighter: semi-transparent overlay
+        whiteboardCtx.strokeStyle = whiteboardColor;
+        whiteboardCtx.lineWidth = whiteboardSize * 4 * pressureFactor;
+        whiteboardCtx.globalAlpha = 0.3;
+        whiteboardCtx.globalCompositeOperation = 'source-over';
+    } else {
+        // Pen: pressure-sensitive width and opacity (S-Pen/Sense Board style)
+        whiteboardCtx.strokeStyle = whiteboardColor;
+        whiteboardCtx.lineWidth = whiteboardSize * pressureFactor;
+        whiteboardCtx.globalAlpha = Math.min(1, 0.4 + pressure * 0.6);
+        whiteboardCtx.globalCompositeOperation = 'source-over';
+    }
+    whiteboardCtx.lineCap = 'round';
+    whiteboardCtx.lineJoin = 'round';
+}
+
+function wbPointerMove(e) {
+    if (!whiteboardDrawing) return;
+    e.preventDefault();
+    var pos = getCanvasPos(e);
+    whiteboardPressure = e.pressure || 0.5;
+    
+    // Shape tools: preview on top of snapshot
+    if (whiteboardTool === 'line' || whiteboardTool === 'rect' || whiteboardTool === 'circle') {
+        wbDrawShapePreview(pos);
+        return;
+    }
+    
+    // Collect points for smooth curve drawing
+    whiteboardPoints.push(pos);
+    
+    // Use requestAnimationFrame for 60fps throttled drawing (Sense Board performance)
+    wbPendingDraw = { pos: pos, pressure: whiteboardPressure };
+    if (!wbRafId) {
+        wbRafId = requestAnimationFrame(wbRenderFrame);
+    }
+}
+
+// requestAnimationFrame callback - draws at 60fps max for smooth Sense Board performance
+function wbRenderFrame() {
+    wbRafId = null;
+    if (!wbPendingDraw || !whiteboardDrawing) return;
+    
+    var pos = wbPendingDraw.pos;
+    var pressure = wbPendingDraw.pressure;
+    wbPendingDraw = null;
+    
+    // Update pressure-based width dynamically
+    wbSetStrokeStyle(pressure);
+    
+    // Smooth curve drawing using quadratic Bezier interpolation (S-Pen/Sense Board style)
+    if (whiteboardPoints.length >= 3) {
+        var p1 = whiteboardPoints[whiteboardPoints.length - 3];
+        var p2 = whiteboardPoints[whiteboardPoints.length - 2];
+        var p3 = pos;
+        var midX = (p2.x + p3.x) / 2;
+        var midY = (p2.y + p3.y) / 2;
+        whiteboardCtx.beginPath();
+        whiteboardCtx.moveTo((p1.x + p2.x) / 2, (p1.y + p2.y) / 2);
+        whiteboardCtx.quadraticCurveTo(p2.x, p2.y, midX, midY);
+        whiteboardCtx.stroke();
+    } else {
+        // First segment: simple line
+        whiteboardCtx.beginPath();
+        whiteboardCtx.moveTo(whiteboardLastPos.x, whiteboardLastPos.y);
+        whiteboardCtx.lineTo(pos.x, pos.y);
+        whiteboardCtx.stroke();
+    }
+    whiteboardLastPos = pos;
+}
+
+function wbPointerUp(e) {
+    if (!whiteboardDrawing) return;
+    
+    if (e && e.pointerType === 'pen') whiteboardCanvas.removeAttribute('data-pen-active');
+    
+    // Cancel any pending rAF
+    if (wbRafId) { cancelAnimationFrame(wbRafId); wbRafId = null; }
+    wbPendingDraw = null;
+    
+    // Flush any remaining points before finalizing
+    if (whiteboardPoints.length >= 2 && whiteboardTool !== 'line' && whiteboardTool !== 'rect' && whiteboardTool !== 'circle') {
+        var lastPt = whiteboardPoints[whiteboardPoints.length - 1];
+        wbSetStrokeStyle(whiteboardPressure);
+        if (whiteboardPoints.length >= 3) {
+            var p1 = whiteboardPoints[whiteboardPoints.length - 3];
+            var p2 = whiteboardPoints[whiteboardPoints.length - 2];
+            var midX = (p2.x + lastPt.x) / 2;
+            var midY = (p2.y + lastPt.y) / 2;
+            whiteboardCtx.beginPath();
+            whiteboardCtx.moveTo((p1.x + p2.x) / 2, (p1.y + p2.y) / 2);
+            whiteboardCtx.quadraticCurveTo(p2.x, p2.y, midX, midY);
+            whiteboardCtx.stroke();
+        }
+    }
+    
+    // Finalize shape drawing
+    if ((whiteboardTool === 'line' || whiteboardTool === 'rect' || whiteboardTool === 'circle') && whiteboardShapeStart) {
+        var pos = e ? getCanvasPos(e) : whiteboardLastPos;
+        wbFinalizeShape(pos);
+    }
+    
+    whiteboardDrawing = false;
+    whiteboardCtx.globalAlpha = 1;
+    whiteboardCtx.globalCompositeOperation = 'source-over';
+    whiteboardPoints = [];
+    whiteboardShapeStart = null;
+    saveWhiteboardState();
+}
+
+// Shape preview: restore snapshot and draw shape outline
+function wbDrawShapePreview(pos) {
+    if (!whiteboardShapeSnapshot || !whiteboardShapeStart) return;
+    var img = new Image();
+    img.onload = function() {
+        var dpr = window.devicePixelRatio || 1;
+        whiteboardCtx.save();
+        whiteboardCtx.setTransform(1, 0, 0, 1, 0, 0);
+        whiteboardCtx.clearRect(0, 0, whiteboardCanvas.width, whiteboardCanvas.height);
+        whiteboardCtx.drawImage(img, 0, 0);
+        whiteboardCtx.restore();
+        whiteboardCtx.strokeStyle = whiteboardColor;
+        whiteboardCtx.lineWidth = whiteboardSize;
+        whiteboardCtx.globalAlpha = 1;
+        whiteboardCtx.lineCap = 'round';
+        whiteboardCtx.lineJoin = 'round';
+        var sx = whiteboardShapeStart.x, sy = whiteboardShapeStart.y;
+        if (whiteboardTool === 'line') {
+            whiteboardCtx.beginPath();
+            whiteboardCtx.moveTo(sx, sy);
+            whiteboardCtx.lineTo(pos.x, pos.y);
+            whiteboardCtx.stroke();
+        } else if (whiteboardTool === 'rect') {
+            whiteboardCtx.strokeRect(sx, sy, pos.x - sx, pos.y - sy);
+        } else if (whiteboardTool === 'circle') {
+            var rx = Math.abs(pos.x - sx) / 2;
+            var ry = Math.abs(pos.y - sy) / 2;
+            var cx = (sx + pos.x) / 2;
+            var cy = (sy + pos.y) / 2;
+            whiteboardCtx.beginPath();
+            whiteboardCtx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+            whiteboardCtx.stroke();
+        }
+    };
+    img.src = whiteboardShapeSnapshot;
+}
+
+function wbFinalizeShape(pos) {
+    // Final draw is already visible from last preview
+    wbDrawShapePreview(pos);
+}
+
+var whiteboardShapeSnapshot = null;
+
+function saveWhiteboardState() {
+    if (!whiteboardCanvas) return;
+    whiteboardHistory.push(whiteboardCanvas.toDataURL());
+    whiteboardRedoStack = [];
+    if (whiteboardHistory.length > 50) whiteboardHistory.shift();
+}
+
+function undoWhiteboard() {
+    if (whiteboardHistory.length <= 1) return;
+    whiteboardRedoStack.push(whiteboardHistory.pop());
+    var img = new Image();
+    img.onload = function() {
+        whiteboardCtx.clearRect(0, 0, whiteboardCanvas.width, whiteboardCanvas.height);
+        whiteboardCtx.drawImage(img, 0, 0);
+    };
+    img.src = whiteboardHistory[whiteboardHistory.length - 1];
+}
+
+function redoWhiteboard() {
+    if (whiteboardRedoStack.length === 0) return;
+    var state = whiteboardRedoStack.pop();
+    whiteboardHistory.push(state);
+    var img = new Image();
+    img.onload = function() {
+        whiteboardCtx.clearRect(0, 0, whiteboardCanvas.width, whiteboardCanvas.height);
+        whiteboardCtx.drawImage(img, 0, 0);
+    };
+    img.src = state;
+}
+
+function setWhiteboardTool(tool) {
+    whiteboardTool = tool;
+    var tools = ['pen', 'eraser', 'highlighter', 'text', 'line', 'rect', 'circle'];
+    tools.forEach(function(t) {
+        var btn = document.getElementById('wb-' + t);
+        if (btn) btn.style.background = (t === tool) ? '#00d4ff' : '#555';
+    });
+}
+
+function clearWhiteboardCanvas() {
+    if (!whiteboardCanvas || !whiteboardCtx) return;
+    if (!confirm('Clear the whiteboard?')) return;
+    whiteboardCtx.fillStyle = '#1a1a2e';
+    whiteboardCtx.fillRect(0, 0, whiteboardCanvas.width, whiteboardCanvas.height);
+    saveWhiteboardState();
+}
+
+function newWhiteboardNote() {
+    whiteboardCurrentNote = null;
+    if (whiteboardCanvas && whiteboardCtx) {
+        whiteboardCtx.fillStyle = '#1a1a2e';
+        whiteboardCtx.fillRect(0, 0, whiteboardCanvas.width, whiteboardCanvas.height);
+        whiteboardHistory = [];
+        whiteboardRedoStack = [];
+        saveWhiteboardState();
+    }
+}
+
+function saveWhiteboardNote() {
+    if (!whiteboardCanvas) return;
+    var name = prompt('Note name:', whiteboardCurrentNote !== null ? (JSON.parse(localStorage.getItem('whiteboard_notes') || '[]')[whiteboardCurrentNote] || {}).name || '' : '');
+    if (name === null) return;
+    if (!name) name = 'Untitled Note';
+    
+    var savedNotes = JSON.parse(localStorage.getItem('whiteboard_notes') || '[]');
+    var noteData = {
+        name: name,
+        data: whiteboardCanvas.toDataURL(),
+        thumbnail: whiteboardCanvas.toDataURL('image/jpeg', 0.3),
+        date: new Date().toLocaleDateString(),
+        width: whiteboardCanvas.width,
+        height: whiteboardCanvas.height
+    };
+    
+    if (whiteboardCurrentNote !== null && whiteboardCurrentNote < savedNotes.length) {
+        savedNotes[whiteboardCurrentNote] = noteData;
+    } else {
+        savedNotes.push(noteData);
+        whiteboardCurrentNote = savedNotes.length - 1;
+    }
+    
+    localStorage.setItem('whiteboard_notes', JSON.stringify(savedNotes));
+    renderWhiteboard();
+    if (whiteboardCurrentNote !== null) loadWhiteboardNote(whiteboardCurrentNote);
+}
+
+function loadWhiteboardNote(index) {
+    var savedNotes = JSON.parse(localStorage.getItem('whiteboard_notes') || '[]');
+    if (index >= savedNotes.length) return;
+    
+    whiteboardCurrentNote = index;
+    var note = savedNotes[index];
+    
+    if (!whiteboardCanvas) initWhiteboardCanvas();
+    
+    var img = new Image();
+    img.onload = function() {
+        whiteboardCanvas.width = note.width || whiteboardCanvas.parentElement.offsetWidth;
+        whiteboardCanvas.height = note.height || 500;
+        whiteboardCtx.drawImage(img, 0, 0);
+        whiteboardHistory = [whiteboardCanvas.toDataURL()];
+        whiteboardRedoStack = [];
+    };
+    img.src = note.data;
+}
+
+function deleteWhiteboardNote(index) {
+    if (!confirm('Delete this note?')) return;
+    var savedNotes = JSON.parse(localStorage.getItem('whiteboard_notes') || '[]');
+    savedNotes.splice(index, 1);
+    localStorage.setItem('whiteboard_notes', JSON.stringify(savedNotes));
+    if (whiteboardCurrentNote === index) whiteboardCurrentNote = null;
+    renderWhiteboard();
+}
+
+function downloadWhiteboardNote() {
+    if (!whiteboardCanvas) return;
+    var link = document.createElement('a');
+    link.download = 'whiteboard_note_' + new Date().toISOString().slice(0,10) + '.png';
+    link.href = whiteboardCanvas.toDataURL();
+    link.click();
+}
+
+// Fullscreen whiteboard mode using Fullscreen API
+function toggleWhiteboardFullscreen() {
+    var wrapper = document.getElementById('wb-canvas-wrapper');
+    var section = document.getElementById('whiteboard-section');
+    if (!wrapper || !section) return;
+    
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        // Enter fullscreen - make the whole whiteboard section fullscreen
+        var el = section;
+        if (el.requestFullscreen) {
+            el.requestFullscreen();
+        } else if (el.webkitRequestFullscreen) {
+            el.webkitRequestFullscreen();
+        }
+        whiteboardIsFullscreen = true;
+    } else {
+        // Exit fullscreen
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+            document.webkitExitFullscreen();
+        }
+        whiteboardIsFullscreen = false;
+    }
+}
+
+function onWhiteboardFullscreenChange() {
+    var isFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
+    whiteboardIsFullscreen = isFS;
+    var btn = document.getElementById('wb-fullscreen-btn');
+    var section = document.getElementById('whiteboard-section');
+    
+    if (isFS) {
+        // In fullscreen: dark background, expand canvas
+        if (section) {
+            section.style.background = '#0a0a1a';
+            section.style.padding = '10px';
+            section.style.overflow = 'auto';
+        }
+        if (btn) btn.innerHTML = '&#x2716; EXIT FULLSCREEN';
+        // Resize canvas to fill screen
+        resizeWhiteboardForFullscreen();
+    } else {
+        // Exited fullscreen: restore normal
+        if (section) {
+            section.style.background = '';
+            section.style.padding = '';
+            section.style.overflow = '';
+        }
+        if (btn) btn.innerHTML = '&#x26F6; FULLSCREEN';
+        // Restore canvas to normal size
+        resizeWhiteboardNormal();
+    }
+}
+
+function resizeWhiteboardForFullscreen() {
+    if (!whiteboardCanvas || !whiteboardCtx) return;
+    // Save current drawing
+    var imgData = whiteboardCanvas.toDataURL();
+    var dpr = window.devicePixelRatio || 1;
+    var toolbarHeight = 120; // approximate toolbar height
+    var newWidth = window.innerWidth - 20;
+    var newHeight = window.innerHeight - toolbarHeight;
+    
+    whiteboardCanvas.width = newWidth * dpr;
+    whiteboardCanvas.height = newHeight * dpr;
+    whiteboardCanvas.style.width = newWidth + 'px';
+    whiteboardCanvas.style.height = newHeight + 'px';
+    whiteboardCtx.setTransform(1, 0, 0, 1, 0, 0);
+    whiteboardCtx.scale(dpr, dpr);
+    whiteboardCtx.fillStyle = '#1a1a2e';
+    whiteboardCtx.fillRect(0, 0, newWidth, newHeight);
+    if (whiteboardShowGrid) drawWhiteboardGrid();
+    
+    // Restore drawing
+    var img = new Image();
+    img.onload = function() {
+        whiteboardCtx.drawImage(img, 0, 0, img.width, img.height, 0, 0, img.width / dpr, img.height / dpr);
+    };
+    img.src = imgData;
+}
+
+function resizeWhiteboardNormal() {
+    if (!whiteboardCanvas || !whiteboardCtx) return;
+    var imgData = whiteboardCanvas.toDataURL();
+    var container = whiteboardCanvas.parentElement;
+    if (!container) return;
+    var dpr = window.devicePixelRatio || 1;
+    var displayWidth = container.offsetWidth;
+    var displayHeight = Math.max(500, window.innerHeight * 0.5);
+    
+    whiteboardCanvas.width = displayWidth * dpr;
+    whiteboardCanvas.height = displayHeight * dpr;
+    whiteboardCanvas.style.width = displayWidth + 'px';
+    whiteboardCanvas.style.height = displayHeight + 'px';
+    whiteboardCtx.setTransform(1, 0, 0, 1, 0, 0);
+    whiteboardCtx.scale(dpr, dpr);
+    whiteboardCtx.fillStyle = '#1a1a2e';
+    whiteboardCtx.fillRect(0, 0, displayWidth, displayHeight);
+    if (whiteboardShowGrid) drawWhiteboardGrid();
+    
+    var img = new Image();
+    img.onload = function() {
+        whiteboardCtx.drawImage(img, 0, 0, img.width, img.height, 0, 0, img.width / dpr, img.height / dpr);
+    };
+    img.src = imgData;
+}
+
+// Grid toggle - ruled lines like a notebook (Samsung Notes style)
+function toggleWhiteboardGrid() {
+    whiteboardShowGrid = !whiteboardShowGrid;
+    var btn = document.getElementById('wb-grid-btn');
+    if (btn) btn.style.background = whiteboardShowGrid ? '#00d4ff' : '#333';
+    
+    if (whiteboardShowGrid) {
+        // Save current state, draw grid, then restore drawing on top
+        var imgData = whiteboardCanvas.toDataURL();
+        var dpr = window.devicePixelRatio || 1;
+        var w = whiteboardCanvas.width / dpr;
+        var h = whiteboardCanvas.height / dpr;
+        whiteboardCtx.fillStyle = '#1a1a2e';
+        whiteboardCtx.fillRect(0, 0, w, h);
+        drawWhiteboardGrid();
+        var img = new Image();
+        img.onload = function() {
+            // Draw old content on top of grid (but grid lines show through transparent areas)
+            whiteboardCtx.drawImage(img, 0, 0, img.width, img.height, 0, 0, w, h);
+            saveWhiteboardState();
+        };
+        img.src = imgData;
+    } else {
+        saveWhiteboardState();
+    }
+}
+
+function drawWhiteboardGrid() {
+    if (!whiteboardCtx || !whiteboardCanvas) return;
+    var dpr = window.devicePixelRatio || 1;
+    var w = whiteboardCanvas.width / dpr;
+    var h = whiteboardCanvas.height / dpr;
+    var spacing = 30;
+    
+    whiteboardCtx.save();
+    whiteboardCtx.strokeStyle = 'rgba(100, 100, 150, 0.15)';
+    whiteboardCtx.lineWidth = 0.5;
+    
+    // Vertical lines
+    for (var x = spacing; x < w; x += spacing) {
+        whiteboardCtx.beginPath();
+        whiteboardCtx.moveTo(x, 0);
+        whiteboardCtx.lineTo(x, h);
+        whiteboardCtx.stroke();
+    }
+    // Horizontal lines
+    for (var y = spacing; y < h; y += spacing) {
+        whiteboardCtx.beginPath();
+        whiteboardCtx.moveTo(0, y);
+        whiteboardCtx.lineTo(w, y);
+        whiteboardCtx.stroke();
+    }
+    whiteboardCtx.restore();
 }
 
 // Open chapter
@@ -9839,6 +10458,7 @@ showSection = function(section) {
         'progress': 'progress-section', 
         'final-exam': 'final-exam-section', 
         'formula-videos': 'formula-videos-section',
+        'whiteboard': 'whiteboard-section',
         'certificates': 'certificates-section',
         'certificate': 'certificates-section', 
         '3d-models': '3d-models-section',
@@ -9860,6 +10480,7 @@ showSection = function(section) {
     if (section === 'chat') { if (typeof loadChatMessages === 'function') loadChatMessages(); if (typeof startUserChatRefresh === 'function') startUserChatRefresh(); }
     if (section === 'admin' && appState.isAdmin) { if (typeof loadAdminDashboard === 'function') loadAdminDashboard(); if (typeof startAdminChatRefresh === 'function') startAdminChatRefresh(); if (typeof startScreenSharePolling === 'function') startScreenSharePolling(); if (typeof startScreenShareAutoConnect === 'function') startScreenShareAutoConnect(); }
     if (section === 'ai-assistant' && typeof renderAIMessages === 'function') renderAIMessages();
+    if (section === 'whiteboard' && typeof renderWhiteboard === 'function') renderWhiteboard();
 };
 
 // Override renderChapterContent removed - consolidated into final override below
