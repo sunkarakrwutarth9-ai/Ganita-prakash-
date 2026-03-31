@@ -276,7 +276,7 @@ const generate3DModelHTML = (modelType, modelName) => {
   `;
 };
 
-const API_URL = "https://app-zmatwbmr.fly.dev";
+const API_URL = "https://app-wjhbjpii.fly.dev";
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // Admin email for Google OAuth
@@ -5751,6 +5751,108 @@ const finalExam7PenPaper = [
 ];
 
 
+// Interactive Whiteboard HTML - runs in WebView with fullscreen support
+const generateWhiteboardHTML = () => `
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{background:#1a1a2e;overflow:hidden;font-family:Arial,sans-serif;touch-action:none;}
+#toolbar{display:flex;gap:6px;padding:8px;background:#16213e;flex-wrap:wrap;align-items:center;z-index:10;}
+#toolbar button{padding:8px 14px;border:none;border-radius:6px;color:#fff;font-size:13px;font-weight:bold;cursor:pointer;min-height:36px;}
+#toolbar button.active{box-shadow:0 0 8px rgba(0,212,255,0.8);}
+.tool-btn{background:#333;}
+.tool-btn.active{background:#00d4ff;}
+#colorPicker{width:36px;height:36px;border:none;border-radius:6px;cursor:pointer;background:transparent;}
+#sizeRange{width:80px;height:6px;}
+#canvas{display:block;width:100%;touch-action:none;cursor:crosshair;}
+#savedBar{display:none;padding:8px;background:#0f3460;overflow-x:auto;white-space:nowrap;}
+.saved-thumb{width:80px;height:50px;border-radius:6px;border:2px solid #333;margin-right:8px;cursor:pointer;object-fit:cover;display:inline-block;}
+.saved-thumb:hover{border-color:#00d4ff;}
+#fullscreenBtn{position:fixed;bottom:12px;right:12px;z-index:20;width:44px;height:44px;border-radius:50%;background:rgba(0,212,255,0.9);border:none;color:#fff;font-size:20px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.5);}
+</style>
+</head>
+<body>
+<div id="toolbar">
+<button class="tool-btn active" id="penBtn" onclick="setTool('pen')">Pen</button>
+<button class="tool-btn" id="eraserBtn" onclick="setTool('eraser')">Eraser</button>
+<button class="tool-btn" id="highlighterBtn" onclick="setTool('highlighter')">Highlighter</button>
+<button class="tool-btn" id="textBtn" onclick="setTool('text')">Text</button>
+<input type="color" id="colorPicker" value="#00d4ff" onchange="currentColor=this.value">
+<input type="range" id="sizeRange" min="1" max="30" value="3" onchange="currentSize=parseInt(this.value)">
+<button style="background:linear-gradient(135deg,#00d4ff,#0099ff)" onclick="saveNote()">Save</button>
+<button style="background:linear-gradient(135deg,#ff4444,#cc0000)" onclick="clearCanvas()">Clear</button>
+<button style="background:#333" onclick="undo()">&#8617;</button>
+<button style="background:#333" onclick="redo()">&#8618;</button>
+<button style="background:#333" onclick="downloadNote()">&#8595;</button>
+</div>
+<div id="savedBar"></div>
+<canvas id="canvas"></canvas>
+<button id="fullscreenBtn" onclick="toggleFullscreen()">&#x26F6;</button>
+<script>
+var canvas=document.getElementById('canvas'),ctx=canvas.getContext('2d');
+var drawing=false,lastPos=null,currentColor='#00d4ff',currentSize=3,currentTool='pen';
+var history=[],redoStack=[],savedNotes=[];
+function resize(){
+var tb=document.getElementById('toolbar'),sb=document.getElementById('savedBar');
+var h=window.innerHeight-tb.offsetHeight-(sb.style.display!=='none'?sb.offsetHeight:0);
+canvas.width=window.innerWidth;canvas.height=Math.max(h,300);
+ctx.fillStyle='#1a1a2e';ctx.fillRect(0,0,canvas.width,canvas.height);
+if(history.length>0){var img=new Image();img.onload=function(){ctx.drawImage(img,0,0);};img.src=history[history.length-1];}
+else{saveState();}
+}
+resize();window.addEventListener('resize',resize);
+function getPos(e){var r=canvas.getBoundingClientRect();var sx=canvas.width/r.width,sy=canvas.height/r.height;
+var cx,cy;if(e.touches){cx=e.touches[0].clientX;cy=e.touches[0].clientY;}else{cx=e.clientX;cy=e.clientY;}
+return{x:(cx-r.left)*sx,y:(cy-r.top)*sy};}
+function startDraw(e){e.preventDefault();if(currentTool==='text'){var p=getPos(e);var t=prompt('Enter text:');
+if(t){ctx.font=(currentSize*5)+'px Arial';ctx.fillStyle=currentColor;ctx.fillText(t,p.x,p.y);saveState();}return;}
+drawing=true;lastPos=getPos(e);
+ctx.strokeStyle=currentTool==='eraser'?'#1a1a2e':currentColor;
+ctx.lineWidth=currentTool==='eraser'?currentSize*5:currentTool==='highlighter'?currentSize*4:currentSize;
+ctx.globalAlpha=currentTool==='highlighter'?0.3:1;
+ctx.lineCap='round';ctx.lineJoin='round';}
+function moveDraw(e){e.preventDefault();if(!drawing)return;var p=getPos(e);
+var mx=(lastPos.x+p.x)/2,my=(lastPos.y+p.y)/2;
+ctx.beginPath();ctx.moveTo(lastPos.x,lastPos.y);ctx.quadraticCurveTo(lastPos.x,lastPos.y,mx,my);ctx.stroke();lastPos=p;}
+function endDraw(){if(drawing){drawing=false;ctx.globalAlpha=1;saveState();}}
+canvas.addEventListener('mousedown',startDraw);canvas.addEventListener('mousemove',moveDraw);
+canvas.addEventListener('mouseup',endDraw);canvas.addEventListener('mouseleave',endDraw);
+canvas.addEventListener('touchstart',startDraw,{passive:false});
+canvas.addEventListener('touchmove',moveDraw,{passive:false});
+canvas.addEventListener('touchend',endDraw);
+function saveState(){history.push(canvas.toDataURL());redoStack=[];if(history.length>50)history.shift();}
+function undo(){if(history.length<=1)return;redoStack.push(history.pop());
+var img=new Image();img.onload=function(){ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0);};
+img.src=history[history.length-1];}
+function redo(){if(!redoStack.length)return;var s=redoStack.pop();history.push(s);
+var img=new Image();img.onload=function(){ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0);};img.src=s;}
+function setTool(t){currentTool=t;document.querySelectorAll('.tool-btn').forEach(function(b){b.classList.remove('active');});
+document.getElementById(t+'Btn').classList.add('active');}
+function clearCanvas(){ctx.fillStyle='#1a1a2e';ctx.fillRect(0,0,canvas.width,canvas.height);saveState();}
+function saveNote(){var d=canvas.toDataURL();savedNotes.push({data:d,date:new Date().toLocaleDateString()});
+try{localStorage.setItem('wb_notes',JSON.stringify(savedNotes));}catch(e){}
+renderSaved();window.ReactNativeWebView&&window.ReactNativeWebView.postMessage(JSON.stringify({type:'saved',count:savedNotes.length}));}
+function loadNote(i){var img=new Image();img.onload=function(){canvas.width=canvas.width;
+ctx.fillStyle='#1a1a2e';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0);saveState();};
+img.src=savedNotes[i].data;}
+function renderSaved(){var bar=document.getElementById('savedBar');
+if(savedNotes.length===0){bar.style.display='none';return;}
+bar.style.display='block';bar.innerHTML='';
+savedNotes.forEach(function(n,i){var img=document.createElement('img');img.className='saved-thumb';
+img.src=n.data;img.onclick=function(){loadNote(i);};bar.appendChild(img);});}
+function downloadNote(){var a=document.createElement('a');a.download='whiteboard_'+Date.now()+'.png';
+a.href=canvas.toDataURL();a.click();}
+function toggleFullscreen(){if(!document.fullscreenElement){document.documentElement.requestFullscreen().catch(function(){});}
+else{document.exitFullscreen();}}
+try{var s=localStorage.getItem('wb_notes');if(s)savedNotes=JSON.parse(s);renderSaved();}catch(e){}
+</script>
+</body>
+</html>
+`;
+
 export default function App() {
   // Basic state
   const [screen, setScreen] = useState('login');
@@ -7279,6 +7381,13 @@ const navigateTo = (newScreen) => {
           </View>
           <Text style={styles.quickActionTitle}>Command Link</Text>
           <Text style={styles.quickActionSubtitle}>Contact base</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.quickActionCard} onPress={() => setScreen('whiteboard')}>
+          <View style={[styles.quickActionIconBox, {backgroundColor: 'rgba(0,255,136,0.15)'}]}>
+            <Text style={styles.quickActionIconText}>✎</Text>
+          </View>
+          <Text style={styles.quickActionTitle}>Whiteboard</Text>
+          <Text style={styles.quickActionSubtitle}>Draw & notes</Text>
         </TouchableOpacity>
       </View>
 
@@ -9037,6 +9146,35 @@ const navigateTo = (newScreen) => {
     </ScrollView>
   );
 
+  const renderWhiteboard = () => (
+      <View style={{flex: 1, backgroundColor: '#1A1A2E'}}>
+        <View style={{flexDirection: 'row', alignItems: 'center', padding: 12, backgroundColor: '#16213e'}}>
+          <TouchableOpacity onPress={() => setScreen('home')} style={{padding: 8}}>
+            <Text style={{color: '#00E5FF', fontSize: 22}}>{'<'}</Text>
+          </TouchableOpacity>
+          <Text style={{color: '#fff', fontSize: 18, fontWeight: 'bold', marginLeft: 10, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace'}}>WHITEBOARD</Text>
+        </View>
+        <WebView
+          source={{html: generateWhiteboardHTML()}}
+          style={{flex: 1}}
+          javaScriptEnabled={true}
+          domStorageEnabled={true}
+          allowFileAccess={true}
+          scalesPageToFit={true}
+          startInLoadingState={true}
+          originWhitelist={['*']}
+          onMessage={(event) => {
+            try {
+              const data = JSON.parse(event.nativeEvent.data);
+              if (data.type === 'saved') {
+                Alert.alert('Saved', 'Note saved successfully!');
+              }
+            } catch(e) {}
+          }}
+        />
+      </View>
+    );
+
   // Profile Modal
   const profileModal = (
     <Modal visible={showProfileModal} transparent animationType="slide">
@@ -9113,6 +9251,7 @@ const navigateTo = (newScreen) => {
       {screen === 'chat' && renderChat()}
       {screen === 'aiAssistant' && renderAIAssistant()}
       {screen === 'admin' && renderAdmin()}
+      {screen === 'whiteboard' && renderWhiteboard()}
 
       <Modal visible={showNameModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>

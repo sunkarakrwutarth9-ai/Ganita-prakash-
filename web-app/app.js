@@ -8,7 +8,7 @@
 const CLAUDE_API_KEY = '';
 
 // Backend API URL - must be at top before any functions use it
-const API_URL = "https://app-lqmnnlxp.fly.dev";
+const API_URL = "https://app-wjhbjpii.fly.dev";
 
 function sanitizeHTML(str) {
     if (!str) return '';
@@ -5441,6 +5441,7 @@ function showSection(section) {
         'progress': 'progress-section',
         'final-exam': 'final-exam-section',
         'formula-videos': 'formula-videos-section',
+        'whiteboard': 'whiteboard-section',
         'certificates': 'certificates-section',
         'certificate': 'certificates-section',
         '3d-models': '3d-models-section',
@@ -5475,6 +5476,7 @@ function showSection(section) {
     if (section === 'chat') { if (typeof loadChatMessages === 'function') loadChatMessages(); if (typeof startUserChatRefresh === 'function') startUserChatRefresh(); }
     if (section === 'admin' && appState.isAdmin) { if (typeof loadAdminDashboard === 'function') loadAdminDashboard(); if (typeof startAdminChatRefresh === 'function') startAdminChatRefresh(); if (typeof startScreenSharePolling === 'function') startScreenSharePolling(); if (typeof startScreenShareAutoConnect === 'function') startScreenShareAutoConnect(); }
     if (section === 'ai-assistant' && typeof renderAIMessages === 'function') renderAIMessages();
+    if (section === 'whiteboard') renderWhiteboard();
 }
 
 // Render chapters grid
@@ -5546,6 +5548,290 @@ function renderFormulaVideos() {
             </div>
         `;
     }).join('');
+}
+
+// ============================================
+// WHITEBOARD FEATURE
+// ============================================
+var whiteboardCanvas = null;
+var whiteboardCtx = null;
+var whiteboardDrawing = false;
+var whiteboardColor = '#00d4ff';
+var whiteboardSize = 3;
+var whiteboardTool = 'pen';
+var whiteboardHistory = [];
+var whiteboardRedoStack = [];
+var whiteboardCurrentNote = null;
+var whiteboardLastPos = null;
+
+function renderWhiteboard() {
+    var container = document.getElementById('whiteboard-container');
+    if (!container) return;
+    
+    var savedNotes = JSON.parse(localStorage.getItem('whiteboard_notes') || '[]');
+    
+    container.innerHTML = 
+        '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:15px;">' +
+            '<button onclick="newWhiteboardNote()" style="padding:10px 20px;background:linear-gradient(135deg,#00d4ff,#0099ff);color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:Orbitron,monospace;font-weight:bold;font-size:0.9em;">+ NEW NOTE</button>' +
+            '<button onclick="clearWhiteboardCanvas()" style="padding:10px 20px;background:linear-gradient(135deg,#ff4444,#cc0000);color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:Orbitron,monospace;font-weight:bold;font-size:0.9em;">CLEAR</button>' +
+            '<button onclick="saveWhiteboardNote()" style="padding:10px 20px;background:linear-gradient(135deg,#00ff88,#00cc66);color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:Orbitron,monospace;font-weight:bold;font-size:0.9em;">SAVE</button>' +
+            '<button onclick="undoWhiteboard()" style="padding:10px 15px;background:#333;color:#fff;border:1px solid #555;border-radius:8px;cursor:pointer;font-size:1.1em;" title="Undo">&#8617;</button>' +
+            '<button onclick="redoWhiteboard()" style="padding:10px 15px;background:#333;color:#fff;border:1px solid #555;border-radius:8px;cursor:pointer;font-size:1.1em;" title="Redo">&#8618;</button>' +
+            '<button onclick="downloadWhiteboardNote()" style="padding:10px 15px;background:#333;color:#fff;border:1px solid #555;border-radius:8px;cursor:pointer;font-size:0.9em;font-family:Orbitron,monospace;" title="Download as PNG">DOWNLOAD</button>' +
+        '</div>' +
+        '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:15px;align-items:center;">' +
+            '<label style="color:#aaa;font-size:0.9em;">Tool:</label>' +
+            '<button id="wb-pen" onclick="setWhiteboardTool(\'pen\')" style="padding:8px 16px;background:#00d4ff;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:0.85em;">Pen</button>' +
+            '<button id="wb-eraser" onclick="setWhiteboardTool(\'eraser\')" style="padding:8px 16px;background:#555;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:0.85em;">Eraser</button>' +
+            '<button id="wb-highlighter" onclick="setWhiteboardTool(\'highlighter\')" style="padding:8px 16px;background:#555;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:0.85em;">Highlighter</button>' +
+            '<button id="wb-text" onclick="setWhiteboardTool(\'text\')" style="padding:8px 16px;background:#555;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:0.85em;">Text</button>' +
+            '<label style="color:#aaa;font-size:0.9em;margin-left:10px;">Color:</label>' +
+            '<input type="color" id="wb-color" value="#00d4ff" onchange="whiteboardColor=this.value" style="width:36px;height:36px;border:none;border-radius:6px;cursor:pointer;background:transparent;">' +
+            '<label style="color:#aaa;font-size:0.9em;margin-left:10px;">Size:</label>' +
+            '<input type="range" id="wb-size" min="1" max="30" value="3" onchange="whiteboardSize=parseInt(this.value)" style="width:100px;">' +
+        '</div>' +
+        '<div style="border:2px solid #333;border-radius:12px;overflow:hidden;background:#1a1a2e;position:relative;">' +
+            '<canvas id="whiteboard-canvas" style="display:block;width:100%;cursor:crosshair;touch-action:none;"></canvas>' +
+        '</div>' +
+        (savedNotes.length > 0 ? 
+            '<h3 style="color:#00d4ff;margin-top:25px;font-family:Orbitron,monospace;">SAVED NOTES</h3>' +
+            '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:15px;margin-top:10px;">' +
+                savedNotes.map(function(note, i) {
+                    return '<div style="background:#1a1a2e;border:1px solid #333;border-radius:12px;padding:10px;cursor:pointer;transition:all 0.3s;" onmouseover="this.style.borderColor=\'#00d4ff\'" onmouseout="this.style.borderColor=\'#333\'">' +
+                        '<img src="' + note.thumbnail + '" style="width:100%;border-radius:8px;margin-bottom:8px;" onclick="loadWhiteboardNote(' + i + ')">' +
+                        '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+                            '<span style="color:#aaa;font-size:0.8em;">' + note.date + '</span>' +
+                            '<div>' +
+                                '<button onclick="loadWhiteboardNote(' + i + ')" style="background:none;border:none;color:#00d4ff;cursor:pointer;font-size:1.1em;" title="Open">&#9998;</button>' +
+                                '<button onclick="deleteWhiteboardNote(' + i + ')" style="background:none;border:none;color:#ff4444;cursor:pointer;font-size:1.1em;" title="Delete">&#10006;</button>' +
+                            '</div>' +
+                        '</div>' +
+                        '<div style="color:#fff;font-size:0.85em;margin-top:4px;">' + (note.name || 'Untitled Note') + '</div>' +
+                    '</div>';
+                }).join('') +
+            '</div>'
+        : '');
+    
+    initWhiteboardCanvas();
+}
+
+function initWhiteboardCanvas() {
+    whiteboardCanvas = document.getElementById('whiteboard-canvas');
+    if (!whiteboardCanvas) return;
+    
+    var container = whiteboardCanvas.parentElement;
+    whiteboardCanvas.width = container.offsetWidth;
+    whiteboardCanvas.height = Math.max(500, window.innerHeight * 0.5);
+    whiteboardCtx = whiteboardCanvas.getContext('2d');
+    whiteboardCtx.fillStyle = '#1a1a2e';
+    whiteboardCtx.fillRect(0, 0, whiteboardCanvas.width, whiteboardCanvas.height);
+    whiteboardHistory = [];
+    whiteboardRedoStack = [];
+    saveWhiteboardState();
+    
+    whiteboardCanvas.addEventListener('mousedown', wbMouseDown);
+    whiteboardCanvas.addEventListener('mousemove', wbMouseMove);
+    whiteboardCanvas.addEventListener('mouseup', wbMouseUp);
+    whiteboardCanvas.addEventListener('mouseleave', wbMouseUp);
+    whiteboardCanvas.addEventListener('touchstart', wbTouchStart, {passive: false});
+    whiteboardCanvas.addEventListener('touchmove', wbTouchMove, {passive: false});
+    whiteboardCanvas.addEventListener('touchend', wbMouseUp);
+}
+
+function getCanvasPos(e) {
+    var rect = whiteboardCanvas.getBoundingClientRect();
+    var scaleX = whiteboardCanvas.width / rect.width;
+    var scaleY = whiteboardCanvas.height / rect.height;
+    return {
+        x: (e.clientX - rect.left) * scaleX,
+        y: (e.clientY - rect.top) * scaleY
+    };
+}
+
+function wbMouseDown(e) {
+    if (whiteboardTool === 'text') {
+        var pos = getCanvasPos(e);
+        var text = prompt('Enter text:');
+        if (text) {
+            whiteboardCtx.font = (whiteboardSize * 5) + 'px Arial';
+            whiteboardCtx.fillStyle = whiteboardColor;
+            whiteboardCtx.fillText(text, pos.x, pos.y);
+            saveWhiteboardState();
+        }
+        return;
+    }
+    whiteboardDrawing = true;
+    whiteboardLastPos = getCanvasPos(e);
+    // Set stroke properties ONCE on mousedown for performance
+    if (whiteboardTool === 'eraser') {
+        whiteboardCtx.strokeStyle = '#1a1a2e';
+        whiteboardCtx.lineWidth = whiteboardSize * 5;
+        whiteboardCtx.globalAlpha = 1;
+    } else if (whiteboardTool === 'highlighter') {
+        whiteboardCtx.strokeStyle = whiteboardColor;
+        whiteboardCtx.lineWidth = whiteboardSize * 4;
+        whiteboardCtx.globalAlpha = 0.3;
+    } else {
+        whiteboardCtx.strokeStyle = whiteboardColor;
+        whiteboardCtx.lineWidth = whiteboardSize;
+        whiteboardCtx.globalAlpha = 1;
+    }
+    whiteboardCtx.lineCap = 'round';
+    whiteboardCtx.lineJoin = 'round';
+}
+
+function wbMouseMove(e) {
+    if (!whiteboardDrawing) return;
+    var pos = getCanvasPos(e);
+    // Draw individual segments for instant response (no cumulative path lag)
+    whiteboardCtx.beginPath();
+    whiteboardCtx.moveTo(whiteboardLastPos.x, whiteboardLastPos.y);
+    whiteboardCtx.lineTo(pos.x, pos.y);
+    whiteboardCtx.stroke();
+    whiteboardLastPos = pos;
+}
+
+function wbMouseUp() {
+    if (whiteboardDrawing) {
+        whiteboardDrawing = false;
+        whiteboardCtx.globalAlpha = 1;
+        saveWhiteboardState();
+    }
+}
+
+function wbTouchStart(e) {
+    e.preventDefault();
+    var touch = e.touches[0];
+    wbMouseDown({clientX: touch.clientX, clientY: touch.clientY});
+}
+
+function wbTouchMove(e) {
+    e.preventDefault();
+    var touch = e.touches[0];
+    wbMouseMove({clientX: touch.clientX, clientY: touch.clientY});
+}
+
+function saveWhiteboardState() {
+    if (!whiteboardCanvas) return;
+    whiteboardHistory.push(whiteboardCanvas.toDataURL());
+    whiteboardRedoStack = [];
+    if (whiteboardHistory.length > 50) whiteboardHistory.shift();
+}
+
+function undoWhiteboard() {
+    if (whiteboardHistory.length <= 1) return;
+    whiteboardRedoStack.push(whiteboardHistory.pop());
+    var img = new Image();
+    img.onload = function() {
+        whiteboardCtx.clearRect(0, 0, whiteboardCanvas.width, whiteboardCanvas.height);
+        whiteboardCtx.drawImage(img, 0, 0);
+    };
+    img.src = whiteboardHistory[whiteboardHistory.length - 1];
+}
+
+function redoWhiteboard() {
+    if (whiteboardRedoStack.length === 0) return;
+    var state = whiteboardRedoStack.pop();
+    whiteboardHistory.push(state);
+    var img = new Image();
+    img.onload = function() {
+        whiteboardCtx.clearRect(0, 0, whiteboardCanvas.width, whiteboardCanvas.height);
+        whiteboardCtx.drawImage(img, 0, 0);
+    };
+    img.src = state;
+}
+
+function setWhiteboardTool(tool) {
+    whiteboardTool = tool;
+    var tools = ['pen', 'eraser', 'highlighter', 'text'];
+    tools.forEach(function(t) {
+        var btn = document.getElementById('wb-' + t);
+        if (btn) btn.style.background = (t === tool) ? '#00d4ff' : '#555';
+    });
+}
+
+function clearWhiteboardCanvas() {
+    if (!whiteboardCanvas || !whiteboardCtx) return;
+    if (!confirm('Clear the whiteboard?')) return;
+    whiteboardCtx.fillStyle = '#1a1a2e';
+    whiteboardCtx.fillRect(0, 0, whiteboardCanvas.width, whiteboardCanvas.height);
+    saveWhiteboardState();
+}
+
+function newWhiteboardNote() {
+    whiteboardCurrentNote = null;
+    if (whiteboardCanvas && whiteboardCtx) {
+        whiteboardCtx.fillStyle = '#1a1a2e';
+        whiteboardCtx.fillRect(0, 0, whiteboardCanvas.width, whiteboardCanvas.height);
+        whiteboardHistory = [];
+        whiteboardRedoStack = [];
+        saveWhiteboardState();
+    }
+}
+
+function saveWhiteboardNote() {
+    if (!whiteboardCanvas) return;
+    var name = prompt('Note name:', whiteboardCurrentNote !== null ? (JSON.parse(localStorage.getItem('whiteboard_notes') || '[]')[whiteboardCurrentNote] || {}).name || '' : '');
+    if (name === null) return;
+    if (!name) name = 'Untitled Note';
+    
+    var savedNotes = JSON.parse(localStorage.getItem('whiteboard_notes') || '[]');
+    var noteData = {
+        name: name,
+        data: whiteboardCanvas.toDataURL(),
+        thumbnail: whiteboardCanvas.toDataURL('image/jpeg', 0.3),
+        date: new Date().toLocaleDateString(),
+        width: whiteboardCanvas.width,
+        height: whiteboardCanvas.height
+    };
+    
+    if (whiteboardCurrentNote !== null && whiteboardCurrentNote < savedNotes.length) {
+        savedNotes[whiteboardCurrentNote] = noteData;
+    } else {
+        savedNotes.push(noteData);
+        whiteboardCurrentNote = savedNotes.length - 1;
+    }
+    
+    localStorage.setItem('whiteboard_notes', JSON.stringify(savedNotes));
+    renderWhiteboard();
+    if (whiteboardCurrentNote !== null) loadWhiteboardNote(whiteboardCurrentNote);
+}
+
+function loadWhiteboardNote(index) {
+    var savedNotes = JSON.parse(localStorage.getItem('whiteboard_notes') || '[]');
+    if (index >= savedNotes.length) return;
+    
+    whiteboardCurrentNote = index;
+    var note = savedNotes[index];
+    
+    if (!whiteboardCanvas) initWhiteboardCanvas();
+    
+    var img = new Image();
+    img.onload = function() {
+        whiteboardCanvas.width = note.width || whiteboardCanvas.parentElement.offsetWidth;
+        whiteboardCanvas.height = note.height || 500;
+        whiteboardCtx.drawImage(img, 0, 0);
+        whiteboardHistory = [whiteboardCanvas.toDataURL()];
+        whiteboardRedoStack = [];
+    };
+    img.src = note.data;
+}
+
+function deleteWhiteboardNote(index) {
+    if (!confirm('Delete this note?')) return;
+    var savedNotes = JSON.parse(localStorage.getItem('whiteboard_notes') || '[]');
+    savedNotes.splice(index, 1);
+    localStorage.setItem('whiteboard_notes', JSON.stringify(savedNotes));
+    if (whiteboardCurrentNote === index) whiteboardCurrentNote = null;
+    renderWhiteboard();
+}
+
+function downloadWhiteboardNote() {
+    if (!whiteboardCanvas) return;
+    var link = document.createElement('a');
+    link.download = 'whiteboard_note_' + new Date().toISOString().slice(0,10) + '.png';
+    link.href = whiteboardCanvas.toDataURL();
+    link.click();
 }
 
 // Open chapter
@@ -9839,6 +10125,7 @@ showSection = function(section) {
         'progress': 'progress-section', 
         'final-exam': 'final-exam-section', 
         'formula-videos': 'formula-videos-section',
+        'whiteboard': 'whiteboard-section',
         'certificates': 'certificates-section',
         'certificate': 'certificates-section', 
         '3d-models': '3d-models-section',
@@ -9860,6 +10147,7 @@ showSection = function(section) {
     if (section === 'chat') { if (typeof loadChatMessages === 'function') loadChatMessages(); if (typeof startUserChatRefresh === 'function') startUserChatRefresh(); }
     if (section === 'admin' && appState.isAdmin) { if (typeof loadAdminDashboard === 'function') loadAdminDashboard(); if (typeof startAdminChatRefresh === 'function') startAdminChatRefresh(); if (typeof startScreenSharePolling === 'function') startScreenSharePolling(); if (typeof startScreenShareAutoConnect === 'function') startScreenShareAutoConnect(); }
     if (section === 'ai-assistant' && typeof renderAIMessages === 'function') renderAIMessages();
+    if (section === 'whiteboard' && typeof renderWhiteboard === 'function') renderWhiteboard();
 };
 
 // Override renderChapterContent removed - consolidated into final override below
