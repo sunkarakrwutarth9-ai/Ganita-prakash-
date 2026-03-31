@@ -6,6 +6,7 @@
 // Claude API Key for AI Assistant - Set via environment or backend
 // Note: API calls are made through the backend, not directly from frontend
 const CLAUDE_API_KEY = '';
+var GROQ_API_KEY = window.GROQ_KEY || '';
 
 // Backend API URL - must be at top before any functions use it
 const API_URL = "https://app-wjhbjpii.fly.dev";
@@ -6030,6 +6031,8 @@ function toggleWhiteboardFullscreen() {
     }
 }
 
+var wbFsToolsOpen = false; // floating tools panel state
+
 function onWhiteboardFullscreenChange() {
     var isFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
     whiteboardIsFullscreen = isFS;
@@ -6037,26 +6040,301 @@ function onWhiteboardFullscreenChange() {
     var section = document.getElementById('whiteboard-section');
     
     if (isFS) {
-        // In fullscreen: dark background, expand canvas
+        // In fullscreen: hide everything except canvas, add floating toggle
         if (section) {
-            section.style.background = '#0a0a1a';
-            section.style.padding = '10px';
-            section.style.overflow = 'auto';
+            section.style.background = '#1a1a2e';
+            section.style.padding = '0';
+            section.style.margin = '0';
+            section.style.overflow = 'hidden';
+            section.style.width = '100vw';
+            section.style.height = '100vh';
+        }
+        // Hide all direct children of section except whiteboard-container and wb-fs-floating
+        if (section) {
+            var children = section.children;
+            for (var ci = 0; ci < children.length; ci++) {
+                var child = children[ci];
+                if (child.id !== 'whiteboard-container' && child.id !== 'wb-fs-floating') {
+                    child.setAttribute('data-wb-hidden', child.style.display || '');
+                    child.style.display = 'none';
+                }
+            }
+            // Inside whiteboard-container, hide everything except wb-canvas-wrapper
+            var wbContainer = document.getElementById('whiteboard-container');
+            if (wbContainer) {
+                wbContainer.style.padding = '0';
+                wbContainer.style.margin = '0';
+                wbContainer.style.border = 'none';
+                wbContainer.style.borderRadius = '0';
+                wbContainer.style.width = '100vw';
+                wbContainer.style.height = '100vh';
+                wbContainer.style.position = 'fixed';
+                wbContainer.style.top = '0';
+                wbContainer.style.left = '0';
+                var wbChildren = wbContainer.children;
+                for (var wi = 0; wi < wbChildren.length; wi++) {
+                    var wc = wbChildren[wi];
+                    if (wc.id !== 'wb-canvas-wrapper') {
+                        wc.setAttribute('data-wb-hidden', wc.style.display || '');
+                        wc.style.display = 'none';
+                    }
+                }
+            }
         }
         if (btn) btn.innerHTML = '&#x2716; EXIT FULLSCREEN';
-        // Resize canvas to fill screen
+        // Add floating circular toggle button and tools panel (append to section, not container)
+        wbCreateFloatingTools();
+        // Resize canvas to fill entire screen
         resizeWhiteboardForFullscreen();
     } else {
-        // Exited fullscreen: restore normal
+        // Exited fullscreen: restore everything
+        wbFsToolsOpen = false;
         if (section) {
             section.style.background = '';
             section.style.padding = '';
+            section.style.margin = '';
             section.style.overflow = '';
+            section.style.width = '';
+            section.style.height = '';
+            // Restore hidden elements
+            var children = section.children;
+            for (var ci = 0; ci < children.length; ci++) {
+                var child = children[ci];
+                if (child.hasAttribute('data-wb-hidden')) {
+                    child.style.display = child.getAttribute('data-wb-hidden') || '';
+                    child.removeAttribute('data-wb-hidden');
+                }
+            }
+            var wbContainer = document.getElementById('whiteboard-container');
+            if (wbContainer) {
+                wbContainer.style.padding = '';
+                wbContainer.style.margin = '';
+                wbContainer.style.border = '';
+                wbContainer.style.borderRadius = '';
+                wbContainer.style.width = '';
+                wbContainer.style.height = '';
+                wbContainer.style.position = '';
+                wbContainer.style.top = '';
+                wbContainer.style.left = '';
+                var wbChildren = wbContainer.children;
+                for (var wi = 0; wi < wbChildren.length; wi++) {
+                    var wc = wbChildren[wi];
+                    if (wc.hasAttribute('data-wb-hidden')) {
+                        wc.style.display = wc.getAttribute('data-wb-hidden') || '';
+                        wc.removeAttribute('data-wb-hidden');
+                    }
+                }
+            }
         }
+        // Remove floating tools panel
+        var floatingPanel = document.getElementById('wb-fs-floating');
+        if (floatingPanel) floatingPanel.remove();
         if (btn) btn.innerHTML = '&#x26F6; FULLSCREEN';
         // Restore canvas to normal size
         resizeWhiteboardNormal();
     }
+}
+
+// Create floating circular tools panel for fullscreen mode
+function wbCreateFloatingTools() {
+    // Remove existing if any
+    var existing = document.getElementById('wb-fs-floating');
+    if (existing) existing.remove();
+    
+    // Append to whiteboard-section directly (not whiteboard-container) so it's visible in fullscreen
+    var parent = document.getElementById('whiteboard-section');
+    if (!parent) return;
+    
+    var floatDiv = document.createElement('div');
+    floatDiv.id = 'wb-fs-floating';
+    floatDiv.style.cssText = 'position:fixed;bottom:20px;right:20px;z-index:99999;display:flex;flex-direction:column;align-items:center;gap:10px;';
+    
+    // Tools panel (hidden by default)
+    var toolsPanel = document.createElement('div');
+    toolsPanel.id = 'wb-fs-tools-panel';
+    toolsPanel.style.cssText = 'display:none;flex-direction:column;align-items:center;gap:8px;padding:12px;background:rgba(20,20,40,0.95);border-radius:20px;border:1px solid rgba(0,212,255,0.3);backdrop-filter:blur(10px);max-height:70vh;overflow-y:auto;';
+    
+    // Circle button style helper
+    var circBtnStyle = 'width:48px;height:48px;border-radius:50%;border:2px solid #444;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.3em;transition:all 0.2s;background:#222;color:#fff;';
+    var circBtnActiveStyle = 'width:48px;height:48px;border-radius:50%;border:2px solid #00d4ff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.3em;transition:all 0.2s;background:#00d4ff;color:#fff;';
+    
+    // Tool buttons with emojis arranged in rows
+    var tools = [
+        { id: 'fs-pen', emoji: '\u270F\uFE0F', tool: 'pen', label: 'Pen' },
+        { id: 'fs-eraser', emoji: '\u{1F9F9}', tool: 'eraser', label: 'Eraser' },
+        { id: 'fs-highlighter', emoji: '\u{1F58D}\uFE0F', tool: 'highlighter', label: 'Highlighter' },
+        { id: 'fs-text', emoji: '\u{1F524}', tool: 'text', label: 'Text' },
+        { id: 'fs-line', emoji: '\u2796', tool: 'line', label: 'Line' },
+        { id: 'fs-rect', emoji: '\u2B1C', tool: 'rect', label: 'Rectangle' },
+        { id: 'fs-circle', emoji: '\u2B55', tool: 'circle', label: 'Circle' }
+    ];
+    
+    // Tools label
+    var toolsLabel = document.createElement('div');
+    toolsLabel.style.cssText = 'color:#00d4ff;font-size:0.7em;font-family:Orbitron,monospace;font-weight:bold;letter-spacing:1px;margin-bottom:2px;';
+    toolsLabel.textContent = 'TOOLS';
+    toolsPanel.appendChild(toolsLabel);
+    
+    // Tool buttons row
+    var toolRow = document.createElement('div');
+    toolRow.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;justify-content:center;';
+    tools.forEach(function(t) {
+        var btn = document.createElement('button');
+        btn.id = t.id;
+        btn.style.cssText = (whiteboardTool === t.tool) ? circBtnActiveStyle : circBtnStyle;
+        btn.innerHTML = t.emoji;
+        btn.title = t.label;
+        btn.onclick = function() {
+            setWhiteboardTool(t.tool);
+            wbUpdateFsToolButtons();
+        };
+        toolRow.appendChild(btn);
+    });
+    toolsPanel.appendChild(toolRow);
+    
+    // Divider
+    var div1 = document.createElement('div');
+    div1.style.cssText = 'width:80%;height:1px;background:rgba(0,212,255,0.2);margin:4px 0;';
+    toolsPanel.appendChild(div1);
+    
+    // Colors label
+    var colorsLabel = document.createElement('div');
+    colorsLabel.style.cssText = 'color:#00d4ff;font-size:0.7em;font-family:Orbitron,monospace;font-weight:bold;letter-spacing:1px;margin-bottom:2px;';
+    colorsLabel.textContent = 'COLORS';
+    toolsPanel.appendChild(colorsLabel);
+    
+    // Color swatches (circles)
+    var colors = ['#00d4ff', '#ff4444', '#00ff88', '#ffff00', '#ff6600', '#ff00ff', '#ffffff', '#8844ff'];
+    var colorRow = document.createElement('div');
+    colorRow.id = 'wb-fs-color-row';
+    colorRow.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;justify-content:center;';
+    colors.forEach(function(c) {
+        var swatch = document.createElement('button');
+        swatch.style.cssText = 'width:36px;height:36px;border-radius:50%;border:3px solid ' + (whiteboardColor === c ? '#fff' : 'rgba(255,255,255,0.2)') + ';cursor:pointer;background:' + c + ';transition:all 0.2s;';
+        swatch.title = c;
+        swatch.setAttribute('data-color', c);
+        swatch.onclick = function() {
+            whiteboardColor = c;
+            var colorInput = document.getElementById('wb-color');
+            if (colorInput) colorInput.value = c;
+            wbUpdateFsColorSwatches();
+        };
+        colorRow.appendChild(swatch);
+    });
+    toolsPanel.appendChild(colorRow);
+    
+    // Divider
+    var div2 = document.createElement('div');
+    div2.style.cssText = 'width:80%;height:1px;background:rgba(0,212,255,0.2);margin:4px 0;';
+    toolsPanel.appendChild(div2);
+    
+    // Size label
+    var sizeLabel = document.createElement('div');
+    sizeLabel.style.cssText = 'color:#00d4ff;font-size:0.7em;font-family:Orbitron,monospace;font-weight:bold;letter-spacing:1px;margin-bottom:2px;';
+    sizeLabel.textContent = 'SIZE';
+    toolsPanel.appendChild(sizeLabel);
+    
+    // Size slider
+    var sizeRow = document.createElement('div');
+    sizeRow.style.cssText = 'display:flex;align-items:center;gap:8px;';
+    var sizeSlider = document.createElement('input');
+    sizeSlider.type = 'range';
+    sizeSlider.min = '1';
+    sizeSlider.max = '30';
+    sizeSlider.value = whiteboardSize;
+    sizeSlider.style.cssText = 'width:120px;accent-color:#00d4ff;';
+    sizeSlider.oninput = function() {
+        whiteboardSize = parseInt(this.value);
+        var mainSlider = document.getElementById('wb-size');
+        if (mainSlider) mainSlider.value = this.value;
+    };
+    sizeRow.appendChild(sizeSlider);
+    toolsPanel.appendChild(sizeRow);
+    
+    // Divider
+    var div3 = document.createElement('div');
+    div3.style.cssText = 'width:80%;height:1px;background:rgba(0,212,255,0.2);margin:4px 0;';
+    toolsPanel.appendChild(div3);
+    
+    // Action buttons row (Undo, Redo, Grid, Clear, Save, Download, Exit)
+    var actionsLabel = document.createElement('div');
+    actionsLabel.style.cssText = 'color:#00d4ff;font-size:0.7em;font-family:Orbitron,monospace;font-weight:bold;letter-spacing:1px;margin-bottom:2px;';
+    actionsLabel.textContent = 'ACTIONS';
+    toolsPanel.appendChild(actionsLabel);
+    
+    var actions = [
+        { emoji: '\u21A9\uFE0F', label: 'Undo', fn: 'undoWhiteboard()' },
+        { emoji: '\u21AA\uFE0F', label: 'Redo', fn: 'redoWhiteboard()' },
+        { emoji: '\u{1F4CF}', label: 'Grid', fn: 'toggleWhiteboardGrid()' },
+        { emoji: '\u{1F5D1}\uFE0F', label: 'Clear', fn: 'clearWhiteboardCanvas()' },
+        { emoji: '\u{1F4BE}', label: 'Save', fn: 'saveWhiteboardNote()' },
+        { emoji: '\u2B07\uFE0F', label: 'Download', fn: 'downloadWhiteboardNote()' },
+        { emoji: '\u274C', label: 'Exit', fn: 'toggleWhiteboardFullscreen()' }
+    ];
+    
+    var actRow = document.createElement('div');
+    actRow.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;justify-content:center;';
+    actions.forEach(function(a) {
+        var btn = document.createElement('button');
+        btn.style.cssText = circBtnStyle + (a.label === 'Exit' ? 'background:#ff4444;border-color:#ff4444;' : '');
+        btn.innerHTML = a.emoji;
+        btn.title = a.label;
+        btn.onclick = function() { eval(a.fn); };
+        actRow.appendChild(btn);
+    });
+    toolsPanel.appendChild(actRow);
+    
+    floatDiv.appendChild(toolsPanel);
+    
+    // Main toggle button (big circle)
+    var toggleBtn = document.createElement('button');
+    toggleBtn.id = 'wb-fs-toggle';
+    toggleBtn.style.cssText = 'width:56px;height:56px;border-radius:50%;border:none;background:linear-gradient(135deg,#00d4ff,#ff6600);color:#fff;font-size:1.5em;cursor:pointer;box-shadow:0 4px 20px rgba(0,212,255,0.4);transition:all 0.3s;display:flex;align-items:center;justify-content:center;';
+    toggleBtn.innerHTML = '\u{1F3A8}';
+    toggleBtn.title = 'Toggle Tools';
+    toggleBtn.onclick = function() {
+        wbFsToolsOpen = !wbFsToolsOpen;
+        toolsPanel.style.display = wbFsToolsOpen ? 'flex' : 'none';
+        toggleBtn.innerHTML = wbFsToolsOpen ? '\u2716' : '\u{1F3A8}';
+        toggleBtn.style.background = wbFsToolsOpen ? 'linear-gradient(135deg,#ff4444,#cc0000)' : 'linear-gradient(135deg,#00d4ff,#ff6600)';
+    };
+    floatDiv.appendChild(toggleBtn);
+    
+    parent.appendChild(floatDiv);
+}
+
+function wbUpdateFsToolButtons() {
+    var tools = [
+        { id: 'fs-pen', tool: 'pen' },
+        { id: 'fs-eraser', tool: 'eraser' },
+        { id: 'fs-highlighter', tool: 'highlighter' },
+        { id: 'fs-text', tool: 'text' },
+        { id: 'fs-line', tool: 'line' },
+        { id: 'fs-rect', tool: 'rect' },
+        { id: 'fs-circle', tool: 'circle' }
+    ];
+    tools.forEach(function(t) {
+        var btn = document.getElementById(t.id);
+        if (btn) {
+            if (whiteboardTool === t.tool) {
+                btn.style.background = '#00d4ff';
+                btn.style.borderColor = '#00d4ff';
+            } else {
+                btn.style.background = '#222';
+                btn.style.borderColor = '#444';
+            }
+        }
+    });
+}
+
+function wbUpdateFsColorSwatches() {
+    var colorRow = document.getElementById('wb-fs-color-row');
+    if (!colorRow) return;
+    var swatches = colorRow.querySelectorAll('button');
+    swatches.forEach(function(s) {
+        var c = s.getAttribute('data-color');
+        s.style.borderColor = (whiteboardColor === c) ? '#fff' : 'rgba(255,255,255,0.2)';
+    });
 }
 
 function resizeWhiteboardForFullscreen() {
@@ -6064,9 +6342,22 @@ function resizeWhiteboardForFullscreen() {
     // Save current drawing
     var imgData = whiteboardCanvas.toDataURL();
     var dpr = window.devicePixelRatio || 1;
-    var toolbarHeight = 120; // approximate toolbar height
-    var newWidth = window.innerWidth - 20;
-    var newHeight = window.innerHeight - toolbarHeight;
+    // Canvas fills entire screen in fullscreen (no toolbar)
+    var newWidth = window.innerWidth;
+    var newHeight = window.innerHeight;
+    
+    // Make canvas wrapper fill screen
+    var wrapper = document.getElementById('wb-canvas-wrapper');
+    if (wrapper) {
+        wrapper.style.border = 'none';
+        wrapper.style.borderRadius = '0';
+        wrapper.style.width = '100vw';
+        wrapper.style.height = '100vh';
+        wrapper.style.position = 'fixed';
+        wrapper.style.top = '0';
+        wrapper.style.left = '0';
+        wrapper.style.zIndex = '99998';
+    }
     
     whiteboardCanvas.width = newWidth * dpr;
     whiteboardCanvas.height = newHeight * dpr;
@@ -6089,6 +6380,20 @@ function resizeWhiteboardForFullscreen() {
 function resizeWhiteboardNormal() {
     if (!whiteboardCanvas || !whiteboardCtx) return;
     var imgData = whiteboardCanvas.toDataURL();
+    
+    // Restore canvas wrapper from fullscreen positioning
+    var wrapper = document.getElementById('wb-canvas-wrapper');
+    if (wrapper) {
+        wrapper.style.border = '2px solid #333';
+        wrapper.style.borderRadius = '12px';
+        wrapper.style.width = '';
+        wrapper.style.height = '';
+        wrapper.style.position = 'relative';
+        wrapper.style.top = '';
+        wrapper.style.left = '';
+        wrapper.style.zIndex = '';
+    }
+    
     var container = whiteboardCanvas.parentElement;
     if (!container) return;
     var dpr = window.devicePixelRatio || 1;
@@ -8809,16 +9114,35 @@ async function askAI() {
     renderAIMessages();
     
     try {
-        // Use backend API for AI chat
-        const response = await fetch(API_URL + '/api/ai/chat', {
+        // Build conversation history for Groq API
+        var clsName = getClassName() || 'Class 6';
+        var systemPrompt = 'You are a helpful NCERT ' + clsName + ' Mathematics tutor called "Llama 3 AI Assistant" for the Ganita Prakash app. ' +
+            'Help students understand math concepts, solve problems step by step, and explain topics from their NCERT textbook. ' +
+            'Be encouraging, patient, and use simple language. If asked non-math questions, gently redirect to math topics. ' +
+            'Format your responses with clear steps and use mathematical notation when helpful.';
+        
+        var messages = [{ role: 'system', content: systemPrompt }];
+        // Add conversation history (last 10 messages for context)
+        var historyStart = Math.max(0, appState.aiMessages.length - 11); // -11 because last one is 'Thinking...'
+        for (var mi = historyStart; mi < appState.aiMessages.length - 1; mi++) {
+            var m = appState.aiMessages[mi];
+            if (m.content !== 'Thinking...') {
+                messages.push({ role: m.role, content: m.content });
+            }
+        }
+        
+        // Call Groq API directly
+        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + (appState.authToken || 'guest')
+                'Authorization': 'Bearer ' + GROQ_API_KEY
             },
             body: JSON.stringify({
-                message: content,
-                chapter_id: appState.currentChapter ? appState.currentChapter.id : null
+                model: 'llama-3.3-70b-versatile',
+                messages: messages,
+                temperature: 0.7,
+                max_tokens: 1024
             })
         });
         
@@ -8827,9 +9151,12 @@ async function askAI() {
         
         if (response.ok) {
             const data = await response.json();
-            appState.aiMessages.push({ role: 'assistant', content: data.response });
+            var aiReply = data.choices[0].message.content;
+            appState.aiMessages.push({ role: 'assistant', content: aiReply });
         } else {
-            console.error('AI API error:', response.status);
+            console.error('Groq API error:', response.status);
+            var errText = await response.text();
+            console.error('Groq error details:', errText);
             appState.aiMessages.push({ role: 'assistant', content: 'Sorry, I could not process your request. Please try again later.' });
         }
     } catch (e) {
