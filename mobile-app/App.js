@@ -33,8 +33,22 @@ import * as ScreenOrientation from 'expo-screen-orientation';
 import * as Notifications from 'expo-notifications';
 import { Audio } from 'expo-av';
 import { captureRef } from 'react-native-view-shot';
-import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
-import auth from '@react-native-firebase/auth';
+// Safe import of Google Sign-In (may not be available in all builds)
+let GoogleSignin = null;
+let statusCodes = {};
+let auth = null;
+try {
+  const gsModule = require('@react-native-google-signin/google-signin');
+  GoogleSignin = gsModule.GoogleSignin;
+  statusCodes = gsModule.statusCodes;
+} catch (e) {
+  console.log('Google Sign-In native module not available:', e.message);
+}
+try {
+  auth = require('@react-native-firebase/auth').default;
+} catch (e) {
+  console.log('Firebase Auth native module not available:', e.message);
+}
 
 // Configure notifications
 Notifications.setNotificationHandler({
@@ -45,16 +59,20 @@ Notifications.setNotificationHandler({
   }),
 });
 
-// Configure Google Sign-In with Firebase
-// IMPORTANT: Replace this webClientId with your own from Firebase Console
-// Go to: Firebase Console > Project Settings > Your Android App > Web client ID
-GoogleSignin.configure({
-  webClientId: '624055621679-3rf426rrdrm0cdn5dpjftjg0it11pfsk.apps.googleusercontent.com',
-  offlineAccess: true,
-});
+// Configure Google Sign-In with Firebase (only if module is available)
+try {
+  if (GoogleSignin && GoogleSignin.configure) {
+    GoogleSignin.configure({
+      webClientId: '624055621679-3rf426rrdrm0cdn5dpjftjg0it11pfsk.apps.googleusercontent.com',
+      offlineAccess: true,
+    });
+  }
+} catch (e) {
+  console.log('Google Sign-In configure error:', e.message);
+}
 
 // Groq API Key for AI Assistant (Llama 3.3 70B)
-const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
+const GROQ_API_KEY = 'YOUR_GROQ_API_KEY_HERE';
 
 // Real 3D Model HTML generator using Three.js
 const generate3DModelHTML = (modelType, modelName) => {
@@ -789,12 +807,6 @@ let globalSetPdfUrl = null;
 // Helper function to open PDF files - INBUILT VIEWER
 const openPDF = async (chapterId, title, setShowPdfViewer, setPdfBase64, setPdfTitle, setPdfUrl) => {
   try {
-    // For chapters 1-10, we have PDF files
-    if (chapterId < 1 || chapterId > 10) {
-      Alert.alert('Coming Soon', 'PPT for this chapter will be available soon!');
-      return;
-    }
-    
     // Check if using Google Drive URL
     const media = chapterMedia[chapterId];
     if (media && media.pptUrl && media.pptUrl.includes('drive.google.com')) {
@@ -889,11 +901,6 @@ let globalSetVideoUrl = null;
 // Helper function to open Video files - INBUILT VIEWER
 const openVideo = async (chapterId, title, setShowVideoPlayer, setVideoBase64, setVideoTitle, setVideoUrl) => {
   try {
-    if (chapterId < 1 || chapterId > 10) {
-      Alert.alert('Coming Soon', 'Video for this chapter will be available soon!');
-      return;
-    }
-    
     // Check if using Google Drive URL
     const media = chapterMedia[chapterId];
     if (media && media.videoUrl && media.videoUrl.includes('drive.google.com')) {
@@ -5772,6 +5779,8 @@ body{background:#1a1a2e;overflow:hidden;font-family:Arial,sans-serif;touch-actio
 .saved-thumb{width:80px;height:50px;border-radius:6px;border:2px solid #333;margin-right:8px;cursor:pointer;object-fit:cover;display:inline-block;}
 .saved-thumb:hover{border-color:#00d4ff;}
 #fullscreenBtn{position:fixed;bottom:12px;right:12px;z-index:20;width:44px;height:44px;border-radius:50%;background:rgba(0,212,255,0.9);border:none;color:#fff;font-size:20px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.5);}
+#rotateBtn{position:fixed;bottom:12px;right:64px;z-index:20;width:44px;height:44px;border-radius:50%;background:rgba(255,102,0,0.9);border:none;color:#fff;font-size:20px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.5);}
+body.rotated{transform:rotate(90deg);transform-origin:center center;width:100vh;height:100vw;position:fixed;top:50%;left:50%;margin-top:-50vw;margin-left:-50vh;}
 /* Floating tools panel for fullscreen */
 #floatingToggle{display:none;position:fixed;bottom:20px;right:20px;z-index:99999;width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,#00d4ff,#ff6600);border:3px solid rgba(255,255,255,0.3);color:#fff;font-size:24px;cursor:pointer;box-shadow:0 4px 15px rgba(0,0,0,0.5);align-items:center;justify-content:center;}
 #floatingPanel{display:none;position:fixed;bottom:80px;right:10px;z-index:99998;background:rgba(22,33,62,0.95);border:2px solid rgba(0,212,255,0.4);border-radius:16px;padding:12px;max-width:280px;box-shadow:0 8px 32px rgba(0,0,0,0.6);backdrop-filter:blur(10px);}
@@ -5801,6 +5810,7 @@ body{background:#1a1a2e;overflow:hidden;font-family:Arial,sans-serif;touch-actio
 </div>
 <div id="savedBar"></div>
 <canvas id="canvas"></canvas>
+<button id="rotateBtn" onclick="toggleRotation()">&#x1F504;</button>
 <button id="fullscreenBtn" onclick="enterFullscreen()">&#x26F6;</button>
 <!-- Floating toggle and panel for fullscreen mode -->
 <button id="floatingToggle" onclick="toggleFloatingPanel()">&#x1F3A8;</button>
@@ -5843,7 +5853,7 @@ body{background:#1a1a2e;overflow:hidden;font-family:Arial,sans-serif;touch-actio
 var canvas=document.getElementById('canvas'),ctx=canvas.getContext('2d');
 var drawing=false,lastPos=null,currentColor='#00d4ff',currentSize=3,currentTool='pen';
 var history=[],redoStack=[],savedNotes=[];
-var isFullscreen=false,fsToolsOpen=false,showGrid=false;
+var isFullscreen=false,fsToolsOpen=false,showGrid=false,isRotated=false;
 var shapeStartPos=null,shapePreviewData=null;
 function resize(){
 var tb=document.getElementById('toolbar'),sb=document.getElementById('savedBar');
@@ -5944,6 +5954,12 @@ if(map[t])document.getElementById(map[t]).classList.add('active');}
 function fsSetColor(c,el){currentColor=c;
 document.querySelectorAll('.fs-color-btn').forEach(function(b){b.classList.remove('active');});
 el.classList.add('active');}
+function toggleRotation(){
+isRotated=!isRotated;
+if(isRotated){document.body.classList.add('rotated');}else{document.body.classList.remove('rotated');}
+setTimeout(function(){resize();},100);
+window.ReactNativeWebView&&window.ReactNativeWebView.postMessage(JSON.stringify({type:'rotate',rotated:isRotated}));
+}
 try{var s=localStorage.getItem('wb_notes');if(s)savedNotes=JSON.parse(s);renderSaved();}catch(e){}
 </script>
 </body>
@@ -7664,9 +7680,16 @@ const navigateTo = (newScreen) => {
                       onPress={() => {
                         const media = selectedClass === '7' ? chapterMedia7[currentChapter.id] : chapterMedia[currentChapter.id];
                         if (media && media.pptUrl) {
-                          openPDF(currentChapter.id, media.pptTitle, setShowPdfViewer, setPdfBase64, setPdfTitle, setPdfUrl);
+                          // Open Drive URLs directly to avoid class confusion
+                          if (media.pptUrl.includes('drive.google.com')) {
+                            setPdfUrl(media.pptUrl);
+                            setPdfTitle(media.pptTitle || `Chapter ${currentChapter.id} PPT`);
+                            setShowPdfViewer(true);
+                          } else {
+                            openPDF(currentChapter.id, media.pptTitle, setShowPdfViewer, setPdfBase64, setPdfTitle, setPdfUrl);
+                          }
                         } else {
-                          Alert.alert('Coming Soon', 'PPT for this chapter will be available soon!\n\nPPTs are available for chapters 1-6.');
+                          Alert.alert('Coming Soon', 'PPT for this chapter will be available soon!');
                         }
                       }}
                     >
@@ -7682,7 +7705,14 @@ const navigateTo = (newScreen) => {
             onPress={() => {
               const media = selectedClass === '7' ? chapterMedia7[currentChapter.id] : chapterMedia[currentChapter.id];
               if (media && media.videoUrl) {
-                openVideo(currentChapter.id, media.title + ' Video', setShowVideoPlayer, setVideoBase64, setVideoTitle, setVideoUrl);
+                // Open Drive URLs directly to avoid class confusion
+                if (media.videoUrl.includes('drive.google.com')) {
+                  setVideoUrl(media.videoUrl);
+                  setVideoTitle((media.title || `Chapter ${currentChapter.id}`) + ' Video');
+                  setShowVideoPlayer(true);
+                } else {
+                  openVideo(currentChapter.id, media.title + ' Video', setShowVideoPlayer, setVideoBase64, setVideoTitle, setVideoUrl);
+                }
               } else {
                 Alert.alert('Coming Soon', 'Video for this chapter will be available soon!');
               }
@@ -8045,11 +8075,14 @@ const navigateTo = (newScreen) => {
         
         // Try native Google Sign-In first
         try {
+          if (!GoogleSignin || !GoogleSignin.hasPlayServices) {
+            throw new Error('Google Sign-In module not available');
+          }
           await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
           const signInResult = await GoogleSignin.signIn();
           const idToken = signInResult.data?.idToken || signInResult.idToken;
           
-          if (idToken) {
+          if (idToken && auth && auth.GoogleAuthProvider) {
             const googleCredential = auth.GoogleAuthProvider.credential(idToken);
             const firebaseUserCredential = await auth().signInWithCredential(googleCredential);
             const firebaseUser = firebaseUserCredential.user;
@@ -8890,7 +8923,7 @@ const navigateTo = (newScreen) => {
         setCallStatus('Calling ' + user.name + '...');
         
         // Open in-app WebView for WebRTC call instead of external browser
-        const callUrl = `https://cbse-ai-learning-app-o4rl0um1.devinapps.com?autoLogin=true&token=${authToken}&callId=${data.call_id}&callType=${type}&targetUserId=${user.id}&mode=call`;
+        const callUrl = `https://ganita-prakash-math-learning.web.app?autoLogin=true&token=${authToken}&callId=${data.call_id}&callType=${type}&targetUserId=${user.id}&mode=call`;
         setCallWebViewUrl(callUrl);
         setCallWebViewTitle(type === 'video' ? 'Video Call with ' + user.name : 'Voice Call with ' + user.name);
         setShowCallWebView(true);
