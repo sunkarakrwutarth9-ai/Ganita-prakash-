@@ -5855,19 +5855,28 @@ var drawing=false,lastPos=null,currentColor='#00d4ff',currentSize=3,currentTool=
 var history=[],redoStack=[],savedNotes=[];
 var isFullscreen=false,fsToolsOpen=false,showGrid=false,isRotated=false;
 var shapeStartPos=null,shapePreviewData=null;
+var resizeTimer=null;
 function resize(){
+if(drawing||shapeStartPos)return;
 var tb=document.getElementById('toolbar'),sb=document.getElementById('savedBar');
+var newW,newH;
 if(isFullscreen){
-canvas.width=window.innerWidth;canvas.height=window.innerHeight;
+newW=window.innerWidth;newH=window.innerHeight;
 }else{
 var h=window.innerHeight-tb.offsetHeight-(sb.style.display!=='none'?sb.offsetHeight:0);
-canvas.width=window.innerWidth;canvas.height=Math.max(h,300);
+newW=window.innerWidth;newH=Math.max(h,300);
 }
+if(canvas.width===newW&&canvas.height===newH)return;
+var tempData=null;
+if(history.length>0){tempData=history[history.length-1];}
+else{try{tempData=canvas.toDataURL();}catch(e){}}
+canvas.width=newW;canvas.height=newH;
 ctx.fillStyle='#1a1a2e';ctx.fillRect(0,0,canvas.width,canvas.height);
-if(history.length>0){var img=new Image();img.onload=function(){ctx.drawImage(img,0,0);if(showGrid)drawGrid();};img.src=history[history.length-1];}
+if(tempData){var img=new Image();img.onload=function(){ctx.drawImage(img,0,0);if(showGrid)drawGrid();};img.src=tempData;}
 else{saveState();}
 }
-resize();window.addEventListener('resize',resize);
+function debouncedResize(){if(resizeTimer)clearTimeout(resizeTimer);resizeTimer=setTimeout(resize,150);}
+resize();window.addEventListener('resize',debouncedResize);
 function drawGrid(){ctx.save();ctx.strokeStyle='rgba(0,212,255,0.15)';ctx.lineWidth=1;
 var gs=40;for(var x=0;x<canvas.width;x+=gs){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,canvas.height);ctx.stroke();}
 for(var y=0;y<canvas.height;y+=gs){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(canvas.width,y);ctx.stroke();}ctx.restore();}
@@ -5926,13 +5935,14 @@ img.src=n.data;img.onclick=function(){loadNote(i);};bar.appendChild(img);});}
 function downloadNote(){var a=document.createElement('a');a.download='whiteboard_'+Date.now()+'.png';
 a.href=canvas.toDataURL();a.click();}
 /* Fullscreen mode with floating circular tools */
+function forceResizeWithRestore(){var tempData=null;if(history.length>0){tempData=history[history.length-1];}var tb=document.getElementById('toolbar'),sb=document.getElementById('savedBar');var newW,newH;if(isFullscreen){newW=window.innerWidth;newH=window.innerHeight;}else{var h=window.innerHeight-tb.offsetHeight-(sb.style.display!=='none'?sb.offsetHeight:0);newW=window.innerWidth;newH=Math.max(h,300);}canvas.width=newW;canvas.height=newH;ctx.fillStyle='#1a1a2e';ctx.fillRect(0,0,canvas.width,canvas.height);if(tempData){var img=new Image();img.onload=function(){ctx.drawImage(img,0,0);if(showGrid)drawGrid();};img.src=tempData;}}
 function enterFullscreen(){
 isFullscreen=true;
 document.getElementById('toolbar').style.display='none';
 document.getElementById('savedBar').style.display='none';
 document.getElementById('fullscreenBtn').style.display='none';
 document.getElementById('floatingToggle').style.display='flex';
-resize();
+forceResizeWithRestore();
 }
 function exitFullscreen(){
 isFullscreen=false;fsToolsOpen=false;
@@ -5940,7 +5950,7 @@ document.getElementById('toolbar').style.display='flex';
 document.getElementById('fullscreenBtn').style.display='block';
 document.getElementById('floatingToggle').style.display='none';
 document.getElementById('floatingPanel').style.display='none';
-resize();renderSaved();
+forceResizeWithRestore();renderSaved();
 }
 function toggleFloatingPanel(){
 fsToolsOpen=!fsToolsOpen;
@@ -5957,7 +5967,7 @@ el.classList.add('active');}
 function toggleRotation(){
 isRotated=!isRotated;
 if(isRotated){document.body.classList.add('rotated');}else{document.body.classList.remove('rotated');}
-setTimeout(function(){resize();},100);
+setTimeout(function(){forceResizeWithRestore();},200);
 window.ReactNativeWebView&&window.ReactNativeWebView.postMessage(JSON.stringify({type:'rotate',rotated:isRotated}));
 }
 try{var s=localStorage.getItem('wb_notes');if(s)savedNotes=JSON.parse(s);renderSaved();}catch(e){}
