@@ -484,7 +484,7 @@ const basicsWorksheets6 = [
             {
                 q: "Which fraction is largest?",
                 options: ["\u00bd", "\u00be", "\u2154", "\u215e"],
-                answer: 1
+                answer: 3
             },
             {
                 q: "Equivalent fraction of \u2153 is:",
