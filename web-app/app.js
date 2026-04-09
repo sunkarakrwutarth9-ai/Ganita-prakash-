@@ -41,7 +41,7 @@ const indianFestivals2026 = [
     { date: "04-14", name: "Baisakhi / Ambedkar Jayanti", wish: "Happy Baisakhi! Happy Ambedkar Jayanti!", emoji: "🌾", color: "#F1C40F" },
     // May
     { date: "05-01", name: "Buddha Purnima", wish: "Happy Buddha Purnima! May wisdom light your way!", emoji: "🪷", color: "#9B59B6" },
-    { date: "05-15", name: "Akshaya Tritiya", wish: "Happy Akshaya Tritiya! May prosperity never diminish!", emoji: "✨", color: "#FFD700" },
+    { date: "04-19", name: "Akshaya Tritiya", wish: "Happy Akshaya Tritiya! May prosperity never diminish!", emoji: "✨", color: "#FFD700" },
     // July
     { date: "07-16", name: "Jagannath Rath Yatra", wish: "Happy Rath Yatra! Jai Jagannath!", emoji: "🛕", color: "#E67E22" },
     { date: "07-29", name: "Guru Purnima", wish: "Happy Guru Purnima! Salute to all teachers and gurus!", emoji: "👨‍🏫", color: "#8E44AD" },
@@ -52,7 +52,7 @@ const indianFestivals2026 = [
     // September
     { date: "09-04", name: "Janmashtami", wish: "Happy Janmashtami! Jai Shri Krishna! Nand Ghar Anand Bhayo!", emoji: "🦚", color: "#3498DB" },
     { date: "09-14", name: "Ganesh Chaturthi", wish: "Ganpati Bappa Morya! Happy Ganesh Chaturthi!", emoji: "🐘", color: "#E74C3C" },
-    { date: "09-15", name: "Teachers' Day (India)", wish: "Happy Teachers' Day! Guru Brahma Guru Vishnu!", emoji: "👩‍🏫", color: "#2ECC71" },
+    { date: "09-05", name: "Teachers' Day (India)", wish: "Happy Teachers' Day! Guru Brahma Guru Vishnu!", emoji: "👩‍🏫", color: "#2ECC71" },
     // October
     { date: "10-02", name: "Gandhi Jayanti", wish: "Happy Gandhi Jayanti! Be the change you wish to see!", emoji: "🕊️", color: "#F5F5DC" },
     { date: "10-11", name: "Sharad Navratri Begins", wish: "Shubh Navratri! May Goddess Durga bless you with strength!", emoji: "🔱", color: "#E91E63" },
