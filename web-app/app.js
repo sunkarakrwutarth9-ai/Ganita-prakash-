@@ -7563,7 +7563,7 @@ var currentExamPhase = 'mcq';
 var examPhaseIndex = 0;
 var examPhaseQuestionIndex = 0;
 
-async function startQuiz(chapterId) {
+function startQuiz(chapterId) {
     const chapter = getActiveChapters().find(c => c.id === chapterId);
     
     var confirmed = confirm(
@@ -7586,17 +7586,23 @@ async function startQuiz(chapterId) {
     
     if (!confirmed) return;
     
-    var permsGranted = await requestExamPermissions();
-    if (!permsGranted) {
-        alert('Camera and microphone access is required for the exam. Please allow access and try again.');
-    }
-    
-    var screenShareStarted = await startScreenSharing();
-    if (!screenShareStarted) {
-        alert('Screen sharing is required for the exam. Please allow screen sharing to continue.');
-    }
-    
-    alert('MONITORING ACTIVE\n\nYour camera, microphone, and screen are now being monitored. Do not switch apps or minimize during the exam.');
+    (async function() {
+        try {
+            var permsGranted = await requestExamPermissions();
+            if (!permsGranted) {
+                alert('Camera and microphone access is required for the exam. Please allow access and try again.');
+            }
+        } catch(e) { console.log('Permission request error:', e); }
+        
+        try {
+            var screenShareStarted = await startScreenSharing();
+            if (!screenShareStarted) {
+                alert('Screen sharing is required for the exam. Please allow screen sharing to continue.');
+            }
+        } catch(e) { console.log('Screen share error:', e); }
+        
+        alert('MONITORING ACTIVE\n\nYour camera, microphone, and screen are now being monitored. Do not switch apps or minimize during the exam.');
+    })();
     
     appState.currentQuiz = chapter;
     appState.currentQuestion = 0;
