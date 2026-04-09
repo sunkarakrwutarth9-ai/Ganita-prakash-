@@ -5958,7 +5958,7 @@ function selectBasicsAnswer(optIdx) {
     if (isCorrect) appState.basicsQuizScore++;
     appState.basicsQuizAnswers.push(optIdx);
 
-    // Highlight correct/incorrect
+    // Highlight correct/incorrect options
     for (var i = 0; i < q.options.length; i++) {
         var el = document.getElementById('basics-opt-' + i);
         if (!el) continue;
@@ -5973,14 +5973,55 @@ function selectBasicsAnswer(optIdx) {
             el.style.borderColor = '#f44336';
             el.style.background = 'rgba(244,67,54,0.15)';
             el.style.color = '#f44336';
+        } else {
+            el.style.opacity = '0.4';
         }
     }
 
-    // Auto-advance after delay
+    // Show Brilliant-style feedback banner + Continue button
+    var feedbackDiv = document.getElementById('basics-feedback');
+    if (feedbackDiv) feedbackDiv.remove();
+
+    var total = ws.questions.length;
+    var isLast = (qIdx + 1 >= total);
+    var btnLabel = isLast ? 'See Results' : 'Continue';
+
+    var bannerHtml = '<div id="basics-feedback" style="margin-top:18px;border-radius:12px;padding:18px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;';
+    if (isCorrect) {
+        bannerHtml += 'background:rgba(76,175,80,0.13);border:1.5px solid #4CAF50;">';
+        bannerHtml += '<div style="display:flex;align-items:center;gap:10px;">';
+        bannerHtml += '<div style="width:32px;height:32px;border-radius:50%;background:#4CAF50;display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff;">&#10003;</div>';
+        bannerHtml += '<div><div style="color:#4CAF50;font-weight:bold;font-size:16px;">Correct!</div>';
+        bannerHtml += '<div style="color:#81C784;font-size:13px;margin-top:2px;">Great job, keep going!</div></div>';
+        bannerHtml += '</div>';
+    } else {
+        bannerHtml += 'background:rgba(244,67,54,0.13);border:1.5px solid #f44336;">';
+        bannerHtml += '<div style="display:flex;align-items:center;gap:10px;">';
+        bannerHtml += '<div style="width:32px;height:32px;border-radius:50%;background:#f44336;display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff;">&#10007;</div>';
+        bannerHtml += '<div><div style="color:#f44336;font-weight:bold;font-size:16px;">Wrong!</div>';
+        bannerHtml += '<div style="color:#E57373;font-size:13px;margin-top:2px;">The correct answer is: <strong>' + String.fromCharCode(65 + correct) + '. ' + q.options[correct] + '</strong></div></div>';
+        bannerHtml += '</div>';
+    }
+    bannerHtml += '<button onclick="basicsNextQuestion()" class="btn btn-primary" style="padding:10px 28px;border-radius:8px;font-size:15px;font-weight:bold;white-space:nowrap;cursor:pointer;">' + btnLabel + '</button>';
+    bannerHtml += '</div>';
+
+    // Insert feedback banner after the question card
+    var questionCard = document.querySelector('.question-card');
+    if (questionCard) {
+        questionCard.insertAdjacentHTML('afterend', bannerHtml);
+    }
+
+    // Hide the old Back to Chapters button while feedback is showing
+    var btnGroup = document.querySelector('#quiz-container .btn-group');
+    if (btnGroup) btnGroup.style.display = 'none';
+
+    // Increment question index (ready for next)
     appState.basicsQuizQuestion++;
-    setTimeout(function() {
-        renderBasicsQuestion(ws);
-    }, 1200);
+}
+
+function basicsNextQuestion() {
+    var ws = appState.currentBasicsWorksheet;
+    renderBasicsQuestion(ws);
 }
 
 function showBasicsResults(ws) {
