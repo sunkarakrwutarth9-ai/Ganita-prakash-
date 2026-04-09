@@ -320,144 +320,156 @@ const basicsWorksheets6 = [
         id: "b6_1",
         title: "Number Sense & Place Value",
         desc: "Indian/International number system, place value, expanded form",
+        topicContent: [{"name": "Indian Number System", "content": "In the Indian number system, we group digits starting from the right: Ones, Tens, Hundreds, Thousands, Ten Thousands, Lakhs, Ten Lakhs, Crores.\\n\\nExample: 8,74,865\\n\u2022 5 is in Ones place (value = 5)\\n\u2022 6 is in Tens place (value = 60)\\n\u2022 8 is in Hundreds place (value = 800)\\n\u2022 4 is in Thousands place (value = 4,000)\\n\u2022 7 is in Ten Thousands place (value = 70,000)\\n\u2022 8 is in Lakhs place (value = 8,00,000)\\n\\nCommas are placed after 3 digits from right, then every 2 digits: 8,74,865"}, {"name": "International Number System", "content": "In the International system, we group digits in sets of three from the right: Ones, Thousands, Millions, Billions.\\n\\nExample: 874,865\\n\u2022 Commas are placed every 3 digits from right\\n\u2022 874,865 = Eight hundred seventy-four thousand, eight hundred sixty-five\\n\\nConversion: 1 Lakh = 100 Thousand, 1 Crore = 10 Million"}, {"name": "Place Value & Expanded Form", "content": "Place Value = Face Value \u00d7 Position Value\\n\\nExample: In 32,405\\n\u2022 3 \u2192 3 \u00d7 10,000 = 30,000\\n\u2022 2 \u2192 2 \u00d7 1,000 = 2,000\\n\u2022 4 \u2192 4 \u00d7 100 = 400\\n\u2022 0 \u2192 0 \u00d7 10 = 0\\n\u2022 5 \u2192 5 \u00d7 1 = 5\\n\\nExpanded Form: 32,405 = 30,000 + 2,000 + 400 + 0 + 5\\n\\nSuccessor = Number + 1 (e.g., successor of 99,999 = 1,00,000)\\nPredecessor = Number - 1"}],
         questions: [
-            { q: "What is the place value of 7 in 874,865?", options: ["7", "70,000", "7,000", "700"], answer: 1 },
-            { q: "Write 'Five lakh four thousand seven hundred seventy-eight' as a numeral.", options: ["5,04,778", "5,40,778", "54,778", "5,04,878"], answer: 0 },
-            { q: "Which is the successor of 99,999?", options: ["1,00,001", "99,998", "1,00,000", "10,000"], answer: 2 },
-            { q: "What is the expanded form of 32,405?", options: ["30,000 + 2,000 + 400 + 5", "3,000 + 200 + 40 + 5", "30,000 + 200 + 40 + 5", "30,000 + 2,000 + 40 + 5"], answer: 0 },
-            { q: "Which number is greatest: 45,786 or 45,768 or 45,876 or 45,687?", options: ["45,786", "45,768", "45,876", "45,687"], answer: 2 },
+            { q: "What is the place value of 7 in 874,865?", options: ["7", "70,000", "7,000", "700"], answer: 1 , why: "The digit 7 is in the Ten Thousands place. Place Value = 7 × 10,000 = 70,000. Don\'t confuse face value (7) with place value (70,000)!"},
+            { q: "Write 'Five lakh four thousand seven hundred seventy-eight' as a numeral.", options: ["5,04,778", "5,40,778", "54,778", "5,04,878"], answer: 0 , why: "Five lakh = 5,00,000. Four thousand = 4,000. Seven hundred seventy-eight = 778. So 5,00,000 + 4,000 + 778 = 5,04,778."},
+            { q: "Which is the successor of 99,999?", options: ["1,00,001", "99,998", "1,00,000", "10,000"], answer: 2 , why: "Successor means the next number. 99,999 + 1 = 1,00,000. This is the smallest 6-digit number!"},
+            { q: "What is the expanded form of 32,405?", options: ["30,000 + 2,000 + 400 + 5", "3,000 + 200 + 40 + 5", "30,000 + 200 + 40 + 5", "30,000 + 2,000 + 40 + 5"], answer: 0 , why: "32,405 = 30,000 + 2,000 + 400 + 0 + 5. Break each digit by its place value and add them together."},
+            { q: "Which number is greatest: 45,786 or 45,768 or 45,876 or 45,687?", options: ["45,786", "45,768", "45,876", "45,687"], answer: 2 , why: "Compare digit by digit from left: all start with 45. Third digit: 8>7>6. So 45,876 is the greatest."},
         ]
     },
     {
         id: "b6_2",
         title: "Addition & Subtraction",
         desc: "Multi-digit addition, subtraction, word problems with carrying/borrowing",
+        topicContent: [{"name": "Multi-digit Addition", "content": "Steps for multi-digit addition:\\n1. Write numbers one below the other, aligning place values\\n2. Start adding from the Ones column (rightmost)\\n3. If sum \u2265 10, write the ones digit and carry the tens digit\\n\\nExample: 4,567 + 3,894\\n  4567\\n+ 3894\\n------\\n  8461\\n\\nCarry: 7+4=11 (write 1, carry 1), 6+9+1=16 (write 6, carry 1), 5+8+1=14 (write 4, carry 1), 4+3+1=8"}, {"name": "Multi-digit Subtraction", "content": "Steps for subtraction with borrowing:\\n1. Align numbers by place value\\n2. Start from the rightmost column\\n3. If top digit < bottom digit, borrow 10 from the next column\\n\\nExample: 8,003 - 2,567\\n  8003\\n- 2567\\n------\\n  5436\\n\\nBorrowing: 3 can't subtract 7, borrow from hundreds \u2192 but 0, borrow from thousands \u2192 8 becomes 7, 0 becomes 10, then 0 becomes 9, 3 becomes 13. Now: 13-7=6, 9-6=3, 9-5=4, 7-2=5"}, {"name": "Word Problems", "content": "Key words to identify operations:\\n\u2022 Addition: total, sum, altogether, combined, in all\\n\u2022 Subtraction: difference, remaining, left, less than, how many more\\n\\nExample: A school has 2,456 boys and 1,893 girls. How many students in total?\\nSolution: 2,456 + 1,893 = 4,349 students\\n\\nTip: Always read the question carefully and identify what operation to use!"}],
         questions: [
-            { q: "What is 4,567 + 3,894?", options: ["8,461", "8,361", "8,451", "7,461"], answer: 0 },
-            { q: "Subtract: 8,003 - 2,567 = ?", options: ["5,536", "5,436", "5,346", "6,436"], answer: 1 },
-            { q: "A school has 2,345 boys and 1,987 girls. How many students in total?", options: ["4,232", "4,332", "3,332", "4,342"], answer: 1 },
-            { q: "What is 10,000 - 4,628?", options: ["5,472", "5,372", "6,372", "5,382"], answer: 1 },
-            { q: "Find the sum: 1,234 + 2,345 + 3,456 = ?", options: ["7,035", "6,035", "7,135", "6,935"], answer: 0 },
+            { q: "What is 4,567 + 3,894?", options: ["8,461", "8,361", "8,451", "7,461"], answer: 0 , why: "4,567 + 3,894: Add column by column from right. 7+4=11 (carry 1), 6+9+1=16 (carry 1), 5+8+1=14 (carry 1), 4+3+1=8. Answer: 8,461."},
+            { q: "Subtract: 8,003 - 2,567 = ?", options: ["5,536", "5,436", "5,346", "6,436"], answer: 1 , why: "8,003 - 2,567: Borrow from thousands since hundreds and tens are 0. 13-7=6, 9-6=3, 9-5=4, 7-2=5. Answer: 5,436."},
+            { q: "A school has 2,345 boys and 1,987 girls. How many students in total?", options: ["4,232", "4,332", "3,332", "4,342"], answer: 1 , why: "Total students = boys + girls = 2,456 + 1,893 = 4,349. The keyword \'total\' tells us to add."},
+            { q: "What is 10,000 - 4,628?", options: ["5,472", "5,372", "6,372", "5,382"], answer: 1 , why: "When we borrow, the digit we borrow from decreases by 1, and the current digit gets +10. This is regrouping."},
+            { q: "Find the sum: 1,234 + 2,345 + 3,456 = ?", options: ["7,035", "6,035", "7,135", "6,935"], answer: 0 , why: "Estimate by rounding to nearest thousand first, then add. This gives a quick approximate answer."},
         ]
     },
     {
         id: "b6_3",
         title: "Multiplication & Division",
         desc: "Tables, long multiplication, long division, remainders",
+        topicContent: [{"name": "Multiplication Tables & Long Multiplication", "content": "Long Multiplication steps:\\n1. Multiply by ones digit\\n2. Multiply by tens digit (add a zero)\\n3. Add the results\\n\\nExample: 234 \u00d7 56\\n  234 \u00d7 6 = 1,404\\n  234 \u00d7 50 = 11,700\\n  Total = 1,404 + 11,700 = 13,104\\n\\nTip: Know your tables from 2 to 20 for speed!"}, {"name": "Long Division", "content": "Steps: Divide \u2192 Multiply \u2192 Subtract \u2192 Bring down (DMSB)\\n\\nExample: 2,019 \u00f7 3\\n\u2022 2 \u00f7 3 = 0 remainder 2\\n\u2022 20 \u00f7 3 = 6 remainder 2\\n\u2022 21 \u00f7 3 = 7 remainder 0\\n\u2022 09 \u00f7 3 = 3 remainder 0\\nAnswer: 673\\n\\nImportant: Division by 0 is UNDEFINED (not 0, not 1)!"}, {"name": "Remainders", "content": "When a number doesn't divide evenly, we get a remainder.\\n\\nDividend = Divisor \u00d7 Quotient + Remainder\\n\\nExample: 17 \u00f7 5 = 3 remainder 2\\nCheck: 5 \u00d7 3 + 2 = 15 + 2 = 17 \u2713\\n\\nThe remainder is always less than the divisor."}],
         questions: [
-            { q: "What is 25 x 5?", options: ["120", "125", "115", "130"], answer: 1 },
-            { q: "What is 2,019 \u00f7 0?", options: ["0", "2,019", "1", "Undefined"], answer: 3 },
-            { q: "Find: 456 x 23 = ?", options: ["10,488", "10,388", "10,588", "9,488"], answer: 0 },
-            { q: "What is the remainder when 257 is divided by 6?", options: ["1", "3", "5", "2"], answer: 0 },
-            { q: "If 15 x ___ = 225, what is the missing number?", options: ["25", "15", "20", "12"], answer: 1 },
+            { q: "What is 25 x 5?", options: ["120", "125", "115", "130"], answer: 1 , why: "25 × 5 = 125. Use the table of 25 or break it: 25 × 5 = (20 × 5) + (5 × 5) = 100 + 25 = 125."},
+            { q: "What is 2,019 \u00f7 0?", options: ["0", "2,019", "1", "Undefined"], answer: 3 , why: "Division by 0 is undefined! You cannot divide anything into 0 groups. This is a fundamental math rule."},
+            { q: "Find: 456 x 23 = ?", options: ["10,488", "10,388", "10,588", "9,488"], answer: 0 , why: "84 ÷ 7 = 12. Check: 12 × 7 = 84 ✓. Use long division: 7 goes into 84 twelve times."},
+            { q: "What is the remainder when 257 is divided by 6?", options: ["1", "3", "5", "2"], answer: 0 , why: "156 × 23: Break it as 156×20 + 156×3 = 3120 + 468 = 3,588."},
+            { q: "If 15 x ___ = 225, what is the missing number?", options: ["25", "15", "20", "12"], answer: 1 , why: "Dividend = Divisor × Quotient + Remainder. Always verify your division by this formula."},
         ]
     },
     {
         id: "b6_4",
         title: "BODMAS & Brackets",
         desc: "Order of operations: Brackets, Of, Division, Multiplication, Addition, Subtraction",
+        topicContent: [{"name": "BODMAS Rule", "content": "BODMAS tells us the order to solve expressions:\\n\\nB - Brackets (solve first)\\nO - Of (means multiplication)\\nD - Division\\nM - Multiplication\\nA - Addition\\nS - Subtraction\\n\\nD and M have equal priority (left to right)\\nA and S have equal priority (left to right)\\n\\nExample: 8 + 4 \u00d7 3 = 8 + 12 = 20 (NOT 36!)\\nMultiplication comes before addition."}, {"name": "Types of Brackets", "content": "Three types of brackets (solve innermost first):\\n\\n( ) \u2192 Parentheses / Round brackets (solve first)\\n{ } \u2192 Curly brackets / Braces (solve second)\\n[ ] \u2192 Square brackets (solve third)\\n\\nExample: [2 + {3 \u00d7 (4 + 1)}]\\n= [2 + {3 \u00d7 5}]\\n= [2 + 15]\\n= 17"}],
         questions: [
-            { q: "Solve: 1 + 2 \u00f7 3 x 4 = ?", options: ["4", "3.67", "3", "2"], answer: 0 },
-            { q: "Solve: 4 + (5 + 6) = ?", options: ["15", "56", "10", "46"], answer: 0 },
-            { q: "Solve: 1 \u2013 {(2 + 3) \u00f7 (4 \u2013 5)} = ?", options: ["6", "-4", "4", "Not defined"], answer: 0 },
-            { q: "Solve: 18 \u00f7 (3 x 2) + 5 = ?", options: ["8", "11", "17", "6"], answer: 0 },
-            { q: "Solve: (8 + 2) x (7 - 3) = ?", options: ["44", "40", "36", "48"], answer: 1 },
+            { q: "Solve: 1 + 2 \u00f7 3 x 4 = ?", options: ["4", "3.67", "3", "2"], answer: 0 , why: "BODMAS: Do multiplication before addition. 8 + 4 × 3 = 8 + 12 = 20, NOT (8+4) × 3 = 36."},
+            { q: "Solve: 4 + (5 + 6) = ?", options: ["15", "56", "10", "46"], answer: 0 , why: "Solve innermost brackets first: ( ) then { } then [ ]. Work from inside out."},
+            { q: "Solve: 1 \u2013 {(2 + 3) \u00f7 (4 \u2013 5)} = ?", options: ["6", "-4", "4", "Not defined"], answer: 0 , why: "Of means multiplication. \'½ of 20\' = ½ × 20 = 10. \'Of\' comes after Brackets in BODMAS."},
+            { q: "Solve: 18 \u00f7 (3 x 2) + 5 = ?", options: ["8", "11", "17", "6"], answer: 0 , why: "Division and multiplication have equal priority - do them left to right."},
+            { q: "Solve: (8 + 2) x (7 - 3) = ?", options: ["44", "40", "36", "48"], answer: 1 , why: "Addition and subtraction have equal priority - do them left to right after D and M."},
         ]
     },
     {
         id: "b6_5",
         title: "Factors & Multiples",
         desc: "Divisibility rules, prime/composite, HCF, LCM",
+        topicContent: [{"name": "Factors & Divisibility Rules", "content": "A factor divides a number exactly (remainder = 0).\\n\\nDivisibility Rules:\\n\u2022 By 2: Last digit is even (0,2,4,6,8)\\n\u2022 By 3: Sum of digits divisible by 3\\n\u2022 By 4: Last 2 digits divisible by 4\\n\u2022 By 5: Last digit is 0 or 5\\n\u2022 By 6: Divisible by both 2 AND 3\\n\u2022 By 9: Sum of digits divisible by 9\\n\u2022 By 10: Last digit is 0\\n\\nExample: Is 372 divisible by 6?\\nBy 2? Yes (last digit 2). By 3? 3+7+2=12 (yes). So YES!"}, {"name": "Prime & Composite Numbers", "content": "Prime Number: Has exactly 2 factors (1 and itself)\\nExamples: 2, 3, 5, 7, 11, 13, 17, 19, 23...\\n\\nComposite Number: Has more than 2 factors\\nExamples: 4, 6, 8, 9, 10, 12...\\n\\nNote: 1 is neither prime nor composite!\\n2 is the only even prime number."}, {"name": "HCF & LCM", "content": "HCF (Highest Common Factor): Largest number that divides both numbers.\\nMethod: List factors or use prime factorization.\\n\\nLCM (Lowest Common Multiple): Smallest number divisible by both.\\nMethod: List multiples or use prime factorization.\\n\\nExample: HCF(12, 18)\\nFactors of 12: 1,2,3,4,6,12\\nFactors of 18: 1,2,3,6,9,18\\nHCF = 6\\n\\nLCM(12, 18)\\nMultiples of 12: 12,24,36...\\nMultiples of 18: 18,36...\\nLCM = 36\\n\\nFormula: HCF \u00d7 LCM = Product of numbers"}],
         questions: [
-            { q: "Which of the following is a prime number?", options: ["15", "21", "23", "27"], answer: 2 },
-            { q: "Find the LCM of 4, 8, and 12.", options: ["48", "24", "12", "96"], answer: 1 },
-            { q: "What is the HCF of 18 and 24?", options: ["4", "6", "8", "12"], answer: 1 },
-            { q: "Which number is divisible by both 3 and 5?", options: ["20", "25", "30", "35"], answer: 2 },
-            { q: "Prime factorization of 48 is:", options: ["2\u2074 x 3", "2\u00b3 x 6", "4 x 12", "2\u00b2 x 12"], answer: 0 },
+            { q: "Which of the following is a prime number?", options: ["15", "21", "23", "27"], answer: 2 , why: "Divisibility by 6: Number must be divisible by BOTH 2 and 3. Check: even number? Sum of digits divisible by 3?"},
+            { q: "Find the LCM of 4, 8, and 12.", options: ["48", "24", "12", "96"], answer: 1 , why: "2 is the only even prime number. All other even numbers have 2 as a factor, so they\'re composite."},
+            { q: "What is the HCF of 18 and 24?", options: ["4", "6", "8", "12"], answer: 1 , why: "HCF: List all factors of both numbers, find the highest common one. Or use prime factorization and take common primes with lowest powers."},
+            { q: "Which number is divisible by both 3 and 5?", options: ["20", "25", "30", "35"], answer: 2 , why: "LCM: Find the smallest number divisible by both. Use prime factorization and take all primes with highest powers."},
+            { q: "Prime factorization of 48 is:", options: ["2\u2074 x 3", "2\u00b3 x 6", "4 x 12", "2\u00b2 x 12"], answer: 0 , why: "HCF × LCM = Product of the two numbers. This is a useful formula to verify your answers!"},
         ]
     },
     {
         id: "b6_6",
         title: "Fractions",
         desc: "Equivalent fractions, comparison, addition, subtraction, simplification",
+        topicContent: [{"name": "Understanding Fractions", "content": "A fraction represents a part of a whole.\\n\\nFraction = Numerator / Denominator\\n\\nTypes:\\n\u2022 Proper: Numerator < Denominator (e.g., 3/4)\\n\u2022 Improper: Numerator \u2265 Denominator (e.g., 7/4)\\n\u2022 Mixed: Whole + Fraction (e.g., 1\u00be)\\n\\nConversion: 7/4 = 1\u00be (divide 7\u00f74 = 1 remainder 3)"}, {"name": "Equivalent Fractions & Simplification", "content": "Equivalent fractions have the same value.\\nMultiply or divide both numerator and denominator by the same number.\\n\\n1/2 = 2/4 = 3/6 = 4/8 (all equal!)\\n\\nSimplification: Divide by HCF\\nExample: 12/18 \u2192 HCF is 6 \u2192 12\u00f76 / 18\u00f76 = 2/3"}, {"name": "Operations with Fractions", "content": "Addition/Subtraction: Make denominators same (LCM), then add/subtract numerators.\\n\\nExample: 1/3 + 1/4\\nLCM of 3,4 = 12\\n= 4/12 + 3/12 = 7/12\\n\\nComparison: Cross multiply\\n3/4 vs 2/3 \u2192 3\u00d73=9 vs 4\u00d72=8 \u2192 3/4 > 2/3"}],
         questions: [
-            { q: "Simplify: 1/2 + 3/4 = ?", options: ["4/6", "5/4", "1", "2/4"], answer: 1 },
-            { q: "Which fraction is equivalent to 2/3?", options: ["3/4", "4/6", "5/6", "6/12"], answer: 1 },
-            { q: "Subtract: 5/6 - 1/3 = ?", options: ["4/6", "1/2", "2/3", "1/6"], answer: 1 },
-            { q: "Compare: Which is larger, 3/4 or 7/8?", options: ["3/4", "They are equal", "Cannot compare", "7/8"], answer: 3 },
-            { q: "Convert 91/10 to a decimal.", options: ["0.91", "9.1", "91.0", "9.01"], answer: 1 },
+            { q: "Simplify: 1/2 + 3/4 = ?", options: ["4/6", "5/4", "1", "2/4"], answer: 1 , why: "To convert improper fraction to mixed: Divide numerator by denominator. Quotient = whole part, remainder = new numerator."},
+            { q: "Which fraction is equivalent to 2/3?", options: ["3/4", "4/6", "5/6", "6/12"], answer: 1 , why: "Equivalent fractions: Multiply or divide both top and bottom by the same number. The value stays the same!"},
+            { q: "Subtract: 5/6 - 1/3 = ?", options: ["4/6", "1/2", "2/3", "1/6"], answer: 1 , why: "To add fractions with different denominators: Find LCM of denominators, convert both fractions, then add numerators."},
+            { q: "Compare: Which is larger, 3/4 or 7/8?", options: ["3/4", "They are equal", "Cannot compare", "7/8"], answer: 3 , why: "Cross multiplication for comparison: a/b vs c/d → compare a×d with b×c."},
+            { q: "Convert 91/10 to a decimal.", options: ["0.91", "9.1", "91.0", "9.01"], answer: 1 , why: "To simplify a fraction: Divide both numerator and denominator by their HCF."},
         ]
     },
     {
         id: "b6_7",
         title: "Decimals",
         desc: "Decimal place value, comparison, addition, subtraction, conversion",
+        topicContent: [{"name": "Decimal Place Value", "content": "Decimals extend place value to the right of the decimal point.\\n\\nOnes . Tenths Hundredths Thousandths\\n  1   .   1/10    1/100     1/1000\\n\\nExample: 3.45\\n3 = 3 ones\\n4 = 4 tenths (4/10)\\n5 = 5 hundredths (5/100)\\n\\n0.1 = 1/10, 0.01 = 1/100, 0.001 = 1/1000"}, {"name": "Decimal Operations", "content": "Addition/Subtraction: Align decimal points, then add/subtract normally.\\n\\nExample: 3.45 + 2.7\\n  3.45\\n+ 2.70 (add zero to align)\\n------\\n  6.15\\n\\nComparing: Compare digit by digit from left.\\n0.45 vs 0.5 \u2192 0.45 < 0.50\\n\\nConversion: Fraction \u2194 Decimal\\n1/4 = 0.25, 3/5 = 0.6, 7/8 = 0.875"}],
         questions: [
-            { q: "Add: 0.1 + 1.2 + 12.3 = ?", options: ["13.6", "12.6", "14.6", "13.5"], answer: 0 },
-            { q: "Which is greater: 0.45 or 0.405?", options: ["0.405", "They are equal", "0.45", "Cannot compare"], answer: 2 },
-            { q: "Convert 3/5 to a decimal.", options: ["0.35", "0.6", "0.53", "0.3"], answer: 1 },
-            { q: "Subtract: 5.03 - 2.7 = ?", options: ["2.33", "2.43", "3.33", "2.36"], answer: 0 },
-            { q: "Round 4.567 to one decimal place.", options: ["4.5", "4.6", "4.56", "5.0"], answer: 1 },
+            { q: "Add: 0.1 + 1.2 + 12.3 = ?", options: ["13.6", "12.6", "14.6", "13.5"], answer: 0 , why: "0.1 = 1/10, 0.01 = 1/100. Each position after decimal point is 10× smaller."},
+            { q: "Which is greater: 0.45 or 0.405?", options: ["0.405", "They are equal", "0.45", "Cannot compare"], answer: 2 , why: "Align decimal points when adding/subtracting. Add trailing zeros if needed: 3.45 + 2.7 = 3.45 + 2.70 = 6.15."},
+            { q: "Convert 3/5 to a decimal.", options: ["0.35", "0.6", "0.53", "0.3"], answer: 1 , why: "To compare decimals: Add trailing zeros to make same decimal places, then compare as whole numbers."},
+            { q: "Subtract: 5.03 - 2.7 = ?", options: ["2.33", "2.43", "3.33", "2.36"], answer: 0 , why: "Fraction to decimal: Divide numerator by denominator. 3/4 = 3 ÷ 4 = 0.75."},
+            { q: "Round 4.567 to one decimal place.", options: ["4.5", "4.6", "4.56", "5.0"], answer: 1 , why: "Decimal to fraction: 0.25 = 25/100 = 1/4 (simplify by dividing by HCF)."},
         ]
     },
     {
         id: "b6_8",
         title: "Negative Numbers & Integers",
         desc: "Number line, comparing, addition and subtraction with negatives",
+        topicContent: [{"name": "Negative Numbers on the Number Line", "content": "The number line extends in both directions:\\n\\n\u2190... -4  -3  -2  -1  0  1  2  3  4 ...\u2192\\n\\nNumbers to the right are greater.\\nNumbers to the left are smaller.\\n\\n-3 < -1 < 0 < 2 < 5\\n\\nOpposite of 3 is -3 (same distance from 0, opposite side)"}, {"name": "Integer Operations", "content": "Addition Rules:\\n\u2022 Same signs: Add and keep the sign\\n  (+3) + (+5) = +8\\n  (-3) + (-5) = -8\\n\u2022 Different signs: Subtract and keep sign of larger\\n  (+7) + (-3) = +4\\n  (-7) + (+3) = -4\\n\\nSubtraction: Change to addition of opposite\\n  5 - (-3) = 5 + 3 = 8\\n  -5 - 3 = -5 + (-3) = -8"}],
         questions: [
-            { q: "What is -89 + 98?", options: ["9", "-9", "187", "-187"], answer: 0 },
-            { q: "What is -985 - 689?", options: ["296", "-296", "1,674", "-1,674"], answer: 3 },
-            { q: "What is -5 + 6?", options: ["-11", "11", "1", "-1"], answer: 2 },
-            { q: "How many integers are between -6 and 6 (not including -6 and 6)?", options: ["13", "12", "11", "10"], answer: 2 },
-            { q: "The sum of two odd numbers is always:", options: ["Odd", "Even", "Prime", "Negative"], answer: 1 },
+            { q: "What is -89 + 98?", options: ["9", "-9", "187", "-187"], answer: 0 , why: "On the number line, numbers to the RIGHT are greater. So -1 > -3 because -1 is to the right of -3."},
+            { q: "What is -985 - 689?", options: ["296", "-296", "1,674", "-1,674"], answer: 3 , why: "Same signs: Add magnitudes, keep the sign. (+5)+(+3)=+8, (-5)+(-3)=-8."},
+            { q: "What is -5 + 6?", options: ["-11", "11", "1", "-1"], answer: 2 , why: "Different signs: Subtract smaller from larger magnitude, keep sign of larger. (+7)+(-3)=+4."},
+            { q: "How many integers are between -6 and 6 (not including -6 and 6)?", options: ["13", "12", "11", "10"], answer: 2 , why: "Subtracting a negative = adding a positive. 5-(-3) = 5+3 = 8. Two negatives make a positive!"},
+            { q: "The sum of two odd numbers is always:", options: ["Odd", "Even", "Prime", "Negative"], answer: 1 , why: "Absolute value |x| = distance from 0. Always positive. |-5| = 5, |3| = 3."},
         ]
     },
     {
         id: "b6_9",
         title: "Measurement & Units",
         desc: "Length, weight, capacity conversions, time calculations",
+        topicContent: [{"name": "Length, Weight & Capacity", "content": "Length: 1 km = 1000 m, 1 m = 100 cm, 1 cm = 10 mm\\n\\nWeight: 1 kg = 1000 g, 1 g = 1000 mg\\n\\nCapacity: 1 L = 1000 mL\\n\\nConversion: Multiply to go smaller, Divide to go bigger.\\nExample: 3.5 km = 3.5 \u00d7 1000 = 3500 m\\nExample: 2500 g = 2500 \u00f7 1000 = 2.5 kg"}, {"name": "Time Calculations", "content": "1 hour = 60 minutes, 1 minute = 60 seconds\\n1 day = 24 hours\\n\\nAdding Time:\\n2 hours 45 min + 1 hour 30 min\\n= 3 hours 75 min = 4 hours 15 min\\n\\n24-hour clock: 1:00 PM = 13:00, 9:30 PM = 21:30\\nFormula: PM time = 12 + hour"}],
         questions: [
-            { q: "How many centimeters are in 2.5 meters?", options: ["25", "250", "2500", "0.25"], answer: 1 },
-            { q: "Convert 3 km 500 m to meters.", options: ["3,500 m", "3,050 m", "350 m", "35,000 m"], answer: 0 },
-            { q: "How many minutes are in 2 hours 15 minutes?", options: ["215", "135", "125", "145"], answer: 1 },
-            { q: "1 kg = ___ grams", options: ["10", "100", "1,000", "10,000"], answer: 2 },
-            { q: "A water bottle holds 1.5 litres. How many ml is that?", options: ["150 ml", "1,500 ml", "15 ml", "15,000 ml"], answer: 1 },
+            { q: "How many centimeters are in 2.5 meters?", options: ["25", "250", "2500", "0.25"], answer: 1 , why: "To convert km to m: Multiply by 1000. 3.5 km = 3500 m. Going to a smaller unit = multiply."},
+            { q: "Convert 3 km 500 m to meters.", options: ["3,500 m", "3,050 m", "350 m", "35,000 m"], answer: 0 , why: "To convert g to kg: Divide by 1000. 2500 g = 2.5 kg. Going to a bigger unit = divide."},
+            { q: "How many minutes are in 2 hours 15 minutes?", options: ["215", "135", "125", "145"], answer: 1 , why: "Time addition: Add hours and minutes separately. If minutes ≥ 60, subtract 60 and add 1 to hours."},
+            { q: "1 kg = ___ grams", options: ["10", "100", "1,000", "10,000"], answer: 2 , why: "24-hour clock: Add 12 to PM hours. 3:30 PM = 15:30. Midnight = 00:00, Noon = 12:00."},
+            { q: "A water bottle holds 1.5 litres. How many ml is that?", options: ["150 ml", "1,500 ml", "15 ml", "15,000 ml"], answer: 1 , why: "Always check your unit conversions! Write the conversion factor and cancel units to verify."},
         ]
     },
     {
         id: "b6_10",
         title: "Geometry Basics",
         desc: "Points, lines, rays, angles, types of triangles",
+        topicContent: [{"name": "Points, Lines, Rays & Segments", "content": "Point: A location with no size (marked with a dot)\\nLine: Extends infinitely in both directions (\u2190\u2192)\\nRay: Starts at a point and extends infinitely in one direction (\u2192)\\nLine Segment: Has two endpoints (definite length)\\n\\nCollinear Points: Points on the same line\\nIntersecting Lines: Lines that cross at a point"}, {"name": "Angles & Their Types", "content": "An angle is formed when two rays share a common endpoint (vertex).\\n\\nTypes of Angles:\\n\u2022 Acute: Less than 90\u00b0 (e.g., 45\u00b0, 60\u00b0)\\n\u2022 Right: Exactly 90\u00b0\\n\u2022 Obtuse: Between 90\u00b0 and 180\u00b0 (e.g., 120\u00b0)\\n\u2022 Straight: Exactly 180\u00b0\\n\u2022 Reflex: Between 180\u00b0 and 360\u00b0\\n\\nComplementary: Two angles that add up to 90\u00b0\\nSupplementary: Two angles that add up to 180\u00b0"}, {"name": "Types of Triangles", "content": "By Sides:\\n\u2022 Equilateral: All 3 sides equal, all angles 60\u00b0\\n\u2022 Isosceles: 2 sides equal, 2 angles equal\\n\u2022 Scalene: All sides different\\n\\nBy Angles:\\n\u2022 Acute: All angles < 90\u00b0\\n\u2022 Right: One angle = 90\u00b0\\n\u2022 Obtuse: One angle > 90\u00b0\\n\\nAngle Sum Property: Sum of all angles in a triangle = 180\u00b0"}],
         questions: [
-            { q: "How many endpoints does a ray have?", options: ["0", "1", "2", "3"], answer: 1 },
-            { q: "A triangle with all three sides equal is called:", options: ["Isosceles", "Scalene", "Equilateral", "Right-angled"], answer: 2 },
-            { q: "An angle that measures exactly 90\u00b0 is called:", options: ["Acute", "Obtuse", "Right", "Straight"], answer: 2 },
-            { q: "How many sides does a quadrilateral have?", options: ["3", "4", "5", "6"], answer: 1 },
-            { q: "Two lines that never meet are called:", options: ["Intersecting", "Perpendicular", "Parallel", "Concurrent"], answer: 2 },
+            { q: "How many endpoints does a ray have?", options: ["0", "1", "2", "3"], answer: 1 , why: "A line extends infinitely in both directions (no endpoints). A line segment has two endpoints. A ray has one endpoint."},
+            { q: "A triangle with all three sides equal is called:", options: ["Isosceles", "Scalene", "Equilateral", "Right-angled"], answer: 2 , why: "Complementary angles add up to 90°. If one angle is 35°, the other is 90° - 35° = 55°."},
+            { q: "An angle that measures exactly 90\u00b0 is called:", options: ["Acute", "Obtuse", "Right", "Straight"], answer: 2 , why: "Supplementary angles add up to 180°. If one angle is 110°, the other is 180° - 110° = 70°."},
+            { q: "How many sides does a quadrilateral have?", options: ["3", "4", "5", "6"], answer: 1 , why: "Angle Sum Property: All three angles of a triangle always add up to exactly 180°."},
+            { q: "Two lines that never meet are called:", options: ["Intersecting", "Perpendicular", "Parallel", "Concurrent"], answer: 2 , why: "Vertically opposite angles are equal. When two lines cross, the angles facing each other are equal."},
         ]
     },
     {
         id: "b6_11",
         title: "Perimeter & Area",
         desc: "Perimeter and area of rectangles, squares, triangles",
+        topicContent: [{"name": "Perimeter", "content": "Perimeter = Total length around a shape\\n\\nRectangle: P = 2 \u00d7 (length + breadth)\\nSquare: P = 4 \u00d7 side\\nTriangle: P = side\u2081 + side\u2082 + side\u2083\\n\\nExample: Rectangle with l=8cm, b=5cm\\nP = 2 \u00d7 (8 + 5) = 2 \u00d7 13 = 26 cm"}, {"name": "Area", "content": "Area = Space occupied by a flat shape\\n\\nRectangle: A = length \u00d7 breadth\\nSquare: A = side \u00d7 side = side\u00b2\\nTriangle: A = \u00bd \u00d7 base \u00d7 height\\n\\nExample: Square with side 6cm\\nA = 6 \u00d7 6 = 36 cm\u00b2\\n\\nUnits: Area is always in square units (cm\u00b2, m\u00b2, km\u00b2)"}],
         questions: [
-            { q: "Find the perimeter of a rectangle with length 12 cm and breadth 8 cm.", options: ["96 cm", "40 cm", "20 cm", "80 cm"], answer: 1 },
-            { q: "Area of a square with side 9 cm is:", options: ["36 cm\u00b2", "81 cm\u00b2", "18 cm\u00b2", "72 cm\u00b2"], answer: 1 },
-            { q: "Find the area of a rectangle with length 15 m and breadth 6 m.", options: ["42 m\u00b2", "90 m\u00b2", "21 m\u00b2", "180 m\u00b2"], answer: 1 },
-            { q: "The perimeter of a square is 48 cm. What is the side length?", options: ["8 cm", "12 cm", "16 cm", "24 cm"], answer: 1 },
-            { q: "Area of a triangle with base 10 cm and height 6 cm is:", options: ["60 cm\u00b2", "30 cm\u00b2", "16 cm\u00b2", "36 cm\u00b2"], answer: 1 },
+            { q: "Find the perimeter of a rectangle with length 12 cm and breadth 8 cm.", options: ["96 cm", "40 cm", "20 cm", "80 cm"], answer: 1 , why: "Rectangle perimeter = 2(l+b). Don\'t forget to multiply by 2 for both pairs of sides!"},
+            { q: "Area of a square with side 9 cm is:", options: ["36 cm\u00b2", "81 cm\u00b2", "18 cm\u00b2", "72 cm\u00b2"], answer: 1 , why: "Square area = side × side = side². All sides are equal, so just square one side."},
+            { q: "Find the area of a rectangle with length 15 m and breadth 6 m.", options: ["42 m\u00b2", "90 m\u00b2", "21 m\u00b2", "180 m\u00b2"], answer: 1 , why: "Triangle area = ½ × base × height. The height must be perpendicular to the base."},
+            { q: "The perimeter of a square is 48 cm. What is the side length?", options: ["8 cm", "12 cm", "16 cm", "24 cm"], answer: 1 , why: "Area is measured in square units (cm², m²) because we\'re measuring 2D space."},
+            { q: "Area of a triangle with base 10 cm and height 6 cm is:", options: ["60 cm\u00b2", "30 cm\u00b2", "16 cm\u00b2", "36 cm\u00b2"], answer: 1 , why: "Perimeter is measured in linear units (cm, m) because it\'s just the total length around the shape."},
         ]
     },
     {
         id: "b6_12",
         title: "Data Handling & Patterns",
         desc: "Tally marks, bar graphs, number patterns, sequences",
+        topicContent: [{"name": "Tally Marks & Bar Graphs", "content": "Tally Marks: Used to count data in groups of 5\\n| = 1, || = 2, ||| = 3, |||| = 4, \u29f8|||| = 5\\n\\nBar Graph: Uses rectangular bars to represent data.\\n\u2022 Each bar has equal width\\n\u2022 Height shows the value\\n\u2022 Bars can be vertical or horizontal\\n\u2022 Always label axes and give a title"}, {"name": "Number Patterns & Sequences", "content": "Arithmetic Pattern: Same number added each time\\n2, 5, 8, 11, 14... (adding 3 each time)\\n\\nGeometric Pattern: Same number multiplied each time\\n2, 6, 18, 54... (multiplying by 3)\\n\\nTriangular Numbers: 1, 3, 6, 10, 15, 21...\\n(Add 1, then 2, then 3, then 4...)\\n\\nSquare Numbers: 1, 4, 9, 16, 25, 36...\\n(1\u00b2, 2\u00b2, 3\u00b2, 4\u00b2, 5\u00b2, 6\u00b2)"}],
         questions: [
-            { q: "In a tally chart, how is the number 7 represented?", options: ["IIII II", "IIII III", "III IIII", "IIIIIII"], answer: 0 },
-            { q: "What comes next in the pattern: 2, 6, 18, 54, ___?", options: ["72", "108", "162", "216"], answer: 2 },
-            { q: "In a bar graph, the tallest bar represents:", options: ["The smallest value", "The average value", "The largest value", "The median"], answer: 2 },
-            { q: "Find the next number: 5, 10, 20, 40, ___?", options: ["50", "60", "80", "100"], answer: 2 },
-            { q: "The mean (average) of 4, 8, 6, 10, 12 is:", options: ["6", "8", "10", "12"], answer: 1 },
+            { q: "In a tally chart, how is the number 7 represented?", options: ["IIII II", "IIII III", "III IIII", "IIIIIII"], answer: 0 , why: "In a bar graph, the height of each bar represents the data value. Taller bar = larger value."},
+            { q: "What comes next in the pattern: 2, 6, 18, 54, ___?", options: ["72", "108", "162", "216"], answer: 2 , why: "Tally marks: Group in 5s (||||) for easy counting. The 5th mark crosses the previous 4 diagonally."},
+            { q: "In a bar graph, the tallest bar represents:", options: ["The smallest value", "The average value", "The largest value", "The median"], answer: 2 , why: "To find the mean (average): Add all values, then divide by how many values there are."},
+            { q: "Find the next number: 5, 10, 20, 40, ___?", options: ["50", "60", "80", "100"], answer: 2 , why: "In arithmetic patterns, find the common difference by subtracting consecutive terms."},
+            { q: "The mean (average) of 4, 8, 6, 10, 12 is:", options: ["6", "8", "10", "12"], answer: 1 , why: "Square numbers: 1, 4, 9, 16, 25... They\'re called square because they form perfect squares (1², 2², 3²...)."},
         ]
     },
 ];
@@ -467,144 +479,156 @@ const basicsWorksheets7 = [
         id: "b7_1",
         title: "Large Numbers & Estimation",
         desc: "Indian/International system, rounding, estimation in lakhs and crores",
+        topicContent: [{"name": "Indian & International System for Large Numbers", "content": "Indian System: ...Crores, Lakhs, Thousands, Hundreds, Tens, Ones\\n1 Lakh = 1,00,000\\n1 Crore = 1,00,00,000\\n\\nInternational System: ...Millions, Thousands, Ones\\n1 Million = 10,00,000 = 10 Lakhs\\n1 Billion = 1,00,00,00,000 = 100 Crores\\n\\nExample: 3,25,47,000\\nIndian: Three crore twenty-five lakh forty-seven thousand\\nInternational: 32,547,000 = Thirty-two million five hundred forty-seven thousand"}, {"name": "Estimation & Rounding", "content": "Rounding Rules:\\n\u2022 If digit < 5: Round down\\n\u2022 If digit \u2265 5: Round up\\n\\nRound 4,738 to nearest hundred: Look at tens (3 < 5) \u2192 4,700\\nRound 4,768 to nearest hundred: Look at tens (6 \u2265 5) \u2192 4,800\\n\\nEstimation: Round numbers first, then calculate.\\nEstimate 489 \u00d7 21 \u2248 500 \u00d7 20 = 10,000"}],
         questions: [
-            { q: "What is 1 crore in the International system?", options: ["1 million", "10 million", "100 million", "1 billion"], answer: 1 },
-            { q: "Round 4,56,789 to the nearest thousand.", options: ["4,56,000", "4,57,000", "4,60,000", "5,00,000"], answer: 1 },
-            { q: "The predecessor of 10,00,000 is:", options: ["9,99,999", "10,00,001", "99,999", "9,99,000"], answer: 0 },
-            { q: "How many zeros are in 1 lakh?", options: ["4", "5", "6", "7"], answer: 1 },
-            { q: "Estimate 3,879 + 5,142 to the nearest hundred.", options: ["9,000", "9,100", "9,020", "8,900"], answer: 0 },
+            { q: "What is 1 crore in the International system?", options: ["1 million", "10 million", "100 million", "1 billion"], answer: 1 , why: "In the Indian system, commas go after 3 digits from right, then every 2. In International, every 3 digits."},
+            { q: "Round 4,56,789 to the nearest thousand.", options: ["4,56,000", "4,57,000", "4,60,000", "5,00,000"], answer: 1 , why: "Rounding: Look at the digit to the right of the position. If ≥5, round up; if <5, round down."},
+            { q: "The predecessor of 10,00,000 is:", options: ["9,99,999", "10,00,001", "99,999", "9,99,000"], answer: 0 , why: "Estimation helps verify your answers. Round to easy numbers, calculate, then compare with your exact answer."},
+            { q: "How many zeros are in 1 lakh?", options: ["4", "5", "6", "7"], answer: 1 , why: "1 Lakh = 100 Thousand, 1 Crore = 10 Million. Use these conversions between Indian and International systems."},
+            { q: "Estimate 3,879 + 5,142 to the nearest hundred.", options: ["9,000", "9,100", "9,020", "8,900"], answer: 0 , why: "The successor of a number is number + 1. The predecessor is number - 1. Simple but important!"},
         ]
     },
     {
         id: "b7_2",
         title: "Whole Number Properties",
         desc: "Closure, commutative, associative, distributive properties",
+        topicContent: [{"name": "Properties of Whole Numbers", "content": "Closure Property:\\n\u2022 Addition: a + b is always a whole number \u2713\\n\u2022 Subtraction: a - b may NOT be a whole number \u2717 (e.g., 3-5 = -2)\\n\u2022 Multiplication: a \u00d7 b is always a whole number \u2713\\n\u2022 Division: a \u00f7 b may NOT be a whole number \u2717\\n\\nCommutative Property:\\n\u2022 a + b = b + a \u2713\\n\u2022 a \u00d7 b = b \u00d7 a \u2713\\n\u2022 a - b \u2260 b - a \u2717\\n\u2022 a \u00f7 b \u2260 b \u00f7 a \u2717"}, {"name": "Associative & Distributive Properties", "content": "Associative Property:\\n(a + b) + c = a + (b + c) \u2713 for addition\\n(a \u00d7 b) \u00d7 c = a \u00d7 (b \u00d7 c) \u2713 for multiplication\\n\\nDistributive Property:\\na \u00d7 (b + c) = a\u00d7b + a\u00d7c\\n\\nExample: 15 \u00d7 102 = 15 \u00d7 (100 + 2) = 1500 + 30 = 1530\\n\\nIdentity Elements:\\nAdditive Identity: a + 0 = a\\nMultiplicative Identity: a \u00d7 1 = a"}],
         questions: [
-            { q: "Which property states a + b = b + a?", options: ["Associative", "Commutative", "Distributive", "Closure"], answer: 1 },
-            { q: "Find: 25 x 98 using distributive property = 25 x (100 - 2) = ?", options: ["2,450", "2,550", "2,350", "2,500"], answer: 0 },
-            { q: "The additive identity (adding it gives the same number) is:", options: ["1", "0", "-1", "10"], answer: 1 },
-            { q: "Which is true? (a x b) x c = a x (b x c) is the ___ property.", options: ["Commutative", "Distributive", "Associative", "Identity"], answer: 2 },
-            { q: "Is subtraction commutative for whole numbers?", options: ["Yes, always", "No, never", "Only for positive numbers", "Only when a > b"], answer: 1 },
+            { q: "Which property states a + b = b + a?", options: ["Associative", "Commutative", "Distributive", "Closure"], answer: 1 , why: "Closure: If doing an operation on two whole numbers always gives a whole number, the operation is \'closed\'."},
+            { q: "Find: 25 x 98 using distributive property = 25 x (100 - 2) = ?", options: ["2,450", "2,550", "2,350", "2,500"], answer: 0 , why: "Commutative: Order doesn\'t matter. a+b = b+a works, but a-b ≠ b-a (subtraction is NOT commutative)."},
+            { q: "The additive identity (adding it gives the same number) is:", options: ["1", "0", "-1", "10"], answer: 1 , why: "Associative: Grouping doesn\'t matter. (a+b)+c = a+(b+c) for addition and multiplication only."},
+            { q: "Which is true? (a x b) x c = a x (b x c) is the ___ property.", options: ["Commutative", "Distributive", "Associative", "Identity"], answer: 2 , why: "Distributive: a × (b+c) = a×b + a×c. This is super useful for mental math!"},
+            { q: "Is subtraction commutative for whole numbers?", options: ["Yes, always", "No, never", "Only for positive numbers", "Only when a > b"], answer: 1 , why: "Identity elements: 0 for addition (a+0=a), 1 for multiplication (a×1=a). They don\'t change the number."},
         ]
     },
     {
         id: "b7_3",
         title: "BODMAS & Nested Brackets",
         desc: "Order of operations with (), {}, [], mixed operations",
+        topicContent: [{"name": "BODMAS with Nested Brackets", "content": "Order of solving brackets:\\n1. ( ) Parentheses - innermost first\\n2. { } Braces\\n3. [ ] Square brackets\\n\\nThen: Of \u2192 Division \u2192 Multiplication \u2192 Addition \u2192 Subtraction\\n\\nExample: [{36 \u00f7 (8-2)} + 5] \u00d7 2\\n= [{36 \u00f7 6} + 5] \u00d7 2\\n= [6 + 5] \u00d7 2\\n= 11 \u00d7 2 = 22"}, {"name": "Mixed Operations", "content": "When multiple operations appear, follow BODMAS strictly:\\n\\nExample: 48 \u00f7 8 + 3 \u00d7 2 - 1\\n= 6 + 6 - 1 (do \u00f7 and \u00d7 first, left to right)\\n= 11\\n\\nCommon Mistake: 8 + 4 \u00d7 3 \u2260 36\\nCorrect: 8 + 4 \u00d7 3 = 8 + 12 = 20\\n\\nTip: Use brackets to make your work clearer!"}],
         questions: [
-            { q: "Solve: (2\u00b3 - 1) \u00f7 (4 + (-2)) = ?", options: ["3.5", "2.5", "7", "1.5"], answer: 0 },
-            { q: "Simplify: 48 \u00f7 [12 - {8 - (6 - 2)}] = ?", options: ["6", "8", "12", "48"], answer: 1 },
-            { q: "Solve: 5 + {3 x (8 - 2)} = ?", options: ["23", "66", "48", "33"], answer: 0 },
-            { q: "Solve: 100 - [50 + {20 - (10 + 5)}] = ?", options: ["55", "45", "35", "65"], answer: 1 },
-            { q: "Solve: 6 x 4 - 3 x 2 + 8 \u00f7 4 = ?", options: ["20", "18", "22", "24"], answer: 0 },
+            { q: "Solve: (2\u00b3 - 1) \u00f7 (4 + (-2)) = ?", options: ["3.5", "2.5", "7", "1.5"], answer: 0 , why: "Solve innermost brackets first: ( ) → { } → [ ]. Then follow BODMAS for the remaining operations."},
+            { q: "Simplify: 48 \u00f7 [12 - {8 - (6 - 2)}] = ?", options: ["6", "8", "12", "48"], answer: 1 , why: "In BODMAS, Division and Multiplication have EQUAL priority. Solve left to right."},
+            { q: "Solve: 5 + {3 x (8 - 2)} = ?", options: ["23", "66", "48", "33"], answer: 0 , why: "Common mistake: 8 + 4 × 3 ≠ 36. Multiplication comes before addition: 8 + 12 = 20."},
+            { q: "Solve: 100 - [50 + {20 - (10 + 5)}] = ?", options: ["55", "45", "35", "65"], answer: 1 , why: "\'Of\' means multiplication in BODMAS. ⅓ of 12 = ⅓ × 12 = 4."},
+            { q: "Solve: 6 x 4 - 3 x 2 + 8 \u00f7 4 = ?", options: ["20", "18", "22", "24"], answer: 0 , why: "Always show your working step by step. This helps avoid mistakes and makes it easy to check."},
         ]
     },
     {
         id: "b7_4",
         title: "Factors, HCF & LCM",
         desc: "Prime factorization, HCF by division, LCM by prime method",
+        topicContent: [{"name": "Prime Factorization", "content": "Every composite number can be written as a product of primes.\\n\\nFactor Tree Method:\\n60 = 2 \u00d7 30\\n   = 2 \u00d7 2 \u00d7 15\\n   = 2 \u00d7 2 \u00d7 3 \u00d7 5\\n   = 2\u00b2 \u00d7 3 \u00d7 5\\n\\nDivision Method: Keep dividing by smallest prime\\n60 \u00f7 2 = 30\\n30 \u00f7 2 = 15\\n15 \u00f7 3 = 5\\n5 \u00f7 5 = 1\\n60 = 2 \u00d7 2 \u00d7 3 \u00d7 5"}, {"name": "HCF & LCM by Prime Factorization", "content": "HCF: Product of COMMON primes with LOWEST powers\\nLCM: Product of ALL primes with HIGHEST powers\\n\\nExample: Find HCF and LCM of 24 and 36\\n24 = 2\u00b3 \u00d7 3\\n36 = 2\u00b2 \u00d7 3\u00b2\\n\\nHCF = 2\u00b2 \u00d7 3 = 12 (common primes, lower powers)\\nLCM = 2\u00b3 \u00d7 3\u00b2 = 72 (all primes, higher powers)\\n\\nCheck: HCF \u00d7 LCM = 12 \u00d7 72 = 864 = 24 \u00d7 36 \u2713"}],
         questions: [
-            { q: "Find HCF of 36 and 48.", options: ["6", "12", "24", "8"], answer: 1 },
-            { q: "Find LCM of 12, 15, and 20.", options: ["120", "60", "180", "240"], answer: 1 },
-            { q: "Prime factorization of 72 is:", options: ["2\u00b3 x 3\u00b2", "2\u00b2 x 3\u00b3", "2 x 36", "4 x 18"], answer: 0 },
-            { q: "The product of HCF and LCM of two numbers equals:", options: ["Sum of the numbers", "Difference of the numbers", "Product of the numbers", "Average of the numbers"], answer: 2 },
-            { q: "Is 91 a prime number?", options: ["Yes", "No, 91 = 7 x 13", "No, 91 = 9 x 11", "No, 91 = 3 x 31"], answer: 1 },
+            { q: "Find HCF of 36 and 48.", options: ["6", "12", "24", "8"], answer: 1 , why: "Factor tree: Keep breaking numbers into factor pairs until all factors are prime."},
+            { q: "Find LCM of 12, 15, and 20.", options: ["120", "60", "180", "240"], answer: 1 , why: "HCF by prime factorization: Take COMMON primes with SMALLEST powers."},
+            { q: "Prime factorization of 72 is:", options: ["2\u00b3 x 3\u00b2", "2\u00b2 x 3\u00b3", "2 x 36", "4 x 18"], answer: 0 , why: "LCM by prime factorization: Take ALL primes with LARGEST powers."},
+            { q: "The product of HCF and LCM of two numbers equals:", options: ["Sum of the numbers", "Difference of the numbers", "Product of the numbers", "Average of the numbers"], answer: 2 , why: "Quick check: HCF × LCM = Product of the two numbers. Always verify!"},
+            { q: "Is 91 a prime number?", options: ["Yes", "No, 91 = 7 x 13", "No, 91 = 9 x 11", "No, 91 = 3 x 31"], answer: 1 , why: "Every number\'s prime factorization is unique (Fundamental Theorem of Arithmetic)."},
         ]
     },
     {
         id: "b7_5",
         title: "Integers & Operations",
         desc: "Addition, subtraction, multiplication, division of integers",
+        topicContent: [{"name": "Understanding Integers", "content": "Integers: ...,-3, -2, -1, 0, 1, 2, 3,...\\n\\nPositive integers: 1, 2, 3, ... (right of 0)\\nNegative integers: -1, -2, -3, ... (left of 0)\\nZero is neither positive nor negative.\\n\\nAbsolute Value: Distance from 0\\n|\u22125| = 5, |3| = 3, |0| = 0\\n\\nOrdering: -5 < -3 < -1 < 0 < 2 < 4"}, {"name": "Integer Arithmetic", "content": "Addition:\\n(+5) + (+3) = +8\\n(-5) + (-3) = -8\\n(+5) + (-3) = +2\\n(-5) + (+3) = -2\\n\\nSubtraction: Add the opposite\\na - b = a + (-b)\\n5 - (-3) = 5 + 3 = 8\\n\\nMultiplication/Division:\\n(+) \u00d7 (+) = (+)\\n(-) \u00d7 (-) = (+)\\n(+) \u00d7 (-) = (-)\\n(-) \u00d7 (+) = (-)"}],
         questions: [
-            { q: "What is -7 x 2 \u00f7 (-5) + 3?", options: ["5.8", "0.2", "17.8", "-5.8"], answer: 0 },
-            { q: "What is the additive inverse of 7?", options: ["7", "-7", "0", "1/7"], answer: 1 },
-            { q: "Solve: (-15) + (-23) = ?", options: ["38", "-38", "8", "-8"], answer: 1 },
-            { q: "Solve: (-48) \u00f7 8 = ?", options: ["6", "-6", "8", "-8"], answer: 1 },
-            { q: "Arrange in ascending order: -5, 3, -8, 0, 7", options: ["0, 3, 7, -5, -8", "-8, -5, 0, 3, 7", "7, 3, 0, -5, -8", "-5, -8, 0, 3, 7"], answer: 1 },
+            { q: "What is -7 x 2 \u00f7 (-5) + 3?", options: ["5.8", "0.2", "17.8", "-5.8"], answer: 0 , why: "Integer number line: ...,-3,-2,-1,0,1,2,3,... Numbers to the right are always greater."},
+            { q: "What is the additive inverse of 7?", options: ["7", "-7", "0", "1/7"], answer: 1 , why: "Adding two negatives: Add the magnitudes, keep negative sign. (-3)+(-5) = -8."},
+            { q: "Solve: (-15) + (-23) = ?", options: ["38", "-38", "8", "-8"], answer: 1 , why: "Multiplying/dividing signs: Same signs = positive, Different signs = negative."},
+            { q: "Solve: (-48) \u00f7 8 = ?", options: ["6", "-6", "8", "-8"], answer: 1 , why: "Subtracting a negative = adding positive: 5-(-3) = 5+3 = 8."},
+            { q: "Arrange in ascending order: -5, 3, -8, 0, 7", options: ["0, 3, 7, -5, -8", "-8, -5, 0, 3, 7", "7, 3, 0, -5, -8", "-5, -8, 0, 3, 7"], answer: 1 , why: "Zero is neither positive nor negative. It\'s the starting point of the number line."},
         ]
     },
     {
         id: "b7_6",
         title: "Fractions & Decimals Operations",
         desc: "Add, subtract, multiply, divide fractions and decimals",
+        topicContent: [{"name": "Fraction Operations", "content": "Multiplication of Fractions:\\na/b \u00d7 c/d = (a\u00d7c)/(b\u00d7d)\\nExample: 2/3 \u00d7 4/5 = 8/15\\n\\nDivision of Fractions: Multiply by reciprocal\\na/b \u00f7 c/d = a/b \u00d7 d/c\\nExample: 2/3 \u00f7 4/5 = 2/3 \u00d7 5/4 = 10/12 = 5/6"}, {"name": "Decimal Operations", "content": "Multiplication of Decimals:\\nMultiply as whole numbers, then count decimal places.\\n2.5 \u00d7 1.3 = 25 \u00d7 13 = 325 \u2192 3.25 (2 decimal places)\\n\\nDivision of Decimals:\\nMake divisor a whole number by moving decimal.\\n4.5 \u00f7 0.5 = 45 \u00f7 5 = 9"}],
         questions: [
-            { q: "Solve: 9/11 + 5/6 = ?", options: ["14/17", "109/66", "14/66", "54/66"], answer: 1 },
-            { q: "Solve: 0.3\u00b2 x 0.2\u00b3 = ?", options: ["0.00072", "0.072", "0.72", "0.0072"], answer: 0 },
-            { q: "Divide: 3/4 \u00f7 1/2 = ?", options: ["3/8", "3/2", "2/3", "6/4"], answer: 1 },
-            { q: "Convert 0.375 to a fraction in simplest form.", options: ["375/1000", "3/8", "37/100", "75/200"], answer: 1 },
-            { q: "Multiply: 2.5 x 0.4 = ?", options: ["10", "1.0", "0.1", "1"], answer: 1 },
+            { q: "Solve: 9/11 + 5/6 = ?", options: ["14/17", "109/66", "14/66", "54/66"], answer: 1 , why: "Multiplying fractions: Multiply numerators together and denominators together. Simplify if possible."},
+            { q: "Solve: 0.3\u00b2 x 0.2\u00b3 = ?", options: ["0.00072", "0.072", "0.72", "0.0072"], answer: 0 , why: "Dividing fractions: Flip the second fraction (reciprocal) and multiply. a/b ÷ c/d = a/b × d/c."},
+            { q: "Divide: 3/4 \u00f7 1/2 = ?", options: ["3/8", "3/2", "2/3", "6/4"], answer: 1 , why: "Decimal multiplication: Multiply as whole numbers, then count total decimal places in both numbers."},
+            { q: "Convert 0.375 to a fraction in simplest form.", options: ["375/1000", "3/8", "37/100", "75/200"], answer: 1 , why: "Decimal division: Move decimal point in divisor to make it whole, move same in dividend."},
+            { q: "Multiply: 2.5 x 0.4 = ?", options: ["10", "1.0", "0.1", "1"], answer: 1 , why: "Always simplify your final answer! Divide by common factors."},
         ]
     },
     {
         id: "b7_7",
         title: "Ratio & Proportion",
         desc: "Simplifying ratios, unitary method, cross multiplication",
+        topicContent: [{"name": "Understanding Ratios", "content": "A ratio compares two quantities of the same kind.\\n\\nRatio of a to b = a : b = a/b\\n\\nSimplifying Ratios: Divide by HCF\\n12 : 18 \u2192 HCF = 6 \u2192 2 : 3\\n\\nEquivalent Ratios: Multiply/divide both parts by same number\\n2 : 3 = 4 : 6 = 6 : 9"}, {"name": "Proportion & Unitary Method", "content": "Proportion: Two equal ratios (a:b = c:d)\\nCross Multiplication: a\u00d7d = b\u00d7c\\n\\nUnitary Method: Find value of 1 unit first\\nExample: 5 pens cost \u20b960. What do 8 pens cost?\\n1 pen = \u20b960 \u00f7 5 = \u20b912\\n8 pens = \u20b912 \u00d7 8 = \u20b996"}],
         questions: [
-            { q: "If a:b = 5:6, and b = 18, find a.", options: ["12", "15", "20", "10"], answer: 1 },
-            { q: "Solve: 3/4 = x/12. Find x.", options: ["9", "4", "16", "8"], answer: 0 },
-            { q: "Simplify the ratio 48:64.", options: ["6:8", "3:4", "12:16", "24:32"], answer: 1 },
-            { q: "If 5 pens cost Rs 60, how much do 8 pens cost?", options: ["Rs 80", "Rs 96", "Rs 48", "Rs 100"], answer: 1 },
-            { q: "The ratio of boys to girls in a class is 3:2. If there are 18 boys, how many girls?", options: ["12", "10", "9", "15"], answer: 0 },
+            { q: "If a:b = 5:6, and b = 18, find a.", options: ["12", "15", "20", "10"], answer: 1 , why: "Ratio compares two quantities of the SAME kind. Always simplify by dividing both parts by HCF."},
+            { q: "Solve: 3/4 = x/12. Find x.", options: ["9", "4", "16", "8"], answer: 0 , why: "Proportion: Two ratios are equal. a:b = c:d means a×d = b×c (cross multiplication)."},
+            { q: "Simplify the ratio 48:64.", options: ["6:8", "3:4", "12:16", "24:32"], answer: 1 , why: "Unitary method: Find the value of 1 unit first, then multiply for required quantity."},
+            { q: "If 5 pens cost Rs 60, how much do 8 pens cost?", options: ["Rs 80", "Rs 96", "Rs 48", "Rs 100"], answer: 1 , why: "Equivalent ratios: Multiply or divide both parts by the same number (like equivalent fractions)."},
+            { q: "The ratio of boys to girls in a class is 3:2. If there are 18 boys, how many girls?", options: ["12", "10", "9", "15"], answer: 0 , why: "Speed, distance, time problems often use ratios and proportions."},
         ]
     },
     {
         id: "b7_8",
         title: "Algebra Basics",
         desc: "Algebraic expressions, evaluation, simple equations",
+        topicContent: [{"name": "Algebraic Expressions", "content": "Variable: A letter representing an unknown number (x, y, n)\\nConstant: A fixed number (5, -3, 7)\\n\\nAlgebraic Expression: Combination of variables, constants and operations\\nExamples: 2x + 3, 5y - 7, 3a\u00b2 + 2a - 1\\n\\nTerms: Parts separated by + or -\\nIn 3x + 5y - 2: terms are 3x, 5y, -2\\nCoefficient: The number multiplied with variable (in 3x, coefficient is 3)"}, {"name": "Simple Equations", "content": "An equation has an = sign.\\n\\nSolving: Do the same operation on both sides.\\n\\nExample: 2x + 3 = 11\\n2x + 3 - 3 = 11 - 3\\n2x = 8\\nx = 8 \u00f7 2 = 4\\n\\nCheck: 2(4) + 3 = 8 + 3 = 11 \u2713\\n\\nTransposing: When a term moves across =, its sign changes.\\n2x + 3 = 11 \u2192 2x = 11 - 3 \u2192 2x = 8"}],
         questions: [
-            { q: "If x = 2, find the value of 2x\u00b2 - 3x + 1.", options: ["3", "1", "5", "7"], answer: 0 },
-            { q: "Simplify: 3a + 5a - 2a = ?", options: ["6a", "8a", "10a", "4a"], answer: 0 },
-            { q: "Solve: x + 7 = 15. What is x?", options: ["22", "7", "8", "15"], answer: 2 },
-            { q: "Factor: x\u00b2 + 4x + 4 = ?", options: ["(x+2)(x+2)", "(x+4)(x+1)", "(x+2)(x-2)", "(x-2)(x-2)"], answer: 0 },
-            { q: "If 3x - 5 = 10, then x = ?", options: ["3", "5", "15", "7"], answer: 1 },
+            { q: "If x = 2, find the value of 2x\u00b2 - 3x + 1.", options: ["3", "1", "5", "7"], answer: 0 , why: "Variable = letter for unknown, Constant = fixed number. In 3x+5: coefficient=3, variable=x, constant=5."},
+            { q: "Simplify: 3a + 5a - 2a = ?", options: ["6a", "8a", "10a", "4a"], answer: 0 , why: "Like terms have the same variable part: 3x and 5x are like terms, but 3x and 3y are NOT."},
+            { q: "Solve: x + 7 = 15. What is x?", options: ["22", "7", "8", "15"], answer: 2 , why: "Solving equations: Do the same operation on both sides to isolate the variable."},
+            { q: "Factor: x\u00b2 + 4x + 4 = ?", options: ["(x+2)(x+2)", "(x+4)(x+1)", "(x+2)(x-2)", "(x-2)(x-2)"], answer: 0 , why: "Transposing: When moving a term to the other side, change its sign (+ becomes -, × becomes ÷)."},
+            { q: "If 3x - 5 = 10, then x = ?", options: ["3", "5", "15", "7"], answer: 1 , why: "Always CHECK your answer by substituting it back into the original equation!"},
         ]
     },
     {
         id: "b7_9",
         title: "Geometry: Lines & Angles",
         desc: "Types of angles, complementary, supplementary, vertically opposite",
+        topicContent: [{"name": "Types of Angles", "content": "Acute Angle: 0\u00b0 < angle < 90\u00b0\\nRight Angle: angle = 90\u00b0\\nObtuse Angle: 90\u00b0 < angle < 180\u00b0\\nStraight Angle: angle = 180\u00b0\\nReflex Angle: 180\u00b0 < angle < 360\u00b0\\nComplete Angle: angle = 360\u00b0"}, {"name": "Angle Relationships", "content": "Complementary Angles: Sum = 90\u00b0\\nIf one angle is 35\u00b0, complement = 90\u00b0 - 35\u00b0 = 55\u00b0\\n\\nSupplementary Angles: Sum = 180\u00b0\\nIf one angle is 110\u00b0, supplement = 180\u00b0 - 110\u00b0 = 70\u00b0\\n\\nVertically Opposite Angles: Equal when two lines cross\\nLinear Pair: Adjacent angles on a straight line, sum = 180\u00b0"}],
         questions: [
-            { q: "Two supplementary angles add up to:", options: ["90\u00b0", "180\u00b0", "360\u00b0", "270\u00b0"], answer: 1 },
-            { q: "If two angles are complementary and one is 35\u00b0, the other is:", options: ["145\u00b0", "55\u00b0", "65\u00b0", "35\u00b0"], answer: 1 },
-            { q: "Vertically opposite angles are:", options: ["Supplementary", "Complementary", "Equal", "Right angles"], answer: 2 },
-            { q: "Allied (co-interior) angles formed by a transversal with parallel lines sum to:", options: ["90\u00b0", "180\u00b0", "360\u00b0", "120\u00b0"], answer: 1 },
-            { q: "An angle greater than 90\u00b0 but less than 180\u00b0 is called:", options: ["Acute", "Right", "Obtuse", "Reflex"], answer: 2 },
+            { q: "Two supplementary angles add up to:", options: ["90\u00b0", "180\u00b0", "360\u00b0", "270\u00b0"], answer: 1 , why: "Angles on a straight line add up to 180° (linear pair). This is useful for finding unknown angles."},
+            { q: "If two angles are complementary and one is 35\u00b0, the other is:", options: ["145\u00b0", "55\u00b0", "65\u00b0", "35\u00b0"], answer: 1 , why: "Complementary = sum is 90°, Supplementary = sum is 180°. Remember: C comes before S, 90 before 180."},
+            { q: "Vertically opposite angles are:", options: ["Supplementary", "Complementary", "Equal", "Right angles"], answer: 2 , why: "Vertically opposite angles are EQUAL. They form when two lines intersect."},
+            { q: "Allied (co-interior) angles formed by a transversal with parallel lines sum to:", options: ["90\u00b0", "180\u00b0", "360\u00b0", "120\u00b0"], answer: 1 , why: "Adjacent angles share a common side and vertex but don\'t overlap."},
+            { q: "An angle greater than 90\u00b0 but less than 180\u00b0 is called:", options: ["Acute", "Right", "Obtuse", "Reflex"], answer: 2 , why: "The angle bisector divides an angle into two equal parts."},
         ]
     },
     {
         id: "b7_10",
         title: "Triangles & Symmetry",
         desc: "Types of triangles, angle sum, lines of symmetry, rotational symmetry",
+        topicContent: [{"name": "Types of Triangles", "content": "By Sides:\\n\u2022 Equilateral: All sides equal, all angles 60\u00b0\\n\u2022 Isosceles: Two sides equal, base angles equal\\n\u2022 Scalene: All sides different, all angles different\\n\\nBy Angles:\\n\u2022 Acute: All angles < 90\u00b0\\n\u2022 Right: One angle = 90\u00b0\\n\u2022 Obtuse: One angle > 90\u00b0\\n\\nAngle Sum: All angles add up to 180\u00b0"}, {"name": "Symmetry", "content": "Line Symmetry: A line divides a shape into two identical halves.\\n\\nLines of symmetry:\\n\u2022 Circle: Infinite\\n\u2022 Square: 4\\n\u2022 Rectangle: 2\\n\u2022 Equilateral Triangle: 3\\n\u2022 Isosceles Triangle: 1\\n\\nRotational Symmetry: Shape looks the same after rotation.\\nOrder = Number of times it matches in one full turn.\\nSquare: Order 4, Equilateral Triangle: Order 3"}],
         questions: [
-            { q: "The sum of angles of a triangle is:", options: ["90\u00b0", "180\u00b0", "270\u00b0", "360\u00b0"], answer: 1 },
-            { q: "An isosceles triangle has:", options: ["All sides equal", "No sides equal", "Two sides equal", "All angles different"], answer: 2 },
-            { q: "How many lines of symmetry does an equilateral triangle have?", options: ["1", "2", "3", "0"], answer: 2 },
-            { q: "A triangle with sides 3 cm, 4 cm, and 5 cm is:", options: ["Equilateral", "Isosceles", "Scalene", "Not a triangle"], answer: 2 },
-            { q: "In which quadrant does the point (3, -2) lie?", options: ["I", "II", "III", "IV"], answer: 3 },
+            { q: "The sum of angles of a triangle is:", options: ["90\u00b0", "180\u00b0", "270\u00b0", "360\u00b0"], answer: 1 , why: "Triangle angle sum = 180° ALWAYS. If two angles are 60° and 70°, the third = 180°-60°-70° = 50°."},
+            { q: "An isosceles triangle has:", options: ["All sides equal", "No sides equal", "Two sides equal", "All angles different"], answer: 2 , why: "Equilateral: All sides and angles equal (60° each). Isosceles: Two sides and two angles equal."},
+            { q: "How many lines of symmetry does an equilateral triangle have?", options: ["1", "2", "3", "0"], answer: 2 , why: "A line of symmetry divides a shape into two identical mirror halves."},
+            { q: "A triangle with sides 3 cm, 4 cm, and 5 cm is:", options: ["Equilateral", "Isosceles", "Scalene", "Not a triangle"], answer: 2 , why: "Rotational symmetry order = how many times a shape looks the same in one full rotation (360°)."},
+            { q: "In which quadrant does the point (3, -2) lie?", options: ["I", "II", "III", "IV"], answer: 3 , why: "Regular shapes have the most symmetry: regular hexagon has 6 lines and order 6."},
         ]
     },
     {
         id: "b7_11",
         title: "Perimeter, Area & Volume",
         desc: "Rectangle, square, triangle area; cube and cuboid volume",
+        topicContent: [{"name": "Area Formulas", "content": "Rectangle: A = length \u00d7 breadth\\nSquare: A = side\u00b2\\nTriangle: A = \u00bd \u00d7 base \u00d7 height\\nParallelogram: A = base \u00d7 height\\nCircle: A = \u03c0 \u00d7 r\u00b2 (\u03c0 \u2248 3.14 or 22/7)\\n\\nExample: Triangle with base 10cm, height 6cm\\nA = \u00bd \u00d7 10 \u00d7 6 = 30 cm\u00b2"}, {"name": "Volume of 3D Shapes", "content": "Cube: V = side\u00b3\\nCuboid: V = length \u00d7 breadth \u00d7 height\\n\\nExample: Cuboid with l=5cm, b=3cm, h=4cm\\nV = 5 \u00d7 3 \u00d7 4 = 60 cm\u00b3\\n\\nSurface Area:\\nCube: SA = 6 \u00d7 side\u00b2\\nCuboid: SA = 2(lb + bh + hl)\\n\\nUnits: Volume in cubic units (cm\u00b3, m\u00b3)"}],
         questions: [
-            { q: "Volume of a cube with side 5 cm is:", options: ["25 cm\u00b3", "125 cm\u00b3", "150 cm\u00b3", "75 cm\u00b3"], answer: 1 },
-            { q: "Area of a triangle with base 14 cm and height 8 cm:", options: ["112 cm\u00b2", "56 cm\u00b2", "22 cm\u00b2", "44 cm\u00b2"], answer: 1 },
-            { q: "Perimeter of a rectangle with l = 20 m, b = 12 m:", options: ["240 m", "64 m", "32 m", "44 m"], answer: 1 },
-            { q: "Volume of a cuboid with l=6, b=4, h=3 cm:", options: ["72 cm\u00b3", "52 cm\u00b3", "36 cm\u00b3", "13 cm\u00b3"], answer: 0 },
-            { q: "A square garden has perimeter 60 m. What is its area?", options: ["225 m\u00b2", "900 m\u00b2", "60 m\u00b2", "3600 m\u00b2"], answer: 0 },
+            { q: "Volume of a cube with side 5 cm is:", options: ["25 cm\u00b3", "125 cm\u00b3", "150 cm\u00b3", "75 cm\u00b3"], answer: 1 , why: "Area of triangle = ½ × base × height. The height MUST be perpendicular to the base."},
+            { q: "Area of a triangle with base 14 cm and height 8 cm:", options: ["112 cm\u00b2", "56 cm\u00b2", "22 cm\u00b2", "44 cm\u00b2"], answer: 1 , why: "Volume = space inside a 3D shape. Measured in cubic units (cm³, m³)."},
+            { q: "Perimeter of a rectangle with l = 20 m, b = 12 m:", options: ["240 m", "64 m", "32 m", "44 m"], answer: 1 , why: "Cube: V = side³, SA = 6×side². All edges are equal."},
+            { q: "Volume of a cuboid with l=6, b=4, h=3 cm:", options: ["72 cm\u00b3", "52 cm\u00b3", "36 cm\u00b3", "13 cm\u00b3"], answer: 0 , why: "Cuboid: V = l×b×h, SA = 2(lb+bh+hl). Has 3 different pairs of faces."},
+            { q: "A square garden has perimeter 60 m. What is its area?", options: ["225 m\u00b2", "900 m\u00b2", "60 m\u00b2", "3600 m\u00b2"], answer: 0 , why: "Circle: Area = πr², Circumference = 2πr. Use π ≈ 3.14 or 22/7."},
         ]
     },
     {
         id: "b7_12",
         title: "Data Handling & Patterns",
         desc: "Bar graphs, pictographs, mean, number patterns",
+        topicContent: [{"name": "Data Representation", "content": "Bar Graph: Bars of equal width, height shows value\\nPictograph: Pictures/symbols represent data\\nDouble Bar Graph: Compare two sets of data\\n\\nMean (Average) = Sum of all values \u00f7 Number of values\\nExample: Marks: 45, 60, 55, 50, 40\\nMean = (45+60+55+50+40) \u00f7 5 = 250 \u00f7 5 = 50"}, {"name": "Number Patterns", "content": "Arithmetic Sequence: Common difference\\n3, 7, 11, 15, 19... (d = 4)\\nnth term = a + (n-1)d\\n\\nGeometric Sequence: Common ratio\\n2, 6, 18, 54... (r = 3)\\nnth term = a \u00d7 r^(n-1)\\n\\nFibonacci: Each number = sum of previous two\\n1, 1, 2, 3, 5, 8, 13, 21..."}],
         questions: [
-            { q: "The mean of 12, 15, 18, 21, 24 is:", options: ["15", "18", "21", "20"], answer: 1 },
-            { q: "In a pictograph, if one symbol = 10 books, 3.5 symbols represent:", options: ["30 books", "35 books", "40 books", "25 books"], answer: 1 },
-            { q: "What comes next: 1, 4, 9, 16, 25, ___?", options: ["30", "36", "49", "32"], answer: 1 },
-            { q: "The mode of 3, 5, 7, 5, 9, 5, 3 is:", options: ["3", "5", "7", "9"], answer: 1 },
-            { q: "In a bar graph, which value has the most frequency if its bar is the tallest?", options: ["Mean", "Median", "Mode", "Range"], answer: 2 },
+            { q: "The mean of 12, 15, 18, 21, 24 is:", options: ["15", "18", "21", "20"], answer: 1 , why: "Bar graphs use equal-width bars. The height shows the value. Always label axes and give a title!"},
+            { q: "In a pictograph, if one symbol = 10 books, 3.5 symbols represent:", options: ["30 books", "35 books", "40 books", "25 books"], answer: 1 , why: "Mean = Sum of all values ÷ Number of values. The mean is the \'average\'."},
+            { q: "What comes next: 1, 4, 9, 16, 25, ___?", options: ["30", "36", "49", "32"], answer: 1 , why: "Arithmetic sequence: Common difference (d) is constant. nth term = a + (n-1)d."},
+            { q: "The mode of 3, 5, 7, 5, 9, 5, 3 is:", options: ["3", "5", "7", "9"], answer: 1 , why: "Geometric sequence: Common ratio (r) is constant. nth term = a × r^(n-1)."},
+            { q: "In a bar graph, which value has the most frequency if its bar is the tallest?", options: ["Mean", "Median", "Mode", "Range"], answer: 2 , why: "Fibonacci: Each term = sum of previous two. 1, 1, 2, 3, 5, 8, 13, 21..."},
         ]
     },
 ];
@@ -5927,6 +5951,7 @@ function renderFundamentals() {
 // ============================================
 
 function showBasicsOverview(wsId) {
+    appState.currentBasicsOverviewId = wsId;
     var basicsWS = getActiveBasicsWorksheets();
     var ws = basicsWS.find(function(w) { return w.id === wsId; });
     if (!ws) return;
@@ -5934,7 +5959,22 @@ function showBasicsOverview(wsId) {
     document.querySelectorAll('.content-section').forEach(function(s) { s.classList.remove('active'); });
     document.getElementById('quiz-section').classList.add('active');
     
-    var overviewContent = ws.overview || ('This worksheet covers: ' + ws.desc + '. Answer 5 multiple-choice questions to test your knowledge.');
+    var topicHTML = '';
+    if (ws.topicContent && ws.topicContent.length > 0) {
+        topicHTML = '<div style="margin: 20px 0;"><h3 style="color: #00e5ff; text-align: center; margin-bottom: 15px; font-family: Orbitron, monospace;">Learn the Concepts</h3>';
+        ws.topicContent.forEach(function(topic, idx) {
+            topicHTML += '<div style="background: rgba(255,255,255,0.05); border-radius: 12px; padding: 15px; margin-bottom: 10px; border: 1px solid rgba(255,255,255,0.1); cursor: pointer;" onclick="var d=this.querySelector(\'.topic-detail\');var a=this.querySelector(\'.topic-arrow\');if(d.style.display===\'none\'){d.style.display=\'block\';a.textContent=\'\u25BC\';this.style.background=\'rgba(0,229,255,0.15)\';this.style.borderColor=\'rgba(0,229,255,0.5)\';}else{d.style.display=\'none\';a.textContent=\'\u25B6\';this.style.background=\'rgba(255,255,255,0.05)\';this.style.borderColor=\'rgba(255,255,255,0.1)\';}">' +
+                '<div style="display: flex; align-items: center;">' +
+                '<div style="width: 32px; height: 32px; border-radius: 50%; background: #00e5ff; display: flex; align-items: center; justify-content: center; margin-right: 12px; color: #1A1A2E; font-weight: bold; flex-shrink: 0;">' + (idx+1) + '</div>' +
+                '<span style="color: #fff; font-size: 15px; font-weight: bold; flex: 1;">' + topic.name + '</span>' +
+                '<span class="topic-arrow" style="color: #00e5ff; font-size: 18px;">\u25B6</span>' +
+                '</div>' +
+                '<div class="topic-detail" style="display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1);">' +
+                '<pre style="color: #ddd; font-size: 14px; line-height: 1.8; white-space: pre-wrap; font-family: inherit; margin: 0;">' + topic.content.replace(/\\n/g, '\n') + '</pre>' +
+                '</div></div>';
+        });
+        topicHTML += '</div>';
+    }
     
     document.getElementById('quiz-container').innerHTML =
         '<h2 class="section-title" style="color:#00e5ff;font-family:Orbitron,monospace;">Fundamentals: ' + ws.title + '</h2>' +
@@ -5944,29 +5984,31 @@ function showBasicsOverview(wsId) {
                 '<div><h3 style="color:#fff;margin:0;font-size:1.2em;">' + ws.title + '</h3>' +
                 '<p style="color:#aaa;font-size:0.85em;margin:4px 0 0 0;">B2B Bridge Course Worksheet</p></div>' +
             '</div>' +
-            '<div style="background:rgba(0,229,255,0.05);border:1px solid rgba(0,229,255,0.15);border-radius:12px;padding:20px;margin-bottom:20px;">' +
-                '<h4 style="color:#00e5ff;margin:0 0 10px 0;font-size:1em;">What You Will Learn</h4>' +
-                '<p style="color:#ccc;font-size:0.95em;line-height:1.7;margin:0;">' + overviewContent + '</p>' +
-            '</div>' +
-            '<div style="display:flex;gap:15px;flex-wrap:wrap;">' +
+            topicHTML +
+            '<div style="display:flex;gap:15px;flex-wrap:wrap;margin-top:20px;">' +
                 '<div style="flex:1;min-width:120px;background:rgba(0,229,255,0.08);border-radius:10px;padding:15px;text-align:center;">' +
-                    '<div style="color:#00e5ff;font-size:1.5em;font-weight:bold;">5</div>' +
-                    '<div style="color:#aaa;font-size:0.8em;">Questions</div>' +
+                    '<div style="font-size:1.5em;font-weight:bold;color:#00e5ff;">' + ws.questions.length + '</div>' +
+                    '<div style="color:#888;font-size:0.8em;">Questions</div>' +
                 '</div>' +
                 '<div style="flex:1;min-width:120px;background:rgba(0,229,255,0.08);border-radius:10px;padding:15px;text-align:center;">' +
-                    '<div style="color:#00e5ff;font-size:1.5em;font-weight:bold;">MCQ</div>' +
-                    '<div style="color:#aaa;font-size:0.8em;">Format</div>' +
+                    '<div style="font-size:1.5em;font-weight:bold;color:#00e5ff;">MCQ</div>' +
+                    '<div style="color:#888;font-size:0.8em;">Format</div>' +
                 '</div>' +
                 '<div style="flex:1;min-width:120px;background:rgba(0,229,255,0.08);border-radius:10px;padding:15px;text-align:center;">' +
-                    '<div style="color:#00e5ff;font-size:1.5em;font-weight:bold;">60%</div>' +
-                    '<div style="color:#aaa;font-size:0.8em;">To Pass</div>' +
+                    '<div style="font-size:1.5em;font-weight:bold;color:#00e5ff;">Complete</div>' +
+                    '<div style="color:#888;font-size:0.8em;">To Unlock Next</div>' +
                 '</div>' +
             '</div>' +
-        '</div>' +
-        '<div class="btn-group" style="display:flex;gap:15px;justify-content:center;">' +
-            '<button class="btn btn-primary" onclick="openBasicsWorksheet(\'' + wsId + '\')" style="padding:14px 36px;font-size:16px;font-weight:bold;border-radius:10px;cursor:pointer;background:linear-gradient(135deg,#00e5ff,#00b0ff);color:#000;border:none;">Start Quiz</button>' +
-            '<button class="btn" onclick="closeBasicsQuiz()" style="background:#333;color:#fff;padding:14px 24px;border:none;border-radius:10px;cursor:pointer;font-size:15px;">Back</button>' +
+            '<button class="btn btn-primary" onclick="startBasicsQuiz()" style="width:100%;padding:15px;font-size:16px;margin-top:20px;font-family:Orbitron,monospace;">Start Quiz</button>' +
         '</div>';
+}
+
+function startBasicsQuiz() {
+    // Called from the overview screen - uses the worksheet currently being viewed
+    var wsId = appState.currentBasicsOverviewId;
+    if (wsId) {
+        openBasicsWorksheet(wsId);
+    }
 }
 
 function openBasicsWorksheet(wsId) {
@@ -6086,8 +6128,24 @@ function selectBasicsAnswer(optIdx) {
         bannerHtml += '<div style="color:#E57373;font-size:13px;margin-top:2px;">The correct answer is: <strong>' + String.fromCharCode(65 + correct) + '. ' + q.options[correct] + '</strong></div></div>';
         bannerHtml += '</div>';
     }
-    bannerHtml += '<button onclick="basicsNextQuestion()" class="btn btn-primary" style="padding:10px 28px;border-radius:8px;font-size:15px;font-weight:bold;white-space:nowrap;cursor:pointer;">' + btnLabel + '</button>';
     bannerHtml += '</div>';
+    
+    // Why button with explanation
+    if (q.why) {
+        bannerHtml += '<div style="margin-top:12px;">';
+        bannerHtml += '<div onclick="var d=document.getElementById(\'why-detail\');var a=document.getElementById(\'why-arrow\');if(d.style.display===\'none\'){d.style.display=\'block\';a.textContent=\'\u25BC\';}else{d.style.display=\'none\';a.textContent=\'\u25B6\';}" style="display:flex;align-items:center;background:rgba(255,165,0,0.1);border-radius:10px;padding:12px;border:1px solid rgba(255,165,0,0.3);cursor:pointer;">';
+        bannerHtml += '<span style="color:#FFA500;font-size:16px;font-weight:bold;margin-right:8px;">Why?</span>';
+        bannerHtml += '<span style="color:#aaa;font-size:13px;flex:1;">Tap to see why this is the answer</span>';
+        bannerHtml += '<span id="why-arrow" style="color:#FFA500;font-size:16px;">\u25B6</span>';
+        bannerHtml += '</div>';
+        bannerHtml += '<div id="why-detail" style="display:none;background:rgba(255,165,0,0.08);border-radius:10px;padding:15px;margin-top:8px;border:1px solid rgba(255,165,0,0.2);">';
+        bannerHtml += '<p style="color:#ddd;font-size:14px;line-height:1.8;margin:0;">' + q.why + '</p>';
+        bannerHtml += '</div></div>';
+    }
+    
+    bannerHtml += '<div style="text-align:center;margin-top:12px;">';
+    bannerHtml += '<button onclick="basicsNextQuestion()" class="btn btn-primary" style="padding:10px 28px;border-radius:8px;font-size:15px;font-weight:bold;white-space:nowrap;cursor:pointer;">' + btnLabel + '</button>';
+    bannerHtml += '</div></div>';
 
     // Insert feedback banner after the question card
     var questionCard = document.querySelector('.question-card');
@@ -7505,7 +7563,7 @@ var currentExamPhase = 'mcq';
 var examPhaseIndex = 0;
 var examPhaseQuestionIndex = 0;
 
-async function startQuiz(chapterId) {
+function startQuiz(chapterId) {
     const chapter = getActiveChapters().find(c => c.id === chapterId);
     
     var confirmed = confirm(
@@ -7528,18 +7586,6 @@ async function startQuiz(chapterId) {
     
     if (!confirmed) return;
     
-    var permsGranted = await requestExamPermissions();
-    if (!permsGranted) {
-        alert('Camera and microphone access is required for the exam. Please allow access and try again.');
-    }
-    
-    var screenShareStarted = await startScreenSharing();
-    if (!screenShareStarted) {
-        alert('Screen sharing is required for the exam. Please allow screen sharing to continue.');
-    }
-    
-    alert('MONITORING ACTIVE\n\nYour camera, microphone, and screen are now being monitored. Do not switch apps or minimize during the exam.');
-    
     appState.currentQuiz = chapter;
     appState.currentQuestion = 0;
     appState.score = 0;
@@ -7553,6 +7599,22 @@ async function startQuiz(chapterId) {
     document.getElementById('quiz-section').classList.add('active');
     
     showExamPhaseIntro();
+    
+    (async function() {
+        try {
+            var permsGranted = await requestExamPermissions();
+            if (!permsGranted) {
+                console.log('Camera and microphone access denied');
+            }
+        } catch(e) { console.log('Permission request error:', e); }
+        
+        try {
+            var screenShareStarted = await startScreenSharing();
+            if (!screenShareStarted) {
+                console.log('Screen sharing denied');
+            }
+        } catch(e) { console.log('Screen share error:', e); }
+    })();
 }
 
 function showExamPhaseIntro() {
@@ -7705,12 +7767,56 @@ function renderQuizQuestion() {
 
 let selectedOption = null;
 function selectOption(index) {
+    if (selectedOption !== null) return; // Already answered
     selectedOption = index;
-    document.querySelectorAll('.option').forEach((opt, i) => {
+    var quiz = appState.currentQuiz;
+    var phase = examPhases[examPhaseIndex];
+    var phaseQuestions = getExamPhaseQuestions(quiz)[phase];
+    var question = phaseQuestions[examPhaseQuestionIndex];
+    var isCorrect = (index === question.answer);
+    
+    // Highlight correct/incorrect options
+    document.querySelectorAll('.option').forEach(function(opt, i) {
         opt.classList.remove('selected');
-        if (i === index) opt.classList.add('selected');
+        opt.style.pointerEvents = 'none';
+        if (i === question.answer) {
+            opt.style.border = '2px solid #4CAF50';
+            opt.style.background = 'rgba(76,175,80,0.15)';
+        }
+        if (i === index && !isCorrect) {
+            opt.style.border = '2px solid #f44336';
+            opt.style.background = 'rgba(244,67,54,0.15)';
+        }
     });
+    
+    // Show feedback banner + Why button
+    var feedbackDiv = document.createElement('div');
+    feedbackDiv.id = 'chapter-feedback';
+    feedbackDiv.innerHTML = '<div style="background:' + (isCorrect ? 'rgba(76,175,80,0.15);border:1px solid #4CAF50' : 'rgba(244,67,54,0.15);border:1px solid #f44336') + ';border-radius:10px;padding:12px 18px;margin:12px 0;display:flex;align-items:center;gap:10px;">' +
+        '<span style="font-size:22px;">' + (isCorrect ? '\u2713' : '\u2717') + '</span>' +
+        '<div><strong style="color:' + (isCorrect ? '#4CAF50' : '#f44336') + ';">' + (isCorrect ? 'Correct!' : 'Incorrect') + '</strong>' +
+        '<div style="color:#aaa;font-size:13px;">' + (isCorrect ? 'Great job, keep going!' : 'The correct answer is: ' + String.fromCharCode(65 + question.answer) + '. ' + question.options[question.answer]) + '</div></div></div>' +
+        '<div onclick="toggleChapterWhy(this)" style="cursor:pointer;background:rgba(255,193,7,0.1);border:1px solid rgba(255,193,7,0.4);border-radius:8px;padding:10px 15px;margin:8px 0;display:flex;justify-content:space-between;align-items:center;">' +
+        '<span><strong style="color:#FFC107;">Why?</strong> <span style="color:#aaa;font-size:13px;">Tap to see why this is the answer</span></span>' +
+        '<span style="color:#FFC107;">\u25B6</span></div>' +
+        '<div id="chapter-why-content" style="display:none;background:rgba(255,255,255,0.05);border-radius:8px;padding:12px 15px;margin:4px 0;color:#ccc;font-size:14px;line-height:1.6;">' +
+        (question.why || 'The correct answer is ' + String.fromCharCode(65 + question.answer) + '. ' + question.options[question.answer]) + '</div>';
+    
+    var btnGroup = document.querySelector('#quiz-container .btn-group');
+    if (btnGroup) { btnGroup.parentNode.insertBefore(feedbackDiv, btnGroup); }
+    
     document.getElementById('submit-btn').disabled = false;
+    document.getElementById('submit-btn').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function toggleChapterWhy(el) {
+    var whyDiv = document.getElementById('chapter-why-content');
+    if (whyDiv) {
+        var isHidden = whyDiv.style.display === 'none';
+        whyDiv.style.display = isHidden ? 'block' : 'none';
+        var arrow = el.querySelector('span:last-child');
+        if (arrow) arrow.textContent = isHidden ? '\u25BC' : '\u25B6';
+    }
 }
 
 async function submitAnswer() {
