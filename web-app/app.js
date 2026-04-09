@@ -5766,6 +5766,7 @@ function showSection(section) {
     
     const sectionMap = {
         'chapters': 'chapters-section',
+        'fundamentals': 'fundamentals-section',
         'progress': 'progress-section',
         'final-exam': 'final-exam-section',
         'formula-videos': 'formula-videos-section',
@@ -5796,6 +5797,7 @@ function showSection(section) {
     
     // Render content for each section
     if (section === 'chapters') renderChapters();
+    if (section === 'fundamentals') renderFundamentals();
     if (section === 'formula-videos') renderFormulaVideos();
     if (section === 'progress') renderProgress();
     if (section === 'final-exam') renderFinalExam();
@@ -5814,49 +5816,7 @@ function renderChapters() {
     var progress = getChapterProgress();
     var scores = getChapterScores();
     
-    // --- BASICS SECTION ---
-    var basicsWS = getActiveBasicsWorksheets();
-    var basicsProgress = getBasicsProgress();
-    var cls = getSelectedClass();
-    var basicsLabel = cls === '7' ? 'Class 1\u20136 Fundamentals' : 'Class 1\u20135 Fundamentals';
-    
-    var basicsHTML = '';
-    basicsHTML += '<div style="grid-column: 1 / -1; margin-bottom: 10px;">';
-    basicsHTML += '<div style="background: linear-gradient(135deg, #1a1a3e 0%, #0d2137 100%); border: 2px solid #00e5ff; border-radius: 16px; padding: 20px 24px; margin-bottom: 18px;">';
-    basicsHTML += '<div style="display: flex; align-items: center; gap: 14px; margin-bottom: 6px;">';
-    basicsHTML += '<div style="width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, #00e5ff, #00b0ff); display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; color: #000; box-shadow: 0 0 16px rgba(0,229,255,0.4);">B</div>';
-    basicsHTML += '<div>';
-    basicsHTML += '<h2 style="color: #00e5ff; font-family: Orbitron, monospace; font-size: 1.2em; margin: 0; text-shadow: 0 0 10px rgba(0,229,255,0.5);">Basics \u2014 ' + basicsLabel + '</h2>';
-    basicsHTML += '<p style="color: #aaa; font-size: 0.85em; margin: 4px 0 0 0;">12 Virtual Worksheets \u2022 MCQ Format \u2022 All Unlocked</p>';
-    basicsHTML += '</div>';
-    basicsHTML += '</div>';
-    basicsHTML += '</div>';
-    basicsHTML += '</div>';
-    
-    // Render each basics worksheet card
-    basicsHTML += basicsWS.map(function(ws, idx) {
-        var wsScore = basicsProgress[ws.id];
-        var isCompleted = wsScore !== undefined;
-        return '<div class="chapter-card ' + (isCompleted ? 'completed' : '') + '" ' +
-               'onclick="openBasicsWorksheet(\'' + ws.id + '\')" ' +
-               'style="border-color: #00e5ff40; cursor: pointer;">' +
-               '<div class="chapter-number" style="background: linear-gradient(135deg, #00e5ff, #00b0ff); color: #000;">W' + (idx + 1) + '</div>' +
-               '<div class="chapter-title">' + ws.title + '</div>' +
-               '<p style="color: #aaa; font-size: 0.9em;">' + ws.description + '</p>' +
-               '<div class="chapter-status">' +
-               (isCompleted ? '<span class="status-badge completed">Score: ' + wsScore + '%</span>' :
-               '<span class="status-badge" style="background: #00e5ff; color: #000;">Start Worksheet</span>') +
-               '</div>' +
-               '</div>';
-    }).join('');
-    
-    // Divider between Basics and Chapters
-    basicsHTML += '<div style="grid-column: 1 / -1; margin: 10px 0;">';
-    basicsHTML += '<div style="border-top: 2px solid #333; margin: 10px 0;"></div>';
-    basicsHTML += '<h2 style="color: #00ff88; font-family: Orbitron, monospace; font-size: 1.1em; text-align: center; text-shadow: 0 0 10px rgba(0,255,136,0.4);">Chapters</h2>';
-    basicsHTML += '</div>';
-    
-    // --- CHAPTERS ---
+    // --- CHAPTERS ONLY (Basics moved to Fundamentals section) ---
     var chaptersHTML = activeChapters.map(function(chapter, index) {
         const isCompleted = progress[chapter.id] === 'completed';
         const isLocked = !appState.isAdmin && index > 0 && !appState.chaptersUnlocked && progress[activeChapters[index-1].id] !== 'completed';
@@ -5876,7 +5836,58 @@ function renderChapters() {
                '</div>';
     }).join('');
     
-    grid.innerHTML = basicsHTML + chaptersHTML;
+    grid.innerHTML = chaptersHTML;
+}
+
+// ============================================
+// FUNDAMENTALS / B2B BRIDGE COURSE SECTION
+// ============================================
+
+function renderFundamentals() {
+    var container = document.getElementById('fundamentals-content');
+    if (!container) return;
+    
+    var basicsWS = getActiveBasicsWorksheets();
+    var basicsProgress = getBasicsProgress();
+    var cls = getSelectedClass();
+    var basicsLabel = cls === '7' ? 'Class 1\u20136 Fundamentals' : 'Class 1\u20135 Fundamentals';
+    var completedCount = 0;
+    basicsWS.forEach(function(ws) { if (basicsProgress[ws.id] !== undefined) completedCount++; });
+    
+    var html = '';
+    
+    // Header banner
+    html += '<div style="background: linear-gradient(135deg, #1a1a3e 0%, #0d2137 100%); border: 2px solid #00e5ff; border-radius: 16px; padding: 24px 28px; margin-bottom: 24px;">';
+    html += '<div style="display: flex; align-items: center; gap: 16px; margin-bottom: 10px;">';
+    html += '<div style="width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, #00e5ff, #00b0ff); display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: bold; color: #000; box-shadow: 0 0 20px rgba(0,229,255,0.4); flex-shrink: 0;">F</div>';
+    html += '<div>';
+    html += '<h2 style="color: #00e5ff; font-family: Orbitron, monospace; font-size: 1.3em; margin: 0; text-shadow: 0 0 10px rgba(0,229,255,0.5);">Fundamentals \u2014 ' + basicsLabel + '</h2>';
+    html += '<p style="color: #aaa; font-size: 0.9em; margin: 6px 0 0 0;">B2B Bridge Course \u2022 12 Virtual Worksheets \u2022 MCQ Format \u2022 All Unlocked</p>';
+    html += '<p style="color: #00e5ff; font-size: 0.85em; margin: 4px 0 0 0;">Progress: ' + completedCount + ' / 12 completed</p>';
+    html += '</div>';
+    html += '</div>';
+    html += '</div>';
+    
+    // Worksheet grid
+    html += '<div class="chapters-grid">';
+    html += basicsWS.map(function(ws, idx) {
+        var wsScore = basicsProgress[ws.id];
+        var isCompleted = wsScore !== undefined;
+        return '<div class="chapter-card ' + (isCompleted ? 'completed' : '') + '" ' +
+               'onclick="openBasicsWorksheet(\'' + ws.id + '\')" ' +
+               'style="border-color: #00e5ff40; cursor: pointer;">' +
+               '<div class="chapter-number" style="background: linear-gradient(135deg, #00e5ff, #00b0ff); color: #000;">W' + (idx + 1) + '</div>' +
+               '<div class="chapter-title">' + ws.title + '</div>' +
+               '<p style="color: #aaa; font-size: 0.9em;">' + ws.description + '</p>' +
+               '<div class="chapter-status">' +
+               (isCompleted ? '<span class="status-badge completed">Score: ' + wsScore + '%</span>' :
+               '<span class="status-badge" style="background: #00e5ff; color: #000;">Start Worksheet</span>') +
+               '</div>' +
+               '</div>';
+    }).join('');
+    html += '</div>';
+    
+    container.innerHTML = html;
 }
 
 
