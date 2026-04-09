@@ -5227,6 +5227,19 @@ function autoCompleteAdminProgress() {
         changed = true;
     }
 
+    // Auto-complete all basics worksheets for admin
+    var basicsWS = getActiveBasicsWorksheets();
+    var basicsProgress = getBasicsProgress();
+    basicsWS.forEach(function(ws) {
+        if (basicsProgress[ws.id] === undefined) {
+            basicsProgress[ws.id] = { score: 5, total: 5, pct: 100 };
+            changed = true;
+        }
+    });
+    if (changed) {
+        setBasicsProgress(basicsProgress);
+    }
+
     if (changed) {
         setChapterProgress(progress);
         setChapterScores(scores);
@@ -5850,6 +5863,7 @@ function renderFundamentals() {
     var basicsWS = getActiveBasicsWorksheets();
     var basicsProgress = getBasicsProgress();
     var cls = getSelectedClass();
+    var isAdmin = appState.isAdmin;
     var basicsLabel = cls === '7' ? 'Class 1\u20136 Fundamentals' : 'Class 1\u20135 Fundamentals';
     var completedCount = 0;
     basicsWS.forEach(function(ws) { if (basicsProgress[ws.id] !== undefined) completedCount++; });
@@ -5862,7 +5876,7 @@ function renderFundamentals() {
     html += '<div style="width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, #00e5ff, #00b0ff); display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: bold; color: #000; box-shadow: 0 0 20px rgba(0,229,255,0.4); flex-shrink: 0;">F</div>';
     html += '<div>';
     html += '<h2 style="color: #00e5ff; font-family: Orbitron, monospace; font-size: 1.3em; margin: 0; text-shadow: 0 0 10px rgba(0,229,255,0.5);">Fundamentals \u2014 ' + basicsLabel + '</h2>';
-    html += '<p style="color: #aaa; font-size: 0.9em; margin: 6px 0 0 0;">B2B Bridge Course \u2022 12 Virtual Worksheets \u2022 MCQ Format \u2022 All Unlocked</p>';
+    html += '<p style="color: #aaa; font-size: 0.9em; margin: 6px 0 0 0;">B2B Bridge Course \u2022 12 Virtual Worksheets \u2022 MCQ Format \u2022 Sequential Unlock</p>';
     html += '<p style="color: #00e5ff; font-size: 0.85em; margin: 4px 0 0 0;">Progress: ' + completedCount + ' / 12 completed</p>';
     html += '</div>';
     html += '</div>';
@@ -5873,14 +5887,30 @@ function renderFundamentals() {
     html += basicsWS.map(function(ws, idx) {
         var wsScore = basicsProgress[ws.id];
         var isCompleted = wsScore !== undefined;
+        // First worksheet always unlocked; others need previous completed (admin bypasses)
+        var prevWs = idx > 0 ? basicsWS[idx - 1] : null;
+        var prevCompleted = prevWs ? (basicsProgress[prevWs.id] !== undefined) : true;
+        var isUnlocked = isAdmin || idx === 0 || prevCompleted;
+        
+        if (!isUnlocked) {
+            return '<div class="chapter-card" style="border-color: #333; cursor: not-allowed; opacity: 0.5; position: relative;">' +
+                   '<div class="chapter-number" style="background: #333; color: #666;">W' + (idx + 1) + '</div>' +
+                   '<div class="chapter-title" style="color: #666;">' + ws.title + '</div>' +
+                   '<p style="color: #555; font-size: 0.9em;">' + ws.desc + '</p>' +
+                   '<div class="chapter-status">' +
+                   '<span class="status-badge" style="background: #333; color: #666;">&#x1F512; Locked</span>' +
+                   '</div>' +
+                   '</div>';
+        }
+        
         return '<div class="chapter-card ' + (isCompleted ? 'completed' : '') + '" ' +
-               'onclick="openBasicsWorksheet(\'' + ws.id + '\')" ' +
+               'onclick="showBasicsOverview(\'' + ws.id + '\')" ' +
                'style="border-color: #00e5ff40; cursor: pointer;">' +
                '<div class="chapter-number" style="background: linear-gradient(135deg, #00e5ff, #00b0ff); color: #000;">W' + (idx + 1) + '</div>' +
                '<div class="chapter-title">' + ws.title + '</div>' +
-               '<p style="color: #aaa; font-size: 0.9em;">' + ws.description + '</p>' +
+               '<p style="color: #aaa; font-size: 0.9em;">' + ws.desc + '</p>' +
                '<div class="chapter-status">' +
-               (isCompleted ? '<span class="status-badge completed">Score: ' + wsScore + '%</span>' :
+               (isCompleted ? '<span class="status-badge completed">Score: ' + wsScore.pct + '%</span>' :
                '<span class="status-badge" style="background: #00e5ff; color: #000;">Start Worksheet</span>') +
                '</div>' +
                '</div>';
@@ -5895,6 +5925,49 @@ function renderFundamentals() {
 // ============================================
 // BASICS WORKSHEET QUIZ FUNCTIONS
 // ============================================
+
+function showBasicsOverview(wsId) {
+    var basicsWS = getActiveBasicsWorksheets();
+    var ws = basicsWS.find(function(w) { return w.id === wsId; });
+    if (!ws) return;
+    
+    document.querySelectorAll('.content-section').forEach(function(s) { s.classList.remove('active'); });
+    document.getElementById('quiz-section').classList.add('active');
+    
+    var overviewContent = ws.overview || ('This worksheet covers: ' + ws.desc + '. Answer 5 multiple-choice questions to test your knowledge.');
+    
+    document.getElementById('quiz-container').innerHTML =
+        '<h2 class="section-title" style="color:#00e5ff;font-family:Orbitron,monospace;">Fundamentals: ' + ws.title + '</h2>' +
+        '<div style="background:linear-gradient(135deg,#1a1a3e,#0d2137);border:2px solid #00e5ff40;border-radius:16px;padding:30px;margin:20px 0;">' +
+            '<div style="display:flex;align-items:center;gap:14px;margin-bottom:20px;">' +
+                '<div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#00e5ff,#00b0ff);display:flex;align-items:center;justify-content:center;font-size:22px;color:#000;font-weight:bold;flex-shrink:0;">F</div>' +
+                '<div><h3 style="color:#fff;margin:0;font-size:1.2em;">' + ws.title + '</h3>' +
+                '<p style="color:#aaa;font-size:0.85em;margin:4px 0 0 0;">B2B Bridge Course Worksheet</p></div>' +
+            '</div>' +
+            '<div style="background:rgba(0,229,255,0.05);border:1px solid rgba(0,229,255,0.15);border-radius:12px;padding:20px;margin-bottom:20px;">' +
+                '<h4 style="color:#00e5ff;margin:0 0 10px 0;font-size:1em;">What You Will Learn</h4>' +
+                '<p style="color:#ccc;font-size:0.95em;line-height:1.7;margin:0;">' + overviewContent + '</p>' +
+            '</div>' +
+            '<div style="display:flex;gap:15px;flex-wrap:wrap;">' +
+                '<div style="flex:1;min-width:120px;background:rgba(0,229,255,0.08);border-radius:10px;padding:15px;text-align:center;">' +
+                    '<div style="color:#00e5ff;font-size:1.5em;font-weight:bold;">5</div>' +
+                    '<div style="color:#aaa;font-size:0.8em;">Questions</div>' +
+                '</div>' +
+                '<div style="flex:1;min-width:120px;background:rgba(0,229,255,0.08);border-radius:10px;padding:15px;text-align:center;">' +
+                    '<div style="color:#00e5ff;font-size:1.5em;font-weight:bold;">MCQ</div>' +
+                    '<div style="color:#aaa;font-size:0.8em;">Format</div>' +
+                '</div>' +
+                '<div style="flex:1;min-width:120px;background:rgba(0,229,255,0.08);border-radius:10px;padding:15px;text-align:center;">' +
+                    '<div style="color:#00e5ff;font-size:1.5em;font-weight:bold;">60%</div>' +
+                    '<div style="color:#aaa;font-size:0.8em;">To Pass</div>' +
+                '</div>' +
+            '</div>' +
+        '</div>' +
+        '<div class="btn-group" style="display:flex;gap:15px;justify-content:center;">' +
+            '<button class="btn btn-primary" onclick="openBasicsWorksheet(\'' + wsId + '\')" style="padding:14px 36px;font-size:16px;font-weight:bold;border-radius:10px;cursor:pointer;background:linear-gradient(135deg,#00e5ff,#00b0ff);color:#000;border:none;">Start Quiz</button>' +
+            '<button class="btn" onclick="closeBasicsQuiz()" style="background:#333;color:#fff;padding:14px 24px;border:none;border-radius:10px;cursor:pointer;font-size:15px;">Back</button>' +
+        '</div>';
+}
 
 function openBasicsWorksheet(wsId) {
     var basicsWS = getActiveBasicsWorksheets();
@@ -6093,8 +6166,8 @@ function retryBasicsWorksheet() {
 
 function closeBasicsQuiz() {
     document.querySelectorAll('.content-section').forEach(function(s) { s.classList.remove('active'); });
-    document.getElementById('chapters-section').classList.add('active');
-    renderChapters();
+    document.getElementById('fundamentals-section').classList.add('active');
+    renderFundamentals();
 }
 
 
@@ -6187,7 +6260,6 @@ function renderWhiteboard() {
             '<button onclick="redoWhiteboard()" style="padding:10px 15px;background:#333;color:#fff;border:1px solid #555;border-radius:8px;cursor:pointer;font-size:1.1em;" title="Redo">&#8618;</button>' +
             '<button onclick="downloadWhiteboardNote()" style="padding:10px 15px;background:#333;color:#fff;border:1px solid #555;border-radius:8px;cursor:pointer;font-size:0.9em;font-family:Orbitron,monospace;" title="Download as PNG">DOWNLOAD</button>' +
             '<button onclick="toggleWhiteboardGrid()" id="wb-grid-btn" style="padding:10px 15px;background:#333;color:#fff;border:1px solid #555;border-radius:8px;cursor:pointer;font-size:0.9em;font-family:Orbitron,monospace;" title="Toggle Grid">GRID</button>' +
-            '<button onclick="toggleWhiteboardRotation()" id="wb-rotate-btn" style="padding:10px 20px;background:linear-gradient(135deg,#ff6600,#ff9900);color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:Orbitron,monospace;font-weight:bold;font-size:0.9em;" title="Rotate Canvas">&#x1F504; ROTATE</button>' +
             '<button onclick="toggleWhiteboardFullscreen()" id="wb-fullscreen-btn" style="padding:10px 20px;background:linear-gradient(135deg,#ff6600,#ff9900);color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:Orbitron,monospace;font-weight:bold;font-size:0.9em;" title="Fullscreen Mode">&#x26F6; FULLSCREEN</button>' +
         '</div>' +
         '<div id="wb-toolbar-tools" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:15px;align-items:center;">' +
@@ -6860,17 +6932,22 @@ function wbCreateFloatingTools() {
         { emoji: '\u{1F5D1}\uFE0F', label: 'Clear', fn: 'clearWhiteboardCanvas()' },
         { emoji: '\u{1F4BE}', label: 'Save', fn: 'saveWhiteboardNote()' },
         { emoji: '\u2B07\uFE0F', label: 'Download', fn: 'downloadWhiteboardNote()' },
-        { emoji: '\u{1F504}', label: 'Rotate', fn: 'toggleWhiteboardRotation()' },
-        { emoji: '\u274C', label: 'Exit', fn: 'toggleWhiteboardFullscreen()' }
+        { emoji: '', label: 'EXIT', fn: 'toggleWhiteboardFullscreen()' }
     ];
     
     var actRow = document.createElement('div');
     actRow.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;justify-content:center;';
     actions.forEach(function(a) {
         var btn = document.createElement('button');
-        btn.style.cssText = circBtnStyle + (a.label === 'Exit' ? 'background:#ff4444;border-color:#ff4444;' : '');
-        btn.innerHTML = a.emoji;
-        btn.title = a.label;
+        if (a.label === 'EXIT') {
+            btn.style.cssText = 'padding:8px 18px;background:#ff4444;color:#fff;border:2px solid #ff4444;border-radius:10px;cursor:pointer;font-family:Orbitron,monospace;font-weight:900;font-size:1em;letter-spacing:2px;';
+            btn.innerHTML = 'EXIT';
+            btn.title = 'Exit Fullscreen';
+        } else {
+            btn.style.cssText = circBtnStyle;
+            btn.innerHTML = a.emoji;
+            btn.title = a.label;
+        }
         btn.onclick = function() { eval(a.fn); };
         actRow.appendChild(btn);
     });
@@ -11392,6 +11469,7 @@ showSection = function(section) {
     document.querySelectorAll('.nav-tab').forEach(function(t) { t.classList.remove('active'); });
     var sectionMap = { 
         'chapters': 'chapters-section', 
+        'fundamentals': 'fundamentals-section',
         'progress': 'progress-section', 
         'final-exam': 'final-exam-section', 
         'formula-videos': 'formula-videos-section',
@@ -11417,6 +11495,7 @@ showSection = function(section) {
     if (section === 'chat') { if (typeof loadChatMessages === 'function') loadChatMessages(); if (typeof startUserChatRefresh === 'function') startUserChatRefresh(); }
     if (section === 'admin' && appState.isAdmin) { if (typeof loadAdminDashboard === 'function') loadAdminDashboard(); if (typeof startAdminChatRefresh === 'function') startAdminChatRefresh(); if (typeof startScreenSharePolling === 'function') startScreenSharePolling(); if (typeof startScreenShareAutoConnect === 'function') startScreenShareAutoConnect(); }
     if (section === 'ai-assistant' && typeof renderAIMessages === 'function') renderAIMessages();
+    if (section === 'fundamentals' && typeof renderFundamentals === 'function') renderFundamentals();
     if (section === 'whiteboard' && typeof renderWhiteboard === 'function') renderWhiteboard();
 };
 
