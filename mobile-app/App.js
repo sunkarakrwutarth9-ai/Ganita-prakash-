@@ -6319,6 +6319,9 @@ export default function App() {
   const [selectedOption, setSelectedOption] = useState(null);
   const [chapterAnswerSubmitted, setChapterAnswerSubmitted] = useState(false);
   const [chapterShowWhy, setChapterShowWhy] = useState(false);
+  const [examSection, setExamSection] = useState('A');
+  const [examSectionScores, setExamSectionScores] = useState({A: 0, B: 0, C: 0, D: 0, E: 0});
+  const [typedAnswer, setTypedAnswer] = useState('');
   const [chapterProgress, setChapterProgress] = useState({});
   const [chapterScores, setChapterScores] = useState({});
   const [showResult, setShowResult] = useState(false);
@@ -8410,8 +8413,24 @@ export default function App() {
       <View ref={screenViewRef} collapsable={false} style={{flex: 1}}>
       <ScrollView style={styles.container}>
         <Text style={styles.sectionTitle}>
-          {isFinalExam ? 'Final Exam - MCQ Section (25 x 2 = 50 marks)' : 'Chapter ' + currentChapter.number + ' Quiz'}
+          {isFinalExam ? 'Final Exam - MCQ Section (25 x 2 = 50 marks)' : 'Chapter ' + currentChapter.number + ' Exam'}
         </Text>
+        
+        {!isFinalExam && question.section && (
+          <View style={{flexDirection: 'row', justifyContent: 'center', marginBottom: 10, flexWrap: 'wrap', gap: 5}}>
+            {['A', 'B', 'C', 'D', 'E'].map(s => (
+              <View key={s} style={{paddingHorizontal: 12, paddingVertical: 6, borderRadius: 15, backgroundColor: question.section === s ? '#00e5ff' : 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: question.section === s ? '#00e5ff' : '#333'}}>
+                <Text style={{color: question.section === s ? '#1A1A2E' : '#888', fontSize: 11, fontWeight: 'bold'}}>{'Sec ' + s}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+        
+        {!isFinalExam && question.section && (
+          <Text style={{color: '#00e5ff', fontSize: 12, textAlign: 'center', marginBottom: 10}}>
+            {'Section ' + question.section + (question.section === 'A' ? ' - MCQ (1 mark)' : question.section === 'B' ? ' - Case-Based MCQ (2 marks)' : question.section === 'C' ? ' - Very Short Answer (2 marks)' : question.section === 'D' ? ' - Short Answer (3 marks)' : ' - Long Answer (4 marks)')}
+          </Text>
+        )}
 
         <View style={styles.progressContainer}>
           <View style={[styles.progressBar, { width: ((currentQuestion / total) * 100) + '%' }]} />
@@ -8420,11 +8439,26 @@ export default function App() {
 
         <View style={styles.questionCard}>
           <Text style={styles.questionNumber}>
-            Question {currentQuestion + 1} {isFinalExam ? '(2 marks)' : ''}
+            Question {currentQuestion + 1} {isFinalExam ? '(2 marks)' : question.marks ? '(' + question.marks + (question.marks === 1 ? ' mark' : ' marks') + ')' : ''}
           </Text>
           <Text style={styles.questionText}>{question.q}</Text>
 
-          {question.options.map((option, index) => {
+          {question.qType && (question.qType === 'very_short' || question.qType === 'short' || question.qType === 'long') ? (
+            <View style={{marginTop: 10}}>
+              <TextInput
+                style={{backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: '#333', borderRadius: 12, padding: 16, color: '#fff', fontSize: 16, minHeight: question.qType === 'long' ? 150 : question.qType === 'short' ? 100 : 60, textAlignVertical: 'top'}}
+                multiline={question.qType !== 'very_short'}
+                numberOfLines={question.qType === 'long' ? 6 : question.qType === 'short' ? 4 : 2}
+                placeholder={question.qType === 'very_short' ? 'Type your answer (1-2 lines)...' : question.qType === 'short' ? 'Write your answer (3-4 lines)...' : 'Write a detailed answer (5+ lines)...'}
+                placeholderTextColor="#666"
+                value={typedAnswer}
+                onChangeText={setTypedAnswer}
+              />
+              {question.options && question.options[question.answer] && (
+                <Text style={{color: '#666', fontSize: 11, marginTop: 5}}>Hint: Think about {question.options[0]} vs {question.options[1]}</Text>
+              )}
+            </View>
+          ) : question.options.map((option, index) => {
             let optStyle = [styles.option];
             if (chapterAnswerSubmitted) {
               if (index === question.answer) optStyle.push({borderColor: '#00c864', backgroundColor: 'rgba(0,200,100,0.15)'});
