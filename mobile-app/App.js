@@ -29,6 +29,7 @@ import * as AuthSession from 'expo-auth-session';
 import * as Google from 'expo-auth-session/providers/google';
 import { WebView } from 'react-native-webview';
 import * as Speech from 'expo-speech';
+import * as ImagePicker from 'expo-image-picker';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import * as Notifications from 'expo-notifications';
 import { Audio } from 'expo-av';
@@ -6322,6 +6323,8 @@ export default function App() {
   const [examSection, setExamSection] = useState('A');
   const [examSectionScores, setExamSectionScores] = useState({A: 0, B: 0, C: 0, D: 0, E: 0});
   const [typedAnswer, setTypedAnswer] = useState('');
+  const [photoAnswer, setPhotoAnswer] = useState(null);
+  const [photoUploading, setPhotoUploading] = useState(false);
   const [chapterProgress, setChapterProgress] = useState({});
   const [chapterScores, setChapterScores] = useState({});
   const [showResult, setShowResult] = useState(false);
@@ -7771,6 +7774,73 @@ export default function App() {
     setChapterAnswerSubmitted(true);
   };
 
+  
+  // Photo submission for descriptive questions (Sections C/D/E)
+  const takePhotoAnswer = async () => {
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Camera permission is required to take a photo of your answer.');
+        return;
+      }
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.7,
+      });
+      if (!result.canceled && result.assets && result.assets[0]) {
+        setPhotoAnswer(result.assets[0].uri);
+      }
+    } catch (e) {
+      console.log('Camera error:', e);
+      Alert.alert('Error', 'Could not open camera. Please try again.');
+    }
+  };
+
+  const pickPhotoAnswer = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Photo library permission is required to select a photo.');
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.7,
+      });
+      if (!result.canceled && result.assets && result.assets[0]) {
+        setPhotoAnswer(result.assets[0].uri);
+      }
+    } catch (e) {
+      console.log('Gallery error:', e);
+      Alert.alert('Error', 'Could not open gallery. Please try again.');
+    }
+  };
+
+  const uploadPhotoAnswer = async (uri) => {
+    try {
+      setPhotoUploading(true);
+      // Upload to Firebase Storage
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      const filename = `exam_answers/${currentUser?.uid || 'anonymous'}/${Date.now()}_q${currentQuestion + 1}.jpg`;
+      
+      // Use Firebase Storage reference
+      const storageRef = storage().ref(filename);
+      await storageRef.put(blob);
+      const downloadURL = await storageRef.getDownloadURL();
+      
+      setPhotoUploading(false);
+      return downloadURL;
+    } catch (e) {
+      console.log('Upload error:', e);
+      setPhotoUploading(false);
+      return uri; // Fallback to local URI
+    }
+  };
+
+
   const submitPenPaperAnswer = (index, answer) => {
     setPenPaperAnswers({ ...penPaperAnswers, [index]: answer });
   };
@@ -8456,6 +8526,25 @@ export default function App() {
               />
               {question.options && question.options[question.answer] && (
                 <Text style={{color: '#666', fontSize: 11, marginTop: 5}}>Hint: Think about {question.options[0]} vs {question.options[1]}</Text>
+              )}
+              
+              {/* Photo submission option for written answers */}
+              <Text style={{color: '#888', textAlign: 'center', marginVertical: 5, fontSize: 12}}>OR take a photo of your written answer</Text>
+              <View style={{flexDirection: 'row', justifyContent: 'center', gap: 10, marginBottom: 10}}>
+                <TouchableOpacity onPress={takePhotoAnswer} style={{backgroundColor: '#4CAF50', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8, flexDirection: 'row', alignItems: 'center'}}>
+                  <Text style={{color: '#fff', fontWeight: 'bold', fontSize: 14}}>📷 Camera</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={pickPhotoAnswer} style={{backgroundColor: '#2196F3', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8, flexDirection: 'row', alignItems: 'center'}}>
+                  <Text style={{color: '#fff', fontWeight: 'bold', fontSize: 14}}>🖼️ Gallery</Text>
+                </TouchableOpacity>
+              </View>
+              {photoAnswer && (
+                <View style={{alignItems: 'center', marginBottom: 10}}>
+                  <Image source={{uri: photoAnswer}} style={{width: 200, height: 200, borderRadius: 8, borderWidth: 1, borderColor: '#ddd'}} resizeMode="contain" />
+                  <TouchableOpacity onPress={() => setPhotoAnswer(null)} style={{marginTop: 5}}>
+                    <Text style={{color: '#f44336', fontSize: 12}}>Remove photo</Text>
+                  </TouchableOpacity>
+                </View>
               )}
             </View>
           ) : question.options.map((option, index) => {
