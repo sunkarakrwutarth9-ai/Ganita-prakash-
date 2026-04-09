@@ -72,7 +72,7 @@ try {
 }
 
 // Groq API Key for AI Assistant (Llama 3.3 70B)
-const GROQ_API_KEY = 'YOUR_GROQ_API_KEY_HERE';
+const GROQ_API_KEY = 'GROQ_API_KEY_HERE';
 
 // Real 3D Model HTML generator using Three.js
 const generate3DModelHTML = (modelType, modelName) => {
@@ -5773,6 +5773,301 @@ const finalExam7PenPaper = [
 
 
 // Interactive Whiteboard HTML - runs in WebView with fullscreen support
+
+const basicsWorksheets6 = [
+    {
+        id: "b6_1",
+        title: "Number Sense & Place Value",
+        desc: "Indian/International number system, place value, expanded form",
+        questions: [
+            { q: "What is the place value of 7 in 874,865?", options: ["7", "70,000", "7,000", "700"], answer: 1 },
+            { q: "Write 'Five lakh four thousand seven hundred seventy-eight' as a numeral.", options: ["5,04,778", "5,40,778", "54,778", "5,04,878"], answer: 0 },
+            { q: "Which is the successor of 99,999?", options: ["1,00,001", "99,998", "1,00,000", "10,000"], answer: 2 },
+            { q: "What is the expanded form of 32,405?", options: ["30,000 + 2,000 + 400 + 5", "3,000 + 200 + 40 + 5", "30,000 + 200 + 40 + 5", "30,000 + 2,000 + 40 + 5"], answer: 0 },
+            { q: "Which number is greatest: 45,786 or 45,768 or 45,876 or 45,687?", options: ["45,786", "45,768", "45,876", "45,687"], answer: 2 },
+        ]
+    },
+    {
+        id: "b6_2",
+        title: "Addition & Subtraction",
+        desc: "Multi-digit addition, subtraction, word problems with carrying/borrowing",
+        questions: [
+            { q: "What is 4,567 + 3,894?", options: ["8,461", "8,361", "8,451", "7,461"], answer: 0 },
+            { q: "Subtract: 8,003 - 2,567 = ?", options: ["5,536", "5,436", "5,346", "6,436"], answer: 1 },
+            { q: "A school has 2,345 boys and 1,987 girls. How many students in total?", options: ["4,232", "4,332", "3,332", "4,342"], answer: 1 },
+            { q: "What is 10,000 - 4,628?", options: ["5,472", "5,372", "6,372", "5,382"], answer: 1 },
+            { q: "Find the sum: 1,234 + 2,345 + 3,456 = ?", options: ["7,035", "6,035", "7,135", "6,935"], answer: 0 },
+        ]
+    },
+    {
+        id: "b6_3",
+        title: "Multiplication & Division",
+        desc: "Tables, long multiplication, long division, remainders",
+        questions: [
+            { q: "What is 25 x 5?", options: ["120", "125", "115", "130"], answer: 1 },
+            { q: "What is 2,019 \u00f7 0?", options: ["0", "2,019", "1", "Undefined"], answer: 3 },
+            { q: "Find: 456 x 23 = ?", options: ["10,488", "10,388", "10,588", "9,488"], answer: 0 },
+            { q: "What is the remainder when 257 is divided by 6?", options: ["1", "3", "5", "2"], answer: 0 },
+            { q: "If 15 x ___ = 225, what is the missing number?", options: ["25", "15", "20", "12"], answer: 1 },
+        ]
+    },
+    {
+        id: "b6_4",
+        title: "BODMAS & Brackets",
+        desc: "Order of operations: Brackets, Of, Division, Multiplication, Addition, Subtraction",
+        questions: [
+            { q: "Solve: 1 + 2 \u00f7 3 x 4 = ?", options: ["4", "3.67", "3", "2"], answer: 0 },
+            { q: "Solve: 4 + (5 + 6) = ?", options: ["15", "56", "10", "46"], answer: 0 },
+            { q: "Solve: 1 \u2013 {(2 + 3) \u00f7 (4 \u2013 5)} = ?", options: ["6", "-4", "4", "Not defined"], answer: 0 },
+            { q: "Solve: 18 \u00f7 (3 x 2) + 5 = ?", options: ["8", "11", "17", "6"], answer: 0 },
+            { q: "Solve: (8 + 2) x (7 - 3) = ?", options: ["44", "40", "36", "48"], answer: 1 },
+        ]
+    },
+    {
+        id: "b6_5",
+        title: "Factors & Multiples",
+        desc: "Divisibility rules, prime/composite, HCF, LCM",
+        questions: [
+            { q: "Which of the following is a prime number?", options: ["15", "21", "23", "27"], answer: 2 },
+            { q: "Find the LCM of 4, 8, and 12.", options: ["48", "24", "12", "96"], answer: 1 },
+            { q: "What is the HCF of 18 and 24?", options: ["4", "6", "8", "12"], answer: 1 },
+            { q: "Which number is divisible by both 3 and 5?", options: ["20", "25", "30", "35"], answer: 2 },
+            { q: "Prime factorization of 48 is:", options: ["2\u2074 x 3", "2\u00b3 x 6", "4 x 12", "2\u00b2 x 12"], answer: 0 },
+        ]
+    },
+    {
+        id: "b6_6",
+        title: "Fractions",
+        desc: "Equivalent fractions, comparison, addition, subtraction, simplification",
+        questions: [
+            { q: "Simplify: 1/2 + 3/4 = ?", options: ["4/6", "5/4", "1", "2/4"], answer: 1 },
+            { q: "Which fraction is equivalent to 2/3?", options: ["3/4", "4/6", "5/6", "6/12"], answer: 1 },
+            { q: "Subtract: 5/6 - 1/3 = ?", options: ["4/6", "1/2", "2/3", "1/6"], answer: 1 },
+            { q: "Compare: Which is larger, 3/4 or 7/8?", options: ["3/4", "They are equal", "Cannot compare", "7/8"], answer: 3 },
+            { q: "Convert 91/10 to a decimal.", options: ["0.91", "9.1", "91.0", "9.01"], answer: 1 },
+        ]
+    },
+    {
+        id: "b6_7",
+        title: "Decimals",
+        desc: "Decimal place value, comparison, addition, subtraction, conversion",
+        questions: [
+            { q: "Add: 0.1 + 1.2 + 12.3 = ?", options: ["13.6", "12.6", "14.6", "13.5"], answer: 0 },
+            { q: "Which is greater: 0.45 or 0.405?", options: ["0.405", "They are equal", "0.45", "Cannot compare"], answer: 2 },
+            { q: "Convert 3/5 to a decimal.", options: ["0.35", "0.6", "0.53", "0.3"], answer: 1 },
+            { q: "Subtract: 5.03 - 2.7 = ?", options: ["2.33", "2.43", "3.33", "2.36"], answer: 0 },
+            { q: "Round 4.567 to one decimal place.", options: ["4.5", "4.6", "4.56", "5.0"], answer: 1 },
+        ]
+    },
+    {
+        id: "b6_8",
+        title: "Negative Numbers & Integers",
+        desc: "Number line, comparing, addition and subtraction with negatives",
+        questions: [
+            { q: "What is -89 + 98?", options: ["9", "-9", "187", "-187"], answer: 0 },
+            { q: "What is -985 - 689?", options: ["296", "-296", "1,674", "-1,674"], answer: 3 },
+            { q: "What is -5 + 6?", options: ["-11", "11", "1", "-1"], answer: 2 },
+            { q: "How many integers are between -6 and 6 (not including -6 and 6)?", options: ["13", "12", "11", "10"], answer: 2 },
+            { q: "The sum of two odd numbers is always:", options: ["Odd", "Even", "Prime", "Negative"], answer: 1 },
+        ]
+    },
+    {
+        id: "b6_9",
+        title: "Measurement & Units",
+        desc: "Length, weight, capacity conversions, time calculations",
+        questions: [
+            { q: "How many centimeters are in 2.5 meters?", options: ["25", "250", "2500", "0.25"], answer: 1 },
+            { q: "Convert 3 km 500 m to meters.", options: ["3,500 m", "3,050 m", "350 m", "35,000 m"], answer: 0 },
+            { q: "How many minutes are in 2 hours 15 minutes?", options: ["215", "135", "125", "145"], answer: 1 },
+            { q: "1 kg = ___ grams", options: ["10", "100", "1,000", "10,000"], answer: 2 },
+            { q: "A water bottle holds 1.5 litres. How many ml is that?", options: ["150 ml", "1,500 ml", "15 ml", "15,000 ml"], answer: 1 },
+        ]
+    },
+    {
+        id: "b6_10",
+        title: "Geometry Basics",
+        desc: "Points, lines, rays, angles, types of triangles",
+        questions: [
+            { q: "How many endpoints does a ray have?", options: ["0", "1", "2", "3"], answer: 1 },
+            { q: "A triangle with all three sides equal is called:", options: ["Isosceles", "Scalene", "Equilateral", "Right-angled"], answer: 2 },
+            { q: "An angle that measures exactly 90\u00b0 is called:", options: ["Acute", "Obtuse", "Right", "Straight"], answer: 2 },
+            { q: "How many sides does a quadrilateral have?", options: ["3", "4", "5", "6"], answer: 1 },
+            { q: "Two lines that never meet are called:", options: ["Intersecting", "Perpendicular", "Parallel", "Concurrent"], answer: 2 },
+        ]
+    },
+    {
+        id: "b6_11",
+        title: "Perimeter & Area",
+        desc: "Perimeter and area of rectangles, squares, triangles",
+        questions: [
+            { q: "Find the perimeter of a rectangle with length 12 cm and breadth 8 cm.", options: ["96 cm", "40 cm", "20 cm", "80 cm"], answer: 1 },
+            { q: "Area of a square with side 9 cm is:", options: ["36 cm\u00b2", "81 cm\u00b2", "18 cm\u00b2", "72 cm\u00b2"], answer: 1 },
+            { q: "Find the area of a rectangle with length 15 m and breadth 6 m.", options: ["42 m\u00b2", "90 m\u00b2", "21 m\u00b2", "180 m\u00b2"], answer: 1 },
+            { q: "The perimeter of a square is 48 cm. What is the side length?", options: ["8 cm", "12 cm", "16 cm", "24 cm"], answer: 1 },
+            { q: "Area of a triangle with base 10 cm and height 6 cm is:", options: ["60 cm\u00b2", "30 cm\u00b2", "16 cm\u00b2", "36 cm\u00b2"], answer: 1 },
+        ]
+    },
+    {
+        id: "b6_12",
+        title: "Data Handling & Patterns",
+        desc: "Tally marks, bar graphs, number patterns, sequences",
+        questions: [
+            { q: "In a tally chart, how is the number 7 represented?", options: ["IIII II", "IIII III", "III IIII", "IIIIIII"], answer: 0 },
+            { q: "What comes next in the pattern: 2, 6, 18, 54, ___?", options: ["72", "108", "162", "216"], answer: 2 },
+            { q: "In a bar graph, the tallest bar represents:", options: ["The smallest value", "The average value", "The largest value", "The median"], answer: 2 },
+            { q: "Find the next number: 5, 10, 20, 40, ___?", options: ["50", "60", "80", "100"], answer: 2 },
+            { q: "The mean (average) of 4, 8, 6, 10, 12 is:", options: ["6", "8", "10", "12"], answer: 1 },
+        ]
+    },
+];
+
+const basicsWorksheets7 = [
+    {
+        id: "b7_1",
+        title: "Large Numbers & Estimation",
+        desc: "Indian/International system, rounding, estimation in lakhs and crores",
+        questions: [
+            { q: "What is 1 crore in the International system?", options: ["1 million", "10 million", "100 million", "1 billion"], answer: 1 },
+            { q: "Round 4,56,789 to the nearest thousand.", options: ["4,56,000", "4,57,000", "4,60,000", "5,00,000"], answer: 1 },
+            { q: "The predecessor of 10,00,000 is:", options: ["9,99,999", "10,00,001", "99,999", "9,99,000"], answer: 0 },
+            { q: "How many zeros are in 1 lakh?", options: ["4", "5", "6", "7"], answer: 1 },
+            { q: "Estimate 3,879 + 5,142 to the nearest hundred.", options: ["9,000", "9,100", "9,020", "8,900"], answer: 0 },
+        ]
+    },
+    {
+        id: "b7_2",
+        title: "Whole Number Properties",
+        desc: "Closure, commutative, associative, distributive properties",
+        questions: [
+            { q: "Which property states a + b = b + a?", options: ["Associative", "Commutative", "Distributive", "Closure"], answer: 1 },
+            { q: "Find: 25 x 98 using distributive property = 25 x (100 - 2) = ?", options: ["2,450", "2,550", "2,350", "2,500"], answer: 0 },
+            { q: "The additive identity (adding it gives the same number) is:", options: ["1", "0", "-1", "10"], answer: 1 },
+            { q: "Which is true? (a x b) x c = a x (b x c) is the ___ property.", options: ["Commutative", "Distributive", "Associative", "Identity"], answer: 2 },
+            { q: "Is subtraction commutative for whole numbers?", options: ["Yes, always", "No, never", "Only for positive numbers", "Only when a > b"], answer: 1 },
+        ]
+    },
+    {
+        id: "b7_3",
+        title: "BODMAS & Nested Brackets",
+        desc: "Order of operations with (), {}, [], mixed operations",
+        questions: [
+            { q: "Solve: (2\u00b3 - 1) \u00f7 (4 + (-2)) = ?", options: ["3.5", "2.5", "7", "1.5"], answer: 0 },
+            { q: "Simplify: 48 \u00f7 [12 - {8 - (6 - 2)}] = ?", options: ["6", "8", "12", "48"], answer: 1 },
+            { q: "Solve: 5 + {3 x (8 - 2)} = ?", options: ["23", "66", "48", "33"], answer: 0 },
+            { q: "Solve: 100 - [50 + {20 - (10 + 5)}] = ?", options: ["55", "45", "35", "65"], answer: 1 },
+            { q: "Solve: 6 x 4 - 3 x 2 + 8 \u00f7 4 = ?", options: ["20", "18", "22", "24"], answer: 0 },
+        ]
+    },
+    {
+        id: "b7_4",
+        title: "Factors, HCF & LCM",
+        desc: "Prime factorization, HCF by division, LCM by prime method",
+        questions: [
+            { q: "Find HCF of 36 and 48.", options: ["6", "12", "24", "8"], answer: 1 },
+            { q: "Find LCM of 12, 15, and 20.", options: ["120", "60", "180", "240"], answer: 1 },
+            { q: "Prime factorization of 72 is:", options: ["2\u00b3 x 3\u00b2", "2\u00b2 x 3\u00b3", "2 x 36", "4 x 18"], answer: 0 },
+            { q: "The product of HCF and LCM of two numbers equals:", options: ["Sum of the numbers", "Difference of the numbers", "Product of the numbers", "Average of the numbers"], answer: 2 },
+            { q: "Is 91 a prime number?", options: ["Yes", "No, 91 = 7 x 13", "No, 91 = 9 x 11", "No, 91 = 3 x 31"], answer: 1 },
+        ]
+    },
+    {
+        id: "b7_5",
+        title: "Integers & Operations",
+        desc: "Addition, subtraction, multiplication, division of integers",
+        questions: [
+            { q: "What is -7 x 2 \u00f7 (-5) + 3?", options: ["5.8", "0.2", "17.8", "-5.8"], answer: 0 },
+            { q: "What is the additive inverse of 7?", options: ["7", "-7", "0", "1/7"], answer: 1 },
+            { q: "Solve: (-15) + (-23) = ?", options: ["38", "-38", "8", "-8"], answer: 1 },
+            { q: "Solve: (-48) \u00f7 8 = ?", options: ["6", "-6", "8", "-8"], answer: 1 },
+            { q: "Arrange in ascending order: -5, 3, -8, 0, 7", options: ["0, 3, 7, -5, -8", "-8, -5, 0, 3, 7", "7, 3, 0, -5, -8", "-5, -8, 0, 3, 7"], answer: 1 },
+        ]
+    },
+    {
+        id: "b7_6",
+        title: "Fractions & Decimals Operations",
+        desc: "Add, subtract, multiply, divide fractions and decimals",
+        questions: [
+            { q: "Solve: 9/11 + 5/6 = ?", options: ["14/17", "109/66", "14/66", "54/66"], answer: 1 },
+            { q: "Solve: 0.3\u00b2 x 0.2\u00b3 = ?", options: ["0.00072", "0.072", "0.72", "0.0072"], answer: 0 },
+            { q: "Divide: 3/4 \u00f7 1/2 = ?", options: ["3/8", "3/2", "2/3", "6/4"], answer: 1 },
+            { q: "Convert 0.375 to a fraction in simplest form.", options: ["375/1000", "3/8", "37/100", "75/200"], answer: 1 },
+            { q: "Multiply: 2.5 x 0.4 = ?", options: ["10", "1.0", "0.1", "1"], answer: 1 },
+        ]
+    },
+    {
+        id: "b7_7",
+        title: "Ratio & Proportion",
+        desc: "Simplifying ratios, unitary method, cross multiplication",
+        questions: [
+            { q: "If a:b = 5:6, and b = 18, find a.", options: ["12", "15", "20", "10"], answer: 1 },
+            { q: "Solve: 3/4 = x/12. Find x.", options: ["9", "4", "16", "8"], answer: 0 },
+            { q: "Simplify the ratio 48:64.", options: ["6:8", "3:4", "12:16", "24:32"], answer: 1 },
+            { q: "If 5 pens cost Rs 60, how much do 8 pens cost?", options: ["Rs 80", "Rs 96", "Rs 48", "Rs 100"], answer: 1 },
+            { q: "The ratio of boys to girls in a class is 3:2. If there are 18 boys, how many girls?", options: ["12", "10", "9", "15"], answer: 0 },
+        ]
+    },
+    {
+        id: "b7_8",
+        title: "Algebra Basics",
+        desc: "Algebraic expressions, evaluation, simple equations",
+        questions: [
+            { q: "If x = 2, find the value of 2x\u00b2 - 3x + 1.", options: ["3", "1", "5", "7"], answer: 0 },
+            { q: "Simplify: 3a + 5a - 2a = ?", options: ["6a", "8a", "10a", "4a"], answer: 0 },
+            { q: "Solve: x + 7 = 15. What is x?", options: ["22", "7", "8", "15"], answer: 2 },
+            { q: "Factor: x\u00b2 + 4x + 4 = ?", options: ["(x+2)(x+2)", "(x+4)(x+1)", "(x+2)(x-2)", "(x-2)(x-2)"], answer: 0 },
+            { q: "If 3x - 5 = 10, then x = ?", options: ["3", "5", "15", "7"], answer: 1 },
+        ]
+    },
+    {
+        id: "b7_9",
+        title: "Geometry: Lines & Angles",
+        desc: "Types of angles, complementary, supplementary, vertically opposite",
+        questions: [
+            { q: "Two supplementary angles add up to:", options: ["90\u00b0", "180\u00b0", "360\u00b0", "270\u00b0"], answer: 1 },
+            { q: "If two angles are complementary and one is 35\u00b0, the other is:", options: ["145\u00b0", "55\u00b0", "65\u00b0", "35\u00b0"], answer: 1 },
+            { q: "Vertically opposite angles are:", options: ["Supplementary", "Complementary", "Equal", "Right angles"], answer: 2 },
+            { q: "Allied (co-interior) angles formed by a transversal with parallel lines sum to:", options: ["90\u00b0", "180\u00b0", "360\u00b0", "120\u00b0"], answer: 1 },
+            { q: "An angle greater than 90\u00b0 but less than 180\u00b0 is called:", options: ["Acute", "Right", "Obtuse", "Reflex"], answer: 2 },
+        ]
+    },
+    {
+        id: "b7_10",
+        title: "Triangles & Symmetry",
+        desc: "Types of triangles, angle sum, lines of symmetry, rotational symmetry",
+        questions: [
+            { q: "The sum of angles of a triangle is:", options: ["90\u00b0", "180\u00b0", "270\u00b0", "360\u00b0"], answer: 1 },
+            { q: "An isosceles triangle has:", options: ["All sides equal", "No sides equal", "Two sides equal", "All angles different"], answer: 2 },
+            { q: "How many lines of symmetry does an equilateral triangle have?", options: ["1", "2", "3", "0"], answer: 2 },
+            { q: "A triangle with sides 3 cm, 4 cm, and 5 cm is:", options: ["Equilateral", "Isosceles", "Scalene", "Not a triangle"], answer: 2 },
+            { q: "In which quadrant does the point (3, -2) lie?", options: ["I", "II", "III", "IV"], answer: 3 },
+        ]
+    },
+    {
+        id: "b7_11",
+        title: "Perimeter, Area & Volume",
+        desc: "Rectangle, square, triangle area; cube and cuboid volume",
+        questions: [
+            { q: "Volume of a cube with side 5 cm is:", options: ["25 cm\u00b3", "125 cm\u00b3", "150 cm\u00b3", "75 cm\u00b3"], answer: 1 },
+            { q: "Area of a triangle with base 14 cm and height 8 cm:", options: ["112 cm\u00b2", "56 cm\u00b2", "22 cm\u00b2", "44 cm\u00b2"], answer: 1 },
+            { q: "Perimeter of a rectangle with l = 20 m, b = 12 m:", options: ["240 m", "64 m", "32 m", "44 m"], answer: 1 },
+            { q: "Volume of a cuboid with l=6, b=4, h=3 cm:", options: ["72 cm\u00b3", "52 cm\u00b3", "36 cm\u00b3", "13 cm\u00b3"], answer: 0 },
+            { q: "A square garden has perimeter 60 m. What is its area?", options: ["225 m\u00b2", "900 m\u00b2", "60 m\u00b2", "3600 m\u00b2"], answer: 0 },
+        ]
+    },
+    {
+        id: "b7_12",
+        title: "Data Handling & Patterns",
+        desc: "Bar graphs, pictographs, mean, number patterns",
+        questions: [
+            { q: "The mean of 12, 15, 18, 21, 24 is:", options: ["15", "18", "21", "20"], answer: 1 },
+            { q: "In a pictograph, if one symbol = 10 books, 3.5 symbols represent:", options: ["30 books", "35 books", "40 books", "25 books"], answer: 1 },
+            { q: "What comes next: 1, 4, 9, 16, 25, ___?", options: ["30", "36", "49", "32"], answer: 1 },
+            { q: "The mode of 3, 5, 7, 5, 9, 5, 3 is:", options: ["3", "5", "7", "9"], answer: 1 },
+            { q: "In a bar graph, which value has the most frequency if its bar is the tallest?", options: ["Mean", "Median", "Mode", "Range"], answer: 2 },
+        ]
+    },
+];
+
 const generateWhiteboardHTML = () => `
 <!DOCTYPE html>
 <html>
@@ -6018,6 +6313,17 @@ export default function App() {
   const [examPhase, setExamPhase] = useState('mcq');
   const [penPaperAnswers, setPenPaperAnswers] = useState({});
   const [mcqScore, setMcqScore] = useState(0);
+
+  // Fundamentals (Basics) state
+  const [basicsProgress, setBasicsProgressState] = useState({});
+  const [basicsProgress7, setBasicsProgress7State] = useState({});
+  const [currentBasicsWs, setCurrentBasicsWs] = useState(null);
+  const [basicsQuizQuestion, setBasicsQuizQuestion] = useState(0);
+  const [basicsSelectedAnswer, setBasicsSelectedAnswer] = useState(null);
+  const [basicsAnswerSubmitted, setBasicsAnswerSubmitted] = useState(false);
+  const [basicsAnswers, setBasicsAnswers] = useState([]);
+  const [basicsShowResults, setBasicsShowResults] = useState(false);
+  const [certTabState, setCertTabState] = useState('chapter');
 
   // Auth state
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -6939,6 +7245,10 @@ export default function App() {
       const storedProgress7 = await AsyncStorage.getItem('chapterProgress7');
       const storedScores7 = await AsyncStorage.getItem('chapterScores7');
       const storedCerts7 = await AsyncStorage.getItem('certificates7');
+      const storedBasicsProgress = await AsyncStorage.getItem('basicsProgress');
+      if (storedBasicsProgress) setBasicsProgressState(JSON.parse(storedBasicsProgress));
+      const storedBasicsProgress7 = await AsyncStorage.getItem('basicsProgress7');
+      if (storedBasicsProgress7) setBasicsProgress7State(JSON.parse(storedBasicsProgress7));
       const storedFinalExam7 = await AsyncStorage.getItem('finalExamCompleted7');
       const storedFinalScore7 = await AsyncStorage.getItem('finalExamScore7');
 
@@ -7049,14 +7359,89 @@ export default function App() {
     setScreen('home');
   };
 
-const navigateTo = (newScreen) => {
+
+  // Fundamentals helper functions
+  const getActiveBasicsWorksheets = () => {
+    return selectedClass === '7' ? basicsWorksheets7 : basicsWorksheets6;
+  };
+
+  const getBasicsProgressData = () => {
+    return selectedClass === '7' ? basicsProgress7 : basicsProgress;
+  };
+
+  const setBasicsProgressData = async (newProgress) => {
+    if (selectedClass === '7') {
+      setBasicsProgress7State(newProgress);
+      await saveData('basicsProgress7', newProgress);
+    } else {
+      setBasicsProgressState(newProgress);
+      await saveData('basicsProgress', newProgress);
+    }
+  };
+
+  const openBasicsWorksheet = (ws) => {
+    setCurrentBasicsWs(ws);
+    setBasicsQuizQuestion(0);
+    setBasicsSelectedAnswer(null);
+    setBasicsAnswerSubmitted(false);
+    setBasicsAnswers([]);
+    setBasicsShowResults(false);
+    setScreen('basicsOverview');
+  };
+
+  const startBasicsQuiz = () => {
+    setBasicsQuizQuestion(0);
+    setBasicsSelectedAnswer(null);
+    setBasicsAnswerSubmitted(false);
+    setBasicsAnswers([]);
+    setBasicsShowResults(false);
+    setScreen('basicsQuiz');
+  };
+
+  const selectBasicsAnswer = (optionIndex) => {
+    if (basicsAnswerSubmitted) return;
+    setBasicsSelectedAnswer(optionIndex);
+    setBasicsAnswerSubmitted(true);
+    const isCorrect = optionIndex === currentBasicsWs.questions[basicsQuizQuestion].answer;
+    setBasicsAnswers([...basicsAnswers, { selected: optionIndex, correct: currentBasicsWs.questions[basicsQuizQuestion].answer, isCorrect }]);
+  };
+
+
+  // Admin: auto-complete all basics worksheets
+  const autoCompleteBasics = async () => {
+    const worksheets = getActiveBasicsWorksheets();
+    const newProgress = {};
+    worksheets.forEach(ws => {
+      newProgress[ws.id] = { pct: 100, answers: ws.questions.map(q => ({ selected: q.answer, correct: q.answer, isCorrect: true })) };
+    });
+    await setBasicsProgressData(newProgress);
+    Alert.alert('Done', 'All Fundamentals worksheets marked as complete!');
+  };
+
+  const basicsNextQuestion = () => {
+    if (basicsQuizQuestion < currentBasicsWs.questions.length - 1) {
+      setBasicsQuizQuestion(basicsQuizQuestion + 1);
+      setBasicsSelectedAnswer(null);
+      setBasicsAnswerSubmitted(false);
+    } else {
+      const allAnswers = [...basicsAnswers];
+      const correctCount = allAnswers.filter(a => a.isCorrect).length;
+      const pct = Math.round((correctCount / currentBasicsWs.questions.length) * 100);
+      const newProgress = { ...getBasicsProgressData(), [currentBasicsWs.id]: { pct, answers: allAnswers } };
+      setBasicsProgressData(newProgress);
+      setBasicsShowResults(true);
+      setScreen('basicsResults');
+    }
+  };
+
+  const navigateTo = (newScreen) => {
     setPreviousScreen(screen);
     setScreen(newScreen);
   };
 
   // Go back to previous screen
   const goBack = () => {
-    if (screen === 'chapter' || screen === 'quiz' || screen === 'progress' || screen === 'certificates' || screen === 'chat' || screen === 'aiAssistant' || screen === 'admin') {
+    if (screen === 'chapter' || screen === 'quiz' || screen === 'progress' || screen === 'certificates' || screen === 'chat' || screen === 'aiAssistant' || screen === 'admin' || screen === 'fundamentals' || screen === 'basicsOverview' || screen === 'basicsQuiz' || screen === 'basicsResults') {
       setScreen('home');
     } else {
       setScreen(previousScreen || 'home');
@@ -7546,6 +7931,13 @@ const navigateTo = (newScreen) => {
           </View>
           <Text style={styles.quickActionTitle}>Whiteboard</Text>
           <Text style={styles.quickActionSubtitle}>Draw & notes</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.quickActionCard} onPress={() => setScreen('fundamentals')}>
+          <View style={[styles.quickActionIconBox, {backgroundColor: 'rgba(0,229,255,0.15)'}]}>
+            <Text style={styles.quickActionIconText}>{String.fromCodePoint(0x1F4DA)}</Text>
+          </View>
+          <Text style={styles.quickActionTitle}>Fundamentals</Text>
+          <Text style={styles.quickActionSubtitle}>Bridge course</Text>
         </TouchableOpacity>
       </View>
 
@@ -8048,7 +8440,169 @@ const navigateTo = (newScreen) => {
     );
   };
 
-  const renderCertificates = () => (
+
+  // Fundamentals list screen
+  const renderFundamentals = () => {
+    const worksheets = getActiveBasicsWorksheets();
+    const progress = getBasicsProgressData();
+    const classNum = selectedClass === '7' ? 'VII' : 'VI';
+    return (
+      <ScrollView style={styles.container}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => setScreen('home')}>
+          <Text style={styles.backBtnText}>Back</Text>
+        </TouchableOpacity>
+        <Text style={styles.sectionTitle}>FUNDAMENTALS</Text>
+        <Text style={{color: '#00e5ff', fontSize: 14, textAlign: 'center', marginBottom: 5}}>{'B2B Bridge Course - Class ' + classNum}</Text>
+        <Text style={{color: '#888', fontSize: 12, textAlign: 'center', marginBottom: 20}}>12 Virtual Worksheets | MCQ Format | 60% To Pass</Text>
+        {worksheets.map((ws, index) => {
+          const prog = progress[ws.id];
+          const isCompleted = prog !== undefined;
+          const pct = isCompleted ? (typeof prog === 'object' ? prog.pct : prog) : null;
+          const isPreviousCompleted = index === 0 || progress[worksheets[index - 1].id] !== undefined;
+          const isLocked = !isAdmin && index > 0 && !isPreviousCompleted;
+          return (
+            <TouchableOpacity key={ws.id} style={[styles.chapterCard, isLocked && styles.chapterLocked]}
+              onPress={() => { if (isLocked) { Alert.alert('Locked', 'Complete previous worksheet first!'); } else { openBasicsWorksheet(ws); } }}>
+              <View style={[styles.chapterNumberBox, isCompleted && {backgroundColor: pct >= 60 ? '#00e5ff' : '#E94560'}, isLocked && styles.chapterNumberLocked]}>
+                {isLocked ? (<Text style={styles.lockIcon}>{String.fromCodePoint(0x1F512)}</Text>) : (<Text style={styles.chapterNumber}>{index + 1}</Text>)}
+              </View>
+              <View style={styles.chapterInfo}>
+                <Text style={[styles.chapterTitle, isLocked && styles.chapterTitleLocked]}>{ws.title}</Text>
+                <Text style={{color: '#888', fontSize: 12}}>{ws.desc}</Text>
+                {isCompleted && (<Text style={{color: pct >= 60 ? '#00e5ff' : '#E94560', fontSize: 12, marginTop: 4}}>{'Score: ' + pct + '% ' + (pct >= 60 ? 'Passed' : 'Try Again')}</Text>)}
+              </View>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+    );
+  };
+
+  // Basics Overview screen
+  const renderBasicsOverview = () => {
+    if (!currentBasicsWs) return null;
+    return (
+      <ScrollView style={styles.container}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => setScreen('fundamentals')}>
+          <Text style={styles.backBtnText}>Back</Text>
+        </TouchableOpacity>
+        <View style={{alignItems: 'center', padding: 20}}>
+          <Text style={{fontSize: 48, marginBottom: 15}}>{String.fromCodePoint(0x1F4D6)}</Text>
+          <Text style={[styles.sectionTitle, {color: '#00e5ff'}]}>{currentBasicsWs.title}</Text>
+          <Text style={{color: '#aaa', fontSize: 14, textAlign: 'center', marginBottom: 20}}>{currentBasicsWs.desc}</Text>
+          <View style={{backgroundColor: 'rgba(0,229,255,0.1)', borderRadius: 12, padding: 20, width: '100%', marginBottom: 20, borderWidth: 1, borderColor: 'rgba(0,229,255,0.3)'}}>
+            <Text style={{color: '#00e5ff', fontSize: 16, fontWeight: 'bold', marginBottom: 10}}>What You Will Learn</Text>
+            <Text style={{color: '#ccc', fontSize: 14, lineHeight: 22}}>{currentBasicsWs.desc}</Text>
+          </View>
+          <View style={{flexDirection: 'row', justifyContent: 'space-around', width: '100%', marginBottom: 30}}>
+            <View style={{alignItems: 'center'}}><Text style={{color: '#00e5ff', fontSize: 24, fontWeight: 'bold'}}>{currentBasicsWs.questions.length}</Text><Text style={{color: '#888', fontSize: 12}}>Questions</Text></View>
+            <View style={{alignItems: 'center'}}><Text style={{color: '#00e5ff', fontSize: 24, fontWeight: 'bold'}}>MCQ</Text><Text style={{color: '#888', fontSize: 12}}>Format</Text></View>
+            <View style={{alignItems: 'center'}}><Text style={{color: '#00e5ff', fontSize: 24, fontWeight: 'bold'}}>60%</Text><Text style={{color: '#888', fontSize: 12}}>To Pass</Text></View>
+          </View>
+          <TouchableOpacity style={{backgroundColor: '#00e5ff', borderRadius: 12, padding: 16, width: '100%', alignItems: 'center', marginBottom: 10}} onPress={startBasicsQuiz}>
+            <Text style={{color: '#1A1A2E', fontSize: 18, fontWeight: 'bold'}}>Start Quiz</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={{backgroundColor: 'transparent', borderRadius: 12, padding: 16, width: '100%', alignItems: 'center', borderWidth: 1, borderColor: '#555'}} onPress={() => setScreen('fundamentals')}>
+            <Text style={{color: '#aaa', fontSize: 16}}>Back to Worksheets</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    );
+  };
+
+  // Brilliant-style quiz screen
+  const renderBasicsQuiz = () => {
+    if (!currentBasicsWs) return null;
+    const question = currentBasicsWs.questions[basicsQuizQuestion];
+    const isLastQuestion = basicsQuizQuestion === currentBasicsWs.questions.length - 1;
+    return (
+      <ScrollView style={styles.container}>
+        <View style={{padding: 20}}>
+          <Text style={{color: '#888', fontSize: 14, marginBottom: 5}}>{currentBasicsWs.title + ' - Question ' + (basicsQuizQuestion + 1) + '/' + currentBasicsWs.questions.length}</Text>
+          <View style={{height: 4, backgroundColor: '#333', borderRadius: 2, marginBottom: 20}}>
+            <View style={{height: 4, backgroundColor: '#00e5ff', borderRadius: 2, width: ((basicsQuizQuestion + 1) / currentBasicsWs.questions.length * 100) + '%'}} />
+          </View>
+          <Text style={{color: '#fff', fontSize: 18, fontWeight: 'bold', marginBottom: 20, lineHeight: 26}}>{question.q}</Text>
+          {question.options.map((option, idx) => {
+            let bgColor = 'rgba(255,255,255,0.05)';
+            let bColor = '#333';
+            if (basicsAnswerSubmitted) {
+              if (idx === question.answer) { bgColor = 'rgba(0,200,100,0.2)'; bColor = '#00c864'; }
+              else if (idx === basicsSelectedAnswer && idx !== question.answer) { bgColor = 'rgba(233,69,96,0.2)'; bColor = '#E94560'; }
+            } else if (idx === basicsSelectedAnswer) { bgColor = 'rgba(0,229,255,0.15)'; bColor = '#00e5ff'; }
+            return (
+              <TouchableOpacity key={idx} style={{backgroundColor: bgColor, borderWidth: 2, borderColor: bColor, borderRadius: 12, padding: 16, marginBottom: 10, flexDirection: 'row', alignItems: 'center'}} onPress={() => selectBasicsAnswer(idx)} disabled={basicsAnswerSubmitted}>
+                <View style={{width: 30, height: 30, borderRadius: 15, borderWidth: 2, borderColor: bColor, alignItems: 'center', justifyContent: 'center', marginRight: 12}}>
+                  <Text style={{color: '#fff', fontWeight: 'bold'}}>{String.fromCharCode(65 + idx)}</Text>
+                </View>
+                <Text style={{color: '#fff', fontSize: 16, flex: 1}}>{option}</Text>
+              </TouchableOpacity>
+            );
+          })}
+          {basicsAnswerSubmitted && (
+            <View style={{marginTop: 15}}>
+              <View style={{backgroundColor: basicsSelectedAnswer === question.answer ? 'rgba(0,200,100,0.15)' : 'rgba(233,69,96,0.15)', borderRadius: 12, padding: 16, marginBottom: 15, borderWidth: 1, borderColor: basicsSelectedAnswer === question.answer ? '#00c864' : '#E94560'}}>
+                <Text style={{color: basicsSelectedAnswer === question.answer ? '#00c864' : '#E94560', fontWeight: 'bold', fontSize: 16}}>{basicsSelectedAnswer === question.answer ? 'Correct!' : 'Incorrect'}</Text>
+                <Text style={{color: '#ccc', marginTop: 5}}>{basicsSelectedAnswer === question.answer ? 'Great job, keep going!' : 'The correct answer is: ' + question.options[question.answer]}</Text>
+              </View>
+              <TouchableOpacity style={{backgroundColor: '#00e5ff', borderRadius: 12, padding: 16, alignItems: 'center'}} onPress={basicsNextQuestion}>
+                <Text style={{color: '#1A1A2E', fontSize: 16, fontWeight: 'bold'}}>{isLastQuestion ? 'See Results' : 'Continue'}</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      </ScrollView>
+    );
+  };
+
+  // Results screen
+  const renderBasicsResults = () => {
+    if (!currentBasicsWs) return null;
+    const answers = basicsAnswers;
+    const correctCount = answers.filter(a => a.isCorrect).length;
+    const pct = Math.round((correctCount / currentBasicsWs.questions.length) * 100);
+    const passed = pct >= 60;
+    return (
+      <ScrollView style={styles.container}>
+        <View style={{alignItems: 'center', padding: 20}}>
+          <Text style={{fontSize: 60, marginBottom: 10}}>{passed ? String.fromCodePoint(0x1F389) : String.fromCodePoint(0x1F4DA)}</Text>
+          <Text style={{color: passed ? '#00e5ff' : '#E94560', fontSize: 36, fontWeight: 'bold'}}>{pct + '%'}</Text>
+          <Text style={{color: '#fff', fontSize: 20, marginBottom: 5}}>{correctCount + '/' + currentBasicsWs.questions.length + ' Correct'}</Text>
+          <Text style={{color: passed ? '#00c864' : '#E94560', fontSize: 16, marginBottom: 20}}>{passed ? 'Congratulations! You passed!' : 'Keep practicing! You need 60% to pass.'}</Text>
+          <Text style={{color: '#aaa', fontSize: 14, alignSelf: 'flex-start', marginBottom: 10}}>Answer Review:</Text>
+          {currentBasicsWs.questions.map((q, idx) => {
+            const ans = answers[idx];
+            if (!ans) return null;
+            return (
+              <View key={idx} style={{backgroundColor: ans.isCorrect ? 'rgba(0,200,100,0.1)' : 'rgba(233,69,96,0.1)', borderRadius: 10, padding: 12, marginBottom: 8, width: '100%', borderLeftWidth: 4, borderLeftColor: ans.isCorrect ? '#00c864' : '#E94560'}}>
+                <Text style={{color: '#fff', fontSize: 14, marginBottom: 4}}>{'Q' + (idx+1) + ': ' + q.q}</Text>
+                <Text style={{color: ans.isCorrect ? '#00c864' : '#E94560', fontSize: 13}}>{ans.isCorrect ? 'Correct: ' + q.options[ans.correct] : 'Your answer: ' + q.options[ans.selected] + ' | Correct: ' + q.options[ans.correct]}</Text>
+              </View>
+            );
+          })}
+          <View style={{flexDirection: 'row', marginTop: 20, width: '100%'}}>
+            <TouchableOpacity style={{flex: 1, backgroundColor: '#00e5ff', borderRadius: 12, padding: 14, alignItems: 'center', marginRight: passed ? 0 : 5}} onPress={() => setScreen('fundamentals')}>
+              <Text style={{color: '#1A1A2E', fontWeight: 'bold'}}>Back to Worksheets</Text>
+            </TouchableOpacity>
+            {!passed && (
+              <TouchableOpacity style={{flex: 1, backgroundColor: 'rgba(0,229,255,0.15)', borderRadius: 12, padding: 14, alignItems: 'center', borderWidth: 1, borderColor: '#00e5ff', marginLeft: 5}} onPress={() => { openBasicsWorksheet(currentBasicsWs); setScreen('basicsQuiz'); }}>
+                <Text style={{color: '#00e5ff', fontWeight: 'bold'}}>Retry Quiz</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      </ScrollView>
+    );
+  };
+
+  const renderCertificates = () => {
+    const basicsWs = getActiveBasicsWorksheets();
+    const basicsProg = getBasicsProgressData();
+    const completedBasics = basicsWs.filter(ws => {
+      const p = basicsProg[ws.id];
+      return p !== undefined && (typeof p === 'object' ? p.pct >= 60 : p >= 60);
+    });
+    return (
     <ScrollView style={styles.container}>
       <TouchableOpacity style={styles.backBtn} onPress={() => setScreen('home')}>
         <Text style={styles.backBtnText}>Back</Text>
@@ -8056,6 +8610,39 @@ const navigateTo = (newScreen) => {
 
       <Text style={styles.sectionTitle}>My Certificates</Text>
 
+      <View style={{flexDirection: 'row', marginBottom: 20, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: 4}}>
+        <TouchableOpacity style={{flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center', backgroundColor: certTabState === 'chapter' ? '#00e5ff' : 'transparent'}} onPress={() => setCertTabState('chapter')}>
+          <Text style={{color: certTabState === 'chapter' ? '#1A1A2E' : '#888', fontWeight: 'bold'}}>Chapter</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={{flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center', backgroundColor: certTabState === 'basics' ? '#00e5ff' : 'transparent'}} onPress={() => setCertTabState('basics')}>
+          <Text style={{color: certTabState === 'basics' ? '#1A1A2E' : '#888', fontWeight: 'bold'}}>Basics</Text>
+        </TouchableOpacity>
+      </View>
+
+      {certTabState === 'basics' ? (
+        <View>
+          {completedBasics.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyIcon}>{String.fromCodePoint(0x1F4DA)}</Text>
+              <Text style={styles.emptyText}>Complete Fundamentals worksheets with 60%+ to earn certificates!</Text>
+            </View>
+          ) : completedBasics.map(ws => {
+            const p = basicsProg[ws.id];
+            const score = typeof p === 'object' ? p.pct : p;
+            return (
+              <View key={ws.id} style={{backgroundColor: 'rgba(0,229,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(0,229,255,0.3)'}}>
+                <View style={{flexDirection: 'row', alignItems: 'center', marginBottom: 8}}>
+                  <Text style={{fontSize: 24, marginRight: 10}}>{String.fromCodePoint(0x1F3C6)}</Text>
+                  <Text style={{color: '#00e5ff', fontSize: 16, fontWeight: 'bold', flex: 1}}>{ws.title}</Text>
+                </View>
+                <Text style={{color: '#ccc', fontSize: 13}}>{'Score: ' + score + '% | Passed'}</Text>
+                <Text style={{color: '#888', fontSize: 11, marginTop: 4}}>Fundamentals Worksheet Certificate</Text>
+              </View>
+            );
+          })}
+        </View>
+      ) : (
+        <View>
       {getActiveCertificates().length === 0 ? (
         <View style={styles.emptyState}>
           <Text style={styles.emptyIcon}>📜</Text>
@@ -8086,8 +8673,12 @@ const navigateTo = (newScreen) => {
           </View>
         ))
       )}
-    </ScrollView>
-  );
+    
+        </View>
+      )}
+      </ScrollView>
+    );
+  };
 
     // Google Sign-In - Try native Firebase first, fall back to modal
     const handleGoogleSignIn = async () => {
@@ -9241,6 +9832,14 @@ const navigateTo = (newScreen) => {
                 {user.can_retake ? 'ACTIVE' : 'INACTIVE'}
               </Text>
             </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.adminSmallBtn, {backgroundColor: '#0891B2'}]} 
+              onPress={() => {
+                autoCompleteBasics();
+              }}
+            >
+              <Text style={styles.adminSmallBtnText}>Auto Basics</Text>
+            </TouchableOpacity>
           </View>
           
           {/* Additional Actions */}
@@ -9427,6 +10026,10 @@ const navigateTo = (newScreen) => {
       {screen === 'aiAssistant' && renderAIAssistant()}
       {screen === 'admin' && renderAdmin()}
       {screen === 'whiteboard' && renderWhiteboard()}
+        {screen === 'fundamentals' && renderFundamentals()}
+        {screen === 'basicsOverview' && renderBasicsOverview()}
+        {screen === 'basicsQuiz' && renderBasicsQuiz()}
+        {screen === 'basicsResults' && renderBasicsResults()}
 
       <Modal visible={showNameModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
