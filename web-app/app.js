@@ -8389,39 +8389,64 @@ function generateMasterCertificate(score) {
 // Render certificates
 function renderCertificates() {
     var currentClassName = getClassName();
-    // Filter certificates by current class (show certs for current class, and legacy certs without className for Class 6)
     var classCerts = appState.certificates.filter(function(c) {
         if (c.className) return c.className === currentClassName;
-        return currentClassName === 'Class 6'; // legacy certs default to Class 6
+        return currentClassName === 'Class 6';
     });
+    
+    // Generate basics certificates from progress
+    var basicsProgress = getBasicsProgress();
+    var basicsWS = getActiveBasicsWorksheets();
+    var basicsCerts = [];
+    basicsWS.forEach(function(ws) {
+        var prog = basicsProgress[ws.id];
+        if (prog !== undefined) {
+            var pct = typeof prog === 'object' ? prog.pct : prog;
+            basicsCerts.push({ type: 'basics', title: ws.title, score: pct, wsId: ws.id });
+        }
+    });
+    
+    // Check if all basics are completed for basics master cert
+    var allBasicsDone = basicsWS.length > 0 && basicsCerts.length === basicsWS.length;
 
+    var certTabState = window.certTabState || 'chapter';
+    
+    var chapterCertsHtml = '';
+    var basicsCertsHtml = '';
+    
+    // Chapter certificates column
     if (classCerts.length === 0) {
-        document.getElementById('certificate-content').innerHTML = `
-            <div style="text-align: center; padding: 50px;">
-                <div style="font-size: 5em; margin-bottom: 20px;">📜</div>
-                <h3 style="color: #E94560;">No Certificates Yet - ${currentClassName}</h3>
-                <p style="margin-top: 20px; color: #aaa;">
-                    Complete chapter quizzes and the final exam to earn certificates!
-                </p>
-            </div>
-        `;
-        return;
+        chapterCertsHtml = '<div style="text-align:center;padding:40px;"><div style="font-size:3em;margin-bottom:15px;">\ud83d\udcdc</div><h4 style="color:#E94560;">No Chapter Certificates Yet</h4><p style="color:#aaa;font-size:0.9em;">Complete chapter quizzes and final exam to earn certificates!</p></div>';
+    } else {
+        var sortedCerts = classCerts.slice().sort(function(a, b) {
+            var order = { 'master': 0, 'final-exam': 1, 'chapter': 2 };
+            return (order[a.type] || 3) - (order[b.type] || 3);
+        });
+        chapterCertsHtml = sortedCerts.map(function(cert) { return renderCertificate(cert); }).join('<hr style="border-color:#E94560;margin:30px 0;">');
     }
     
-    // Sort certificates: master first, then final-exam, then chapters
-    const sortedCerts = [...classCerts].sort((a, b) => {
-        const order = { 'master': 0, 'final-exam': 1, 'chapter': 2 };
-        return order[a.type] - order[b.type];
-    });
+    // Basics certificates column
+    if (basicsCerts.length === 0) {
+        basicsCertsHtml = '<div style="text-align:center;padding:40px;"><div style="font-size:3em;margin-bottom:15px;">\ud83d\udcda</div><h4 style="color:#00e5ff;">No Basic Certificates Yet</h4><p style="color:#aaa;font-size:0.9em;">Complete Fundamentals worksheets to earn basic certificates!</p></div>';
+    } else {
+        if (allBasicsDone) {
+            basicsCertsHtml += '<div class="certificate" style="border-color:#FFD700;max-width:500px;margin:0 auto 30px;"><img src="logo.png" class="cert-logo" alt="GANITA PRAKASH"><h1 style="color:#FFD700;font-size:1.5em;">BASICS MASTER</h1><p style="color:#888;font-size:0.9em;">' + currentClassName + '</p><p>This is to certify that</p><div class="student-name">' + (appState.studentName || 'Student') + '</div><p>has completed all <strong>12 Fundamentals Worksheets</strong></p><p class="date">Date: ' + new Date().toLocaleDateString() + '</p></div><hr style="border-color:#00e5ff;margin:30px 0;">';
+        }
+        basicsCertsHtml += basicsCerts.map(function(bc) {
+            return '<div class="certificate" style="max-width:500px;margin:0 auto 20px;border-color:#00e5ff;"><img src="logo.png" class="cert-logo" alt="GANITA PRAKASH"><h1 style="font-size:1.5em;color:#00e5ff;">BASICS COMPLETION</h1><p style="color:#888;font-size:0.9em;">' + currentClassName + '</p><p>This is to certify that</p><div class="student-name" style="font-size:1.3em;">' + (appState.studentName || 'Student') + '</div><p>has successfully completed</p><p style="font-size:1.1em;color:#00e5ff;font-weight:bold;">' + bc.title + '</p><p>with a score of <strong>' + bc.score + '%</strong></p></div>';
+        }).join('');
+    }
     
-    document.getElementById('certificate-content').innerHTML = `
-        <div style="margin-bottom: 30px;">
-            <h3 style="color: #E94560; text-align: center;">${currentClassName} Certificates</h3>
-            <p style="color: #aaa; text-align: center;">You have earned ${classCerts.length} certificate(s) for ${currentClassName}</p>
-        </div>
-        
-        ${sortedCerts.map(cert => renderCertificate(cert)).join('<hr style="border-color: #E94560; margin: 40px 0;">')}
-    `;
+    document.getElementById('certificate-content').innerHTML =
+        '<div style="margin-bottom:30px;text-align:center;">' +
+            '<h3 style="color:#E94560;">' + currentClassName + ' Certificates</h3>' +
+            '<p style="color:#aaa;">Total: ' + (classCerts.length + basicsCerts.length) + ' certificate(s)</p>' +
+        '</div>' +
+        '<div style="display:flex;gap:10px;justify-content:center;margin-bottom:30px;">' +
+            '<button onclick="window.certTabState=\'basics\';renderCertificates();" style="padding:12px 28px;border-radius:10px;border:2px solid ' + (certTabState === 'basics' ? '#00e5ff' : '#333') + ';background:' + (certTabState === 'basics' ? 'rgba(0,229,255,0.15)' : '#1a1a2e') + ';color:' + (certTabState === 'basics' ? '#00e5ff' : '#aaa') + ';font-weight:bold;cursor:pointer;font-size:15px;font-family:Orbitron,monospace;">Basic Certificates</button>' +
+            '<button onclick="window.certTabState=\'chapter\';renderCertificates();" style="padding:12px 28px;border-radius:10px;border:2px solid ' + (certTabState === 'chapter' ? '#E94560' : '#333') + ';background:' + (certTabState === 'chapter' ? 'rgba(233,69,96,0.15)' : '#1a1a2e') + ';color:' + (certTabState === 'chapter' ? '#E94560' : '#aaa') + ';font-weight:bold;cursor:pointer;font-size:15px;font-family:Orbitron,monospace;">Chapter Certificates</button>' +
+        '</div>' +
+        '<div>' + (certTabState === 'basics' ? basicsCertsHtml : chapterCertsHtml) + '</div>';
 }
 
 // Render individual certificate
