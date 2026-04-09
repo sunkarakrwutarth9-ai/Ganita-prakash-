@@ -7586,24 +7586,6 @@ function startQuiz(chapterId) {
     
     if (!confirmed) return;
     
-    (async function() {
-        try {
-            var permsGranted = await requestExamPermissions();
-            if (!permsGranted) {
-                alert('Camera and microphone access is required for the exam. Please allow access and try again.');
-            }
-        } catch(e) { console.log('Permission request error:', e); }
-        
-        try {
-            var screenShareStarted = await startScreenSharing();
-            if (!screenShareStarted) {
-                alert('Screen sharing is required for the exam. Please allow screen sharing to continue.');
-            }
-        } catch(e) { console.log('Screen share error:', e); }
-        
-        alert('MONITORING ACTIVE\n\nYour camera, microphone, and screen are now being monitored. Do not switch apps or minimize during the exam.');
-    })();
-    
     appState.currentQuiz = chapter;
     appState.currentQuestion = 0;
     appState.score = 0;
@@ -7617,6 +7599,22 @@ function startQuiz(chapterId) {
     document.getElementById('quiz-section').classList.add('active');
     
     showExamPhaseIntro();
+    
+    (async function() {
+        try {
+            var permsGranted = await requestExamPermissions();
+            if (!permsGranted) {
+                console.log('Camera and microphone access denied');
+            }
+        } catch(e) { console.log('Permission request error:', e); }
+        
+        try {
+            var screenShareStarted = await startScreenSharing();
+            if (!screenShareStarted) {
+                console.log('Screen sharing denied');
+            }
+        } catch(e) { console.log('Screen share error:', e); }
+    })();
 }
 
 function showExamPhaseIntro() {
