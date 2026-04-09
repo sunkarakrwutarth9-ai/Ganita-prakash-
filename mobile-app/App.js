@@ -302,46 +302,60 @@ const ADMIN_EMAIL = "admin@ganitaprakash.com";
 
 // Indian Festival Calendar 2026 - Complete Festival List
 const indianFestivals2026 = [
+    // January
     { date: "01-01", name: "New Year's Day", wish: "Happy New Year 2026! Wishing you success in your studies!", emoji: "🎉", color: "#FFD700" },
+    { date: "01-05", name: "Guru Gobind Singh Jayanti", wish: "Happy Guru Gobind Singh Jayanti! May courage guide your path!", emoji: "🙏", color: "#FF9933" },
     { date: "01-13", name: "Lohri", wish: "Happy Lohri! May the bonfire bring warmth and prosperity!", emoji: "🔥", color: "#FF6B35" },
     { date: "01-14", name: "Pongal / Makar Sankranti", wish: "Happy Pongal! Happy Makar Sankranti! May the harvest bring abundance!", emoji: "🌾", color: "#FFA500" },
-    { date: "01-20", name: "Guru Gobind Singh Jayanti", wish: "Happy Guru Gobind Singh Jayanti! May courage guide your path!", emoji: "🙏", color: "#FF9933" },
     { date: "01-23", name: "Basant Panchami / Saraswati Puja", wish: "Happy Basant Panchami! May Goddess Saraswati bless you with knowledge!", emoji: "📚", color: "#FFFF00" },
     { date: "01-26", name: "Republic Day", wish: "Happy Republic Day! Jai Hind! Proud to be Indian!", emoji: "🇮🇳", color: "#FF9933" },
+    // February
     { date: "02-15", name: "Maha Shivaratri", wish: "Om Namah Shivaya! Happy Maha Shivaratri!", emoji: "🔱", color: "#9B59B6" },
+    // March
     { date: "03-03", name: "Holika Dahan", wish: "Happy Holika Dahan! May evil be destroyed!", emoji: "🔥", color: "#E74C3C" },
     { date: "03-04", name: "Holi", wish: "Happy Holi! May your life be filled with colors of joy!", emoji: "🎨", color: "#E91E63" },
-    { date: "03-19", name: "Ugadi / Gudi Padwa", wish: "Happy Ugadi! Happy Gudi Padwa! Shubh New Year!", emoji: "🌸", color: "#FF69B4" },
+    { date: "03-19", name: "Ugadi / Gudi Padwa / Chaitra Navratri", wish: "Happy Ugadi! Happy Gudi Padwa! Shubh Nav Samvatsar!", emoji: "🌸", color: "#FF69B4" },
     { date: "03-20", name: "Cheti Chand", wish: "Happy Cheti Chand! Sindhi New Year wishes!", emoji: "🌊", color: "#00CED1" },
-    { date: "03-21", name: "Eid ul-Fitr", wish: "Eid Mubarak! Wishing you peace and happiness!", emoji: "🌙", color: "#2ECC71" },
     { date: "03-26", name: "Ram Navami", wish: "Happy Ram Navami! Jai Shri Ram!", emoji: "🏹", color: "#FF8C00" },
-    { date: "03-31", name: "Mahavir Jayanti", wish: "Happy Mahavir Jayanti! May truth guide your path!", emoji: "🙏", color: "#FFD700" },
+    { date: "03-31", name: "Mahavir Jayanti", wish: "Happy Mahavir Jayanti! May truth and non-violence guide your path!", emoji: "🙏", color: "#FFD700" },
+    // April
     { date: "04-02", name: "Hanuman Jayanti", wish: "Happy Hanuman Jayanti! Jai Bajrang Bali!", emoji: "🐒", color: "#FF4500" },
     { date: "04-03", name: "Good Friday", wish: "Blessed Good Friday! May peace be with you!", emoji: "✝️", color: "#8B4513" },
     { date: "04-05", name: "Easter Sunday", wish: "Happy Easter! May joy and hope fill your heart!", emoji: "🐣", color: "#FFB6C1" },
     { date: "04-14", name: "Baisakhi / Ambedkar Jayanti", wish: "Happy Baisakhi! Happy Ambedkar Jayanti!", emoji: "🌾", color: "#F1C40F" },
+    { date: "04-19", name: "Akshaya Tritiya", wish: "Happy Akshaya Tritiya! May prosperity never diminish!", emoji: "✨", color: "#FFD700" },
+    // May
     { date: "05-01", name: "Buddha Purnima", wish: "Happy Buddha Purnima! May wisdom light your way!", emoji: "🪷", color: "#9B59B6" },
-    { date: "05-28", name: "Eid ul-Adha", wish: "Eid Mubarak! Wishing you joy and prosperity!", emoji: "🌙", color: "#2ECC71" },
+    // July
     { date: "07-16", name: "Jagannath Rath Yatra", wish: "Happy Rath Yatra! Jai Jagannath!", emoji: "🛕", color: "#E67E22" },
-    { date: "07-29", name: "Guru Purnima", wish: "Happy Guru Purnima! Salute to all teachers!", emoji: "👨‍🏫", color: "#8E44AD" },
-    { date: "08-15", name: "Independence Day", wish: "Happy Independence Day! Jai Hind!", emoji: "🇮🇳", color: "#138808" },
-    { date: "08-17", name: "Raksha Bandhan", wish: "Happy Raksha Bandhan! Celebrate the bond of love!", emoji: "🎀", color: "#E91E63" },
-    { date: "08-24", name: "Janmashtami", wish: "Happy Janmashtami! Jai Shri Krishna!", emoji: "🦚", color: "#3498DB" },
-    { date: "08-26", name: "Onam", wish: "Happy Onam! May King Mahabali bless you!", emoji: "🌺", color: "#F39C12" },
-    { date: "09-03", name: "Ganesh Chaturthi", wish: "Ganpati Bappa Morya! Happy Ganesh Chaturthi!", emoji: "🐘", color: "#E74C3C" },
+    { date: "07-29", name: "Guru Purnima", wish: "Happy Guru Purnima! Salute to all teachers and gurus!", emoji: "👨‍🏫", color: "#8E44AD" },
+    // August
+    { date: "08-15", name: "Independence Day", wish: "Happy Independence Day! Jai Hind! Vande Mataram!", emoji: "🇮🇳", color: "#138808" },
+    { date: "08-26", name: "Onam", wish: "Happy Onam! May King Mahabali bless you with joy!", emoji: "🌺", color: "#F39C12" },
+    { date: "08-28", name: "Raksha Bandhan", wish: "Happy Raksha Bandhan! Celebrate the bond of love!", emoji: "🎀", color: "#E91E63" },
+    // September
+    { date: "09-04", name: "Janmashtami", wish: "Happy Janmashtami! Jai Shri Krishna! Nand Ghar Anand Bhayo!", emoji: "🦚", color: "#3498DB" },
+    { date: "09-05", name: "Teachers' Day (India)", wish: "Happy Teachers' Day! Guru Brahma Guru Vishnu!", emoji: "👩‍🏫", color: "#2ECC71" },
+    { date: "09-14", name: "Ganesh Chaturthi", wish: "Ganpati Bappa Morya! Happy Ganesh Chaturthi!", emoji: "🐘", color: "#E74C3C" },
+    // October
     { date: "10-02", name: "Gandhi Jayanti", wish: "Happy Gandhi Jayanti! Be the change you wish to see!", emoji: "🕊️", color: "#F5F5DC" },
-    { date: "10-07", name: "Sharad Navratri Begins", wish: "Shubh Navratri! May Goddess Durga bless you!", emoji: "🔱", color: "#E91E63" },
-    { date: "10-15", name: "Durga Puja Ashtami/Navami", wish: "Happy Durga Puja! Jai Maa Durga!", emoji: "🙏", color: "#E91E63" },
-    { date: "10-16", name: "Dussehra / Vijayadashami", wish: "Happy Dussehra! May good triumph over evil!", emoji: "🏹", color: "#FF6B35" },
-    { date: "10-25", name: "Karva Chauth", wish: "Happy Karva Chauth! May your love last forever!", emoji: "🌙", color: "#E91E63" },
-    { date: "11-02", name: "Dhanteras", wish: "Happy Dhanteras! May wealth and prosperity come to you!", emoji: "💰", color: "#FFD700" },
-    { date: "11-04", name: "Diwali", wish: "Happy Diwali! May your life shine bright with joy!", emoji: "🪔", color: "#FFD700" },
-    { date: "11-05", name: "Govardhan Puja", wish: "Happy Govardhan Puja! Jai Shri Krishna!", emoji: "⛰️", color: "#27AE60" },
-    { date: "11-06", name: "Bhai Dooj", wish: "Happy Bhai Dooj! Celebrate the bond of siblings!", emoji: "👫", color: "#E91E63" },
-    { date: "11-10", name: "Chhath Puja", wish: "Happy Chhath Puja! Jai Chhathi Maiya!", emoji: "🌅", color: "#FF6B35" },
-    { date: "11-14", name: "Children's Day", wish: "Happy Children's Day! Keep learning and growing!", emoji: "👧", color: "#3498DB" },
-    { date: "11-19", name: "Guru Nanak Jayanti", wish: "Happy Guru Nanak Jayanti! Waheguru Ji Ka Khalsa!", emoji: "🙏", color: "#FF9933" },
-    { date: "12-25", name: "Christmas", wish: "Merry Christmas! Wishing you joy and happiness!", emoji: "🎄", color: "#E74C3C" },
+    { date: "10-11", name: "Sharad Navratri Begins", wish: "Shubh Navratri! May Goddess Durga bless you with strength!", emoji: "🔱", color: "#E91E63" },
+    { date: "10-17", name: "Durga Puja Ashtami", wish: "Happy Durga Ashtami! Jai Maa Durga!", emoji: "🙏", color: "#E91E63" },
+    { date: "10-18", name: "Durga Puja Navami", wish: "Happy Maha Navami! Victory to Goddess Durga!", emoji: "🙏", color: "#E91E63" },
+    { date: "10-20", name: "Dussehra / Vijayadashami", wish: "Happy Dussehra! May good triumph over evil!", emoji: "🏹", color: "#FF6B35" },
+    { date: "10-29", name: "Karva Chauth", wish: "Happy Karva Chauth! May your love last forever!", emoji: "🌙", color: "#E91E63" },
+    // November
+    { date: "11-06", name: "Dhanteras", wish: "Happy Dhanteras! May Goddess Lakshmi bless you with wealth!", emoji: "💰", color: "#FFD700" },
+    { date: "11-07", name: "Narak Chaturdashi / Choti Diwali", wish: "Happy Choti Diwali! Light the diyas of hope!", emoji: "🪔", color: "#FFA500" },
+    { date: "11-08", name: "Diwali", wish: "Happy Diwali! May your life shine bright with joy and prosperity!", emoji: "🪔", color: "#FFD700" },
+    { date: "11-09", name: "Govardhan Puja", wish: "Happy Govardhan Puja! Jai Shri Krishna!", emoji: "⛰️", color: "#27AE60" },
+    { date: "11-10", name: "Bhai Dooj", wish: "Happy Bhai Dooj! Celebrate the beautiful bond of siblings!", emoji: "👫", color: "#E91E63" },
+    { date: "11-14", name: "Children's Day", wish: "Happy Children's Day! Keep learning, growing and dreaming!", emoji: "👧", color: "#3498DB" },
+    { date: "11-15", name: "Chhath Puja", wish: "Happy Chhath Puja! Jai Chhathi Maiya! Jai Surya Dev!", emoji: "🌅", color: "#FF6B35" },
+    { date: "11-24", name: "Guru Nanak Jayanti", wish: "Happy Guru Nanak Jayanti! Waheguru Ji Ka Khalsa, Waheguru Ji Ki Fateh!", emoji: "🙏", color: "#FF9933" },
+    // December
+    { date: "12-25", name: "Christmas", wish: "Merry Christmas! Wishing you joy, love and happiness!", emoji: "🎄", color: "#E74C3C" },
+    { date: "12-31", name: "New Year's Eve", wish: "Happy New Year's Eve! Cheers to a wonderful year ahead!", emoji: "🥂", color: "#FFD700" },
 ];
 
 const checkHolidayWish = () => {
@@ -5967,7 +5981,7 @@ el.classList.add('active');}
 function toggleRotation(){
 isRotated=!isRotated;
 if(isRotated){document.body.classList.add('rotated');}else{document.body.classList.remove('rotated');}
-setTimeout(function(){forceResizeWithRestore();},200);
+setTimeout(function(){var tempData=null;if(history.length>0){tempData=history[history.length-1];}var tb=document.getElementById('toolbar'),sb=document.getElementById('savedBar');var newW,newH;if(isFullscreen){newW=window.innerWidth;newH=window.innerHeight;}else{var h=window.innerHeight-tb.offsetHeight-(sb.style.display!=='none'?sb.offsetHeight:0);newW=window.innerWidth;newH=Math.max(h,300);}canvas.width=newW;canvas.height=newH;ctx.fillStyle='#1a1a2e';ctx.fillRect(0,0,canvas.width,canvas.height);if(tempData){var img=new Image();img.onload=function(){ctx.drawImage(img,0,0);if(showGrid)drawGrid();};img.src=tempData;}},200);
 window.ReactNativeWebView&&window.ReactNativeWebView.postMessage(JSON.stringify({type:'rotate',rotated:isRotated}));
 }
 try{var s=localStorage.getItem('wb_notes');if(s)savedNotes=JSON.parse(s);renderSaved();}catch(e){}

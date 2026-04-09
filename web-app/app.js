@@ -41,7 +41,7 @@ const indianFestivals2026 = [
     { date: "04-14", name: "Baisakhi / Ambedkar Jayanti", wish: "Happy Baisakhi! Happy Ambedkar Jayanti!", emoji: "🌾", color: "#F1C40F" },
     // May
     { date: "05-01", name: "Buddha Purnima", wish: "Happy Buddha Purnima! May wisdom light your way!", emoji: "🪷", color: "#9B59B6" },
-    { date: "05-15", name: "Akshaya Tritiya", wish: "Happy Akshaya Tritiya! May prosperity never diminish!", emoji: "✨", color: "#FFD700" },
+    { date: "04-19", name: "Akshaya Tritiya", wish: "Happy Akshaya Tritiya! May prosperity never diminish!", emoji: "✨", color: "#FFD700" },
     // July
     { date: "07-16", name: "Jagannath Rath Yatra", wish: "Happy Rath Yatra! Jai Jagannath!", emoji: "🛕", color: "#E67E22" },
     { date: "07-29", name: "Guru Purnima", wish: "Happy Guru Purnima! Salute to all teachers and gurus!", emoji: "👨‍🏫", color: "#8E44AD" },
@@ -52,7 +52,7 @@ const indianFestivals2026 = [
     // September
     { date: "09-04", name: "Janmashtami", wish: "Happy Janmashtami! Jai Shri Krishna! Nand Ghar Anand Bhayo!", emoji: "🦚", color: "#3498DB" },
     { date: "09-14", name: "Ganesh Chaturthi", wish: "Ganpati Bappa Morya! Happy Ganesh Chaturthi!", emoji: "🐘", color: "#E74C3C" },
-    { date: "09-15", name: "Teachers' Day (India)", wish: "Happy Teachers' Day! Guru Brahma Guru Vishnu!", emoji: "👩‍🏫", color: "#2ECC71" },
+    { date: "09-05", name: "Teachers' Day (India)", wish: "Happy Teachers' Day! Guru Brahma Guru Vishnu!", emoji: "👩‍🏫", color: "#2ECC71" },
     // October
     { date: "10-02", name: "Gandhi Jayanti", wish: "Happy Gandhi Jayanti! Be the change you wish to see!", emoji: "🕊️", color: "#F5F5DC" },
     { date: "10-11", name: "Sharad Navratri Begins", wish: "Shubh Navratri! May Goddess Durga bless you with strength!", emoji: "🔱", color: "#E91E63" },
@@ -306,6 +306,333 @@ const chapterMedia7 = {
 
 
 console.log('Additional features loaded: Holidays, Languages, Chapter Media');
+
+// ============================================
+// BASICS SECTIONS - Pre-Chapter Foundation Worksheets
+// Class 6: Class 1-5 fundamentals (12 worksheets, 5 MCQs each)
+// Class 7: Class 1-6 fundamentals (12 worksheets, 5 MCQs each)
+// All worksheets are UNLOCKED - no passing requirement
+// Content sourced from Perplexity/NCERT research
+// ============================================
+
+const basicsWorksheets6 = [
+    {
+        id: "b6_1",
+        title: "Number Sense & Place Value",
+        desc: "Indian/International number system, place value, expanded form",
+        questions: [
+            { q: "What is the place value of 7 in 874,865?", options: ["7", "70,000", "7,000", "700"], answer: 1 },
+            { q: "Write 'Five lakh four thousand seven hundred seventy-eight' as a numeral.", options: ["5,04,778", "5,40,778", "54,778", "5,04,878"], answer: 0 },
+            { q: "Which is the successor of 99,999?", options: ["1,00,001", "99,998", "1,00,000", "10,000"], answer: 2 },
+            { q: "What is the expanded form of 32,405?", options: ["30,000 + 2,000 + 400 + 5", "3,000 + 200 + 40 + 5", "30,000 + 200 + 40 + 5", "30,000 + 2,000 + 40 + 5"], answer: 0 },
+            { q: "Which number is greatest: 45,786 or 45,768 or 45,876 or 45,687?", options: ["45,786", "45,768", "45,876", "45,687"], answer: 2 },
+        ]
+    },
+    {
+        id: "b6_2",
+        title: "Addition & Subtraction",
+        desc: "Multi-digit addition, subtraction, word problems with carrying/borrowing",
+        questions: [
+            { q: "What is 4,567 + 3,894?", options: ["8,461", "8,361", "8,451", "7,461"], answer: 0 },
+            { q: "Subtract: 8,003 - 2,567 = ?", options: ["5,536", "5,436", "5,346", "6,436"], answer: 1 },
+            { q: "A school has 2,345 boys and 1,987 girls. How many students in total?", options: ["4,232", "4,332", "3,332", "4,342"], answer: 1 },
+            { q: "What is 10,000 - 4,628?", options: ["5,472", "5,372", "6,372", "5,382"], answer: 1 },
+            { q: "Find the sum: 1,234 + 2,345 + 3,456 = ?", options: ["7,035", "6,035", "7,135", "6,935"], answer: 0 },
+        ]
+    },
+    {
+        id: "b6_3",
+        title: "Multiplication & Division",
+        desc: "Tables, long multiplication, long division, remainders",
+        questions: [
+            { q: "What is 25 x 5?", options: ["120", "125", "115", "130"], answer: 1 },
+            { q: "What is 2,019 \u00f7 0?", options: ["0", "2,019", "1", "Undefined"], answer: 3 },
+            { q: "Find: 456 x 23 = ?", options: ["10,488", "10,388", "10,588", "9,488"], answer: 0 },
+            { q: "What is the remainder when 257 is divided by 6?", options: ["1", "3", "5", "2"], answer: 0 },
+            { q: "If 15 x ___ = 225, what is the missing number?", options: ["25", "15", "20", "12"], answer: 1 },
+        ]
+    },
+    {
+        id: "b6_4",
+        title: "BODMAS & Brackets",
+        desc: "Order of operations: Brackets, Of, Division, Multiplication, Addition, Subtraction",
+        questions: [
+            { q: "Solve: 1 + 2 \u00f7 3 x 4 = ?", options: ["4", "3.67", "3", "2"], answer: 0 },
+            { q: "Solve: 4 + (5 + 6) = ?", options: ["15", "56", "10", "46"], answer: 0 },
+            { q: "Solve: 1 \u2013 {(2 + 3) \u00f7 (4 \u2013 5)} = ?", options: ["6", "-4", "4", "Not defined"], answer: 0 },
+            { q: "Solve: 18 \u00f7 (3 x 2) + 5 = ?", options: ["8", "11", "17", "6"], answer: 0 },
+            { q: "Solve: (8 + 2) x (7 - 3) = ?", options: ["44", "40", "36", "48"], answer: 1 },
+        ]
+    },
+    {
+        id: "b6_5",
+        title: "Factors & Multiples",
+        desc: "Divisibility rules, prime/composite, HCF, LCM",
+        questions: [
+            { q: "Which of the following is a prime number?", options: ["15", "21", "23", "27"], answer: 2 },
+            { q: "Find the LCM of 4, 8, and 12.", options: ["48", "24", "12", "96"], answer: 1 },
+            { q: "What is the HCF of 18 and 24?", options: ["4", "6", "8", "12"], answer: 1 },
+            { q: "Which number is divisible by both 3 and 5?", options: ["20", "25", "30", "35"], answer: 2 },
+            { q: "Prime factorization of 48 is:", options: ["2\u2074 x 3", "2\u00b3 x 6", "4 x 12", "2\u00b2 x 12"], answer: 0 },
+        ]
+    },
+    {
+        id: "b6_6",
+        title: "Fractions",
+        desc: "Equivalent fractions, comparison, addition, subtraction, simplification",
+        questions: [
+            { q: "Simplify: 1/2 + 3/4 = ?", options: ["4/6", "5/4", "1", "2/4"], answer: 1 },
+            { q: "Which fraction is equivalent to 2/3?", options: ["3/4", "4/6", "5/6", "6/12"], answer: 1 },
+            { q: "Subtract: 5/6 - 1/3 = ?", options: ["4/6", "1/2", "2/3", "1/6"], answer: 1 },
+            { q: "Compare: Which is larger, 3/4 or 7/8?", options: ["3/4", "They are equal", "Cannot compare", "7/8"], answer: 3 },
+            { q: "Convert 91/10 to a decimal.", options: ["0.91", "9.1", "91.0", "9.01"], answer: 1 },
+        ]
+    },
+    {
+        id: "b6_7",
+        title: "Decimals",
+        desc: "Decimal place value, comparison, addition, subtraction, conversion",
+        questions: [
+            { q: "Add: 0.1 + 1.2 + 12.3 = ?", options: ["13.6", "12.6", "14.6", "13.5"], answer: 0 },
+            { q: "Which is greater: 0.45 or 0.405?", options: ["0.405", "They are equal", "0.45", "Cannot compare"], answer: 2 },
+            { q: "Convert 3/5 to a decimal.", options: ["0.35", "0.6", "0.53", "0.3"], answer: 1 },
+            { q: "Subtract: 5.03 - 2.7 = ?", options: ["2.33", "2.43", "3.33", "2.36"], answer: 0 },
+            { q: "Round 4.567 to one decimal place.", options: ["4.5", "4.6", "4.56", "5.0"], answer: 1 },
+        ]
+    },
+    {
+        id: "b6_8",
+        title: "Negative Numbers & Integers",
+        desc: "Number line, comparing, addition and subtraction with negatives",
+        questions: [
+            { q: "What is -89 + 98?", options: ["9", "-9", "187", "-187"], answer: 0 },
+            { q: "What is -985 - 689?", options: ["296", "-296", "1,674", "-1,674"], answer: 3 },
+            { q: "What is -5 + 6?", options: ["-11", "11", "1", "-1"], answer: 2 },
+            { q: "How many integers are between -6 and 6 (not including -6 and 6)?", options: ["13", "12", "11", "10"], answer: 2 },
+            { q: "The sum of two odd numbers is always:", options: ["Odd", "Even", "Prime", "Negative"], answer: 1 },
+        ]
+    },
+    {
+        id: "b6_9",
+        title: "Measurement & Units",
+        desc: "Length, weight, capacity conversions, time calculations",
+        questions: [
+            { q: "How many centimeters are in 2.5 meters?", options: ["25", "250", "2500", "0.25"], answer: 1 },
+            { q: "Convert 3 km 500 m to meters.", options: ["3,500 m", "3,050 m", "350 m", "35,000 m"], answer: 0 },
+            { q: "How many minutes are in 2 hours 15 minutes?", options: ["215", "135", "125", "145"], answer: 1 },
+            { q: "1 kg = ___ grams", options: ["10", "100", "1,000", "10,000"], answer: 2 },
+            { q: "A water bottle holds 1.5 litres. How many ml is that?", options: ["150 ml", "1,500 ml", "15 ml", "15,000 ml"], answer: 1 },
+        ]
+    },
+    {
+        id: "b6_10",
+        title: "Geometry Basics",
+        desc: "Points, lines, rays, angles, types of triangles",
+        questions: [
+            { q: "How many endpoints does a ray have?", options: ["0", "1", "2", "3"], answer: 1 },
+            { q: "A triangle with all three sides equal is called:", options: ["Isosceles", "Scalene", "Equilateral", "Right-angled"], answer: 2 },
+            { q: "An angle that measures exactly 90\u00b0 is called:", options: ["Acute", "Obtuse", "Right", "Straight"], answer: 2 },
+            { q: "How many sides does a quadrilateral have?", options: ["3", "4", "5", "6"], answer: 1 },
+            { q: "Two lines that never meet are called:", options: ["Intersecting", "Perpendicular", "Parallel", "Concurrent"], answer: 2 },
+        ]
+    },
+    {
+        id: "b6_11",
+        title: "Perimeter & Area",
+        desc: "Perimeter and area of rectangles, squares, triangles",
+        questions: [
+            { q: "Find the perimeter of a rectangle with length 12 cm and breadth 8 cm.", options: ["96 cm", "40 cm", "20 cm", "80 cm"], answer: 1 },
+            { q: "Area of a square with side 9 cm is:", options: ["36 cm\u00b2", "81 cm\u00b2", "18 cm\u00b2", "72 cm\u00b2"], answer: 1 },
+            { q: "Find the area of a rectangle with length 15 m and breadth 6 m.", options: ["42 m\u00b2", "90 m\u00b2", "21 m\u00b2", "180 m\u00b2"], answer: 1 },
+            { q: "The perimeter of a square is 48 cm. What is the side length?", options: ["8 cm", "12 cm", "16 cm", "24 cm"], answer: 1 },
+            { q: "Area of a triangle with base 10 cm and height 6 cm is:", options: ["60 cm\u00b2", "30 cm\u00b2", "16 cm\u00b2", "36 cm\u00b2"], answer: 1 },
+        ]
+    },
+    {
+        id: "b6_12",
+        title: "Data Handling & Patterns",
+        desc: "Tally marks, bar graphs, number patterns, sequences",
+        questions: [
+            { q: "In a tally chart, how is the number 7 represented?", options: ["IIII II", "IIII III", "III IIII", "IIIIIII"], answer: 0 },
+            { q: "What comes next in the pattern: 2, 6, 18, 54, ___?", options: ["72", "108", "162", "216"], answer: 2 },
+            { q: "In a bar graph, the tallest bar represents:", options: ["The smallest value", "The average value", "The largest value", "The median"], answer: 2 },
+            { q: "Find the next number: 5, 10, 20, 40, ___?", options: ["50", "60", "80", "100"], answer: 2 },
+            { q: "The mean (average) of 4, 8, 6, 10, 12 is:", options: ["6", "8", "10", "12"], answer: 1 },
+        ]
+    },
+];
+
+const basicsWorksheets7 = [
+    {
+        id: "b7_1",
+        title: "Large Numbers & Estimation",
+        desc: "Indian/International system, rounding, estimation in lakhs and crores",
+        questions: [
+            { q: "What is 1 crore in the International system?", options: ["1 million", "10 million", "100 million", "1 billion"], answer: 1 },
+            { q: "Round 4,56,789 to the nearest thousand.", options: ["4,56,000", "4,57,000", "4,60,000", "5,00,000"], answer: 1 },
+            { q: "The predecessor of 10,00,000 is:", options: ["9,99,999", "10,00,001", "99,999", "9,99,000"], answer: 0 },
+            { q: "How many zeros are in 1 lakh?", options: ["4", "5", "6", "7"], answer: 1 },
+            { q: "Estimate 3,879 + 5,142 to the nearest hundred.", options: ["9,000", "9,100", "9,020", "8,900"], answer: 0 },
+        ]
+    },
+    {
+        id: "b7_2",
+        title: "Whole Number Properties",
+        desc: "Closure, commutative, associative, distributive properties",
+        questions: [
+            { q: "Which property states a + b = b + a?", options: ["Associative", "Commutative", "Distributive", "Closure"], answer: 1 },
+            { q: "Find: 25 x 98 using distributive property = 25 x (100 - 2) = ?", options: ["2,450", "2,550", "2,350", "2,500"], answer: 0 },
+            { q: "The additive identity (adding it gives the same number) is:", options: ["1", "0", "-1", "10"], answer: 1 },
+            { q: "Which is true? (a x b) x c = a x (b x c) is the ___ property.", options: ["Commutative", "Distributive", "Associative", "Identity"], answer: 2 },
+            { q: "Is subtraction commutative for whole numbers?", options: ["Yes, always", "No, never", "Only for positive numbers", "Only when a > b"], answer: 1 },
+        ]
+    },
+    {
+        id: "b7_3",
+        title: "BODMAS & Nested Brackets",
+        desc: "Order of operations with (), {}, [], mixed operations",
+        questions: [
+            { q: "Solve: (2\u00b3 - 1) \u00f7 (4 + (-2)) = ?", options: ["3.5", "2.5", "7", "1.5"], answer: 0 },
+            { q: "Simplify: 48 \u00f7 [12 - {8 - (6 - 2)}] = ?", options: ["6", "8", "12", "48"], answer: 1 },
+            { q: "Solve: 5 + {3 x (8 - 2)} = ?", options: ["23", "66", "48", "33"], answer: 0 },
+            { q: "Solve: 100 - [50 + {20 - (10 + 5)}] = ?", options: ["55", "45", "35", "65"], answer: 1 },
+            { q: "Solve: 6 x 4 - 3 x 2 + 8 \u00f7 4 = ?", options: ["20", "18", "22", "24"], answer: 0 },
+        ]
+    },
+    {
+        id: "b7_4",
+        title: "Factors, HCF & LCM",
+        desc: "Prime factorization, HCF by division, LCM by prime method",
+        questions: [
+            { q: "Find HCF of 36 and 48.", options: ["6", "12", "24", "8"], answer: 1 },
+            { q: "Find LCM of 12, 15, and 20.", options: ["120", "60", "180", "240"], answer: 1 },
+            { q: "Prime factorization of 72 is:", options: ["2\u00b3 x 3\u00b2", "2\u00b2 x 3\u00b3", "2 x 36", "4 x 18"], answer: 0 },
+            { q: "The product of HCF and LCM of two numbers equals:", options: ["Sum of the numbers", "Difference of the numbers", "Product of the numbers", "Average of the numbers"], answer: 2 },
+            { q: "Is 91 a prime number?", options: ["Yes", "No, 91 = 7 x 13", "No, 91 = 9 x 11", "No, 91 = 3 x 31"], answer: 1 },
+        ]
+    },
+    {
+        id: "b7_5",
+        title: "Integers & Operations",
+        desc: "Addition, subtraction, multiplication, division of integers",
+        questions: [
+            { q: "What is -7 x 2 \u00f7 (-5) + 3?", options: ["5.8", "0.2", "17.8", "-5.8"], answer: 0 },
+            { q: "What is the additive inverse of 7?", options: ["7", "-7", "0", "1/7"], answer: 1 },
+            { q: "Solve: (-15) + (-23) = ?", options: ["38", "-38", "8", "-8"], answer: 1 },
+            { q: "Solve: (-48) \u00f7 8 = ?", options: ["6", "-6", "8", "-8"], answer: 1 },
+            { q: "Arrange in ascending order: -5, 3, -8, 0, 7", options: ["0, 3, 7, -5, -8", "-8, -5, 0, 3, 7", "7, 3, 0, -5, -8", "-5, -8, 0, 3, 7"], answer: 1 },
+        ]
+    },
+    {
+        id: "b7_6",
+        title: "Fractions & Decimals Operations",
+        desc: "Add, subtract, multiply, divide fractions and decimals",
+        questions: [
+            { q: "Solve: 9/11 + 5/6 = ?", options: ["14/17", "109/66", "14/66", "54/66"], answer: 1 },
+            { q: "Solve: 0.3\u00b2 x 0.2\u00b3 = ?", options: ["0.00072", "0.072", "0.72", "0.0072"], answer: 0 },
+            { q: "Divide: 3/4 \u00f7 1/2 = ?", options: ["3/8", "3/2", "2/3", "6/4"], answer: 1 },
+            { q: "Convert 0.375 to a fraction in simplest form.", options: ["375/1000", "3/8", "37/100", "75/200"], answer: 1 },
+            { q: "Multiply: 2.5 x 0.4 = ?", options: ["10", "1.0", "0.1", "1"], answer: 1 },
+        ]
+    },
+    {
+        id: "b7_7",
+        title: "Ratio & Proportion",
+        desc: "Simplifying ratios, unitary method, cross multiplication",
+        questions: [
+            { q: "If a:b = 5:6, and b = 18, find a.", options: ["12", "15", "20", "10"], answer: 1 },
+            { q: "Solve: 3/4 = x/12. Find x.", options: ["9", "4", "16", "8"], answer: 0 },
+            { q: "Simplify the ratio 48:64.", options: ["6:8", "3:4", "12:16", "24:32"], answer: 1 },
+            { q: "If 5 pens cost Rs 60, how much do 8 pens cost?", options: ["Rs 80", "Rs 96", "Rs 48", "Rs 100"], answer: 1 },
+            { q: "The ratio of boys to girls in a class is 3:2. If there are 18 boys, how many girls?", options: ["12", "10", "9", "15"], answer: 0 },
+        ]
+    },
+    {
+        id: "b7_8",
+        title: "Algebra Basics",
+        desc: "Algebraic expressions, evaluation, simple equations",
+        questions: [
+            { q: "If x = 2, find the value of 2x\u00b2 - 3x + 1.", options: ["3", "1", "5", "7"], answer: 0 },
+            { q: "Simplify: 3a + 5a - 2a = ?", options: ["6a", "8a", "10a", "4a"], answer: 0 },
+            { q: "Solve: x + 7 = 15. What is x?", options: ["22", "7", "8", "15"], answer: 2 },
+            { q: "Factor: x\u00b2 + 4x + 4 = ?", options: ["(x+2)(x+2)", "(x+4)(x+1)", "(x+2)(x-2)", "(x-2)(x-2)"], answer: 0 },
+            { q: "If 3x - 5 = 10, then x = ?", options: ["3", "5", "15", "7"], answer: 1 },
+        ]
+    },
+    {
+        id: "b7_9",
+        title: "Geometry: Lines & Angles",
+        desc: "Types of angles, complementary, supplementary, vertically opposite",
+        questions: [
+            { q: "Two supplementary angles add up to:", options: ["90\u00b0", "180\u00b0", "360\u00b0", "270\u00b0"], answer: 1 },
+            { q: "If two angles are complementary and one is 35\u00b0, the other is:", options: ["145\u00b0", "55\u00b0", "65\u00b0", "35\u00b0"], answer: 1 },
+            { q: "Vertically opposite angles are:", options: ["Supplementary", "Complementary", "Equal", "Right angles"], answer: 2 },
+            { q: "Allied (co-interior) angles formed by a transversal with parallel lines sum to:", options: ["90\u00b0", "180\u00b0", "360\u00b0", "120\u00b0"], answer: 1 },
+            { q: "An angle greater than 90\u00b0 but less than 180\u00b0 is called:", options: ["Acute", "Right", "Obtuse", "Reflex"], answer: 2 },
+        ]
+    },
+    {
+        id: "b7_10",
+        title: "Triangles & Symmetry",
+        desc: "Types of triangles, angle sum, lines of symmetry, rotational symmetry",
+        questions: [
+            { q: "The sum of angles of a triangle is:", options: ["90\u00b0", "180\u00b0", "270\u00b0", "360\u00b0"], answer: 1 },
+            { q: "An isosceles triangle has:", options: ["All sides equal", "No sides equal", "Two sides equal", "All angles different"], answer: 2 },
+            { q: "How many lines of symmetry does an equilateral triangle have?", options: ["1", "2", "3", "0"], answer: 2 },
+            { q: "A triangle with sides 3 cm, 4 cm, and 5 cm is:", options: ["Equilateral", "Isosceles", "Scalene", "Not a triangle"], answer: 2 },
+            { q: "In which quadrant does the point (3, -2) lie?", options: ["I", "II", "III", "IV"], answer: 3 },
+        ]
+    },
+    {
+        id: "b7_11",
+        title: "Perimeter, Area & Volume",
+        desc: "Rectangle, square, triangle area; cube and cuboid volume",
+        questions: [
+            { q: "Volume of a cube with side 5 cm is:", options: ["25 cm\u00b3", "125 cm\u00b3", "150 cm\u00b3", "75 cm\u00b3"], answer: 1 },
+            { q: "Area of a triangle with base 14 cm and height 8 cm:", options: ["112 cm\u00b2", "56 cm\u00b2", "22 cm\u00b2", "44 cm\u00b2"], answer: 1 },
+            { q: "Perimeter of a rectangle with l = 20 m, b = 12 m:", options: ["240 m", "64 m", "32 m", "44 m"], answer: 1 },
+            { q: "Volume of a cuboid with l=6, b=4, h=3 cm:", options: ["72 cm\u00b3", "52 cm\u00b3", "36 cm\u00b3", "13 cm\u00b3"], answer: 0 },
+            { q: "A square garden has perimeter 60 m. What is its area?", options: ["225 m\u00b2", "900 m\u00b2", "60 m\u00b2", "3600 m\u00b2"], answer: 0 },
+        ]
+    },
+    {
+        id: "b7_12",
+        title: "Data Handling & Patterns",
+        desc: "Bar graphs, pictographs, mean, number patterns",
+        questions: [
+            { q: "The mean of 12, 15, 18, 21, 24 is:", options: ["15", "18", "21", "20"], answer: 1 },
+            { q: "In a pictograph, if one symbol = 10 books, 3.5 symbols represent:", options: ["30 books", "35 books", "40 books", "25 books"], answer: 1 },
+            { q: "What comes next: 1, 4, 9, 16, 25, ___?", options: ["30", "36", "49", "32"], answer: 1 },
+            { q: "The mode of 3, 5, 7, 5, 9, 5, 3 is:", options: ["3", "5", "7", "9"], answer: 1 },
+            { q: "In a bar graph, which value has the most frequency if its bar is the tallest?", options: ["Mean", "Median", "Mode", "Range"], answer: 2 },
+        ]
+    },
+];
+
+function getActiveBasicsWorksheets() {
+    var cls = getSelectedClass();
+    return cls === '7' ? basicsWorksheets7 : basicsWorksheets6;
+}
+
+function getBasicsProgress() {
+    var cls = getSelectedClass();
+    var key = cls === '7' ? 'basicsProgress7' : 'basicsProgress6';
+    try {
+        return JSON.parse(localStorage.getItem(key) || '{}');
+    } catch(e) {
+        return {};
+    }
+}
+
+function setBasicsProgress(wsId, score) {
+    var cls = getSelectedClass();
+    var key = cls === '7' ? 'basicsProgress7' : 'basicsProgress6';
+    var progress = getBasicsProgress();
+    progress[wsId] = score;
+    localStorage.setItem(key, JSON.stringify(progress));
+}
+
+
 // GANITA PRAKASH - Class VI Mathematics (NCERT Syllabus)
 // Complete Application Logic with 40 Questions per Chapter
 
@@ -4900,6 +5227,19 @@ function autoCompleteAdminProgress() {
         changed = true;
     }
 
+    // Auto-complete all basics worksheets for admin
+    var basicsWS = getActiveBasicsWorksheets();
+    var basicsProgress = getBasicsProgress();
+    basicsWS.forEach(function(ws) {
+        if (basicsProgress[ws.id] === undefined) {
+            basicsProgress[ws.id] = { score: 5, total: 5, pct: 100 };
+            changed = true;
+        }
+    });
+    if (changed) {
+        setBasicsProgress(basicsProgress);
+    }
+
     if (changed) {
         setChapterProgress(progress);
         setChapterScores(scores);
@@ -5439,6 +5779,7 @@ function showSection(section) {
     
     const sectionMap = {
         'chapters': 'chapters-section',
+        'fundamentals': 'fundamentals-section',
         'progress': 'progress-section',
         'final-exam': 'final-exam-section',
         'formula-videos': 'formula-videos-section',
@@ -5469,6 +5810,7 @@ function showSection(section) {
     
     // Render content for each section
     if (section === 'chapters') renderChapters();
+    if (section === 'fundamentals') renderFundamentals();
     if (section === 'formula-videos') renderFormulaVideos();
     if (section === 'progress') renderProgress();
     if (section === 'final-exam') renderFinalExam();
@@ -5486,28 +5828,348 @@ function renderChapters() {
     var activeChapters = getActiveChapters();
     var progress = getChapterProgress();
     var scores = getChapterScores();
-    grid.innerHTML = activeChapters.map((chapter, index) => {
+    
+    // --- CHAPTERS ONLY (Basics moved to Fundamentals section) ---
+    var chaptersHTML = activeChapters.map(function(chapter, index) {
         const isCompleted = progress[chapter.id] === 'completed';
-        // Admin has access to all chapters - no locking for admin
         const isLocked = !appState.isAdmin && index > 0 && !appState.chaptersUnlocked && progress[activeChapters[index-1].id] !== 'completed';
         const score = scores[chapter.id];
         
-        return `
-            <div class="chapter-card ${isCompleted ? 'completed' : ''} ${isLocked ? 'locked' : ''}" 
-                 onclick="${isLocked ? '' : `openChapter(${chapter.id})`}">
-                <div class="chapter-number">${chapter.number}</div>
-                <div class="chapter-title">${chapter.title}</div>
-                <p style="color: #aaa; font-size: 0.9em;">${chapter.description}</p>
-                <div class="chapter-status">
-                    ${isCompleted ? `<span class="status-badge completed">Completed - ${score}%</span>` : 
-                      isLocked ? '<span class="status-badge locked">Locked</span>' : 
-                      appState.isAdmin ? '<span class="status-badge" style="background:#8B5CF6;">Admin Access</span>' :
-                      '<span class="status-badge in-progress">Start Learning</span>'}
-                </div>
-            </div>
-        `;
+        return '<div class="chapter-card ' + (isCompleted ? 'completed' : '') + ' ' + (isLocked ? 'locked' : '') + '" ' +
+               'onclick="' + (isLocked ? '' : 'openChapter(' + chapter.id + ')') + '">' +
+               '<div class="chapter-number">' + chapter.number + '</div>' +
+               '<div class="chapter-title">' + chapter.title + '</div>' +
+               '<p style="color: #aaa; font-size: 0.9em;">' + chapter.description + '</p>' +
+               '<div class="chapter-status">' +
+               (isCompleted ? '<span class="status-badge completed">Completed - ' + score + '%</span>' : 
+                 isLocked ? '<span class="status-badge locked">Locked</span>' : 
+                 appState.isAdmin ? '<span class="status-badge" style="background:#8B5CF6;">Admin Access</span>' :
+                 '<span class="status-badge in-progress">Start Learning</span>') +
+               '</div>' +
+               '</div>';
     }).join('');
+    
+    grid.innerHTML = chaptersHTML;
 }
+
+// ============================================
+// FUNDAMENTALS / B2B BRIDGE COURSE SECTION
+// ============================================
+
+function renderFundamentals() {
+    var container = document.getElementById('fundamentals-content');
+    if (!container) return;
+    
+    var basicsWS = getActiveBasicsWorksheets();
+    var basicsProgress = getBasicsProgress();
+    var cls = getSelectedClass();
+    var isAdmin = appState.isAdmin;
+    var basicsLabel = cls === '7' ? 'Class 1\u20136 Fundamentals' : 'Class 1\u20135 Fundamentals';
+    var completedCount = 0;
+    basicsWS.forEach(function(ws) { if (basicsProgress[ws.id] !== undefined) completedCount++; });
+    
+    var html = '';
+    
+    // Header banner
+    html += '<div style="background: linear-gradient(135deg, #1a1a3e 0%, #0d2137 100%); border: 2px solid #00e5ff; border-radius: 16px; padding: 24px 28px; margin-bottom: 24px;">';
+    html += '<div style="display: flex; align-items: center; gap: 16px; margin-bottom: 10px;">';
+    html += '<div style="width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, #00e5ff, #00b0ff); display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: bold; color: #000; box-shadow: 0 0 20px rgba(0,229,255,0.4); flex-shrink: 0;">F</div>';
+    html += '<div>';
+    html += '<h2 style="color: #00e5ff; font-family: Orbitron, monospace; font-size: 1.3em; margin: 0; text-shadow: 0 0 10px rgba(0,229,255,0.5);">Fundamentals \u2014 ' + basicsLabel + '</h2>';
+    html += '<p style="color: #aaa; font-size: 0.9em; margin: 6px 0 0 0;">B2B Bridge Course \u2022 12 Virtual Worksheets \u2022 MCQ Format \u2022 Sequential Unlock</p>';
+    html += '<p style="color: #00e5ff; font-size: 0.85em; margin: 4px 0 0 0;">Progress: ' + completedCount + ' / 12 completed</p>';
+    html += '</div>';
+    html += '</div>';
+    html += '</div>';
+    
+    // Worksheet grid
+    html += '<div class="chapters-grid">';
+    html += basicsWS.map(function(ws, idx) {
+        var wsScore = basicsProgress[ws.id];
+        var isCompleted = wsScore !== undefined;
+        // First worksheet always unlocked; others need previous completed (admin bypasses)
+        var prevWs = idx > 0 ? basicsWS[idx - 1] : null;
+        var prevCompleted = prevWs ? (basicsProgress[prevWs.id] !== undefined) : true;
+        var isUnlocked = isAdmin || idx === 0 || prevCompleted;
+        
+        if (!isUnlocked) {
+            return '<div class="chapter-card" style="border-color: #333; cursor: not-allowed; opacity: 0.5; position: relative;">' +
+                   '<div class="chapter-number" style="background: #333; color: #666;">W' + (idx + 1) + '</div>' +
+                   '<div class="chapter-title" style="color: #666;">' + ws.title + '</div>' +
+                   '<p style="color: #555; font-size: 0.9em;">' + ws.desc + '</p>' +
+                   '<div class="chapter-status">' +
+                   '<span class="status-badge" style="background: #333; color: #666;">&#x1F512; Locked</span>' +
+                   '</div>' +
+                   '</div>';
+        }
+        
+        return '<div class="chapter-card ' + (isCompleted ? 'completed' : '') + '" ' +
+               'onclick="showBasicsOverview(\'' + ws.id + '\')" ' +
+               'style="border-color: #00e5ff40; cursor: pointer;">' +
+               '<div class="chapter-number" style="background: linear-gradient(135deg, #00e5ff, #00b0ff); color: #000;">W' + (idx + 1) + '</div>' +
+               '<div class="chapter-title">' + ws.title + '</div>' +
+               '<p style="color: #aaa; font-size: 0.9em;">' + ws.desc + '</p>' +
+               '<div class="chapter-status">' +
+               (isCompleted ? '<span class="status-badge completed">Score: ' + wsScore.pct + '%</span>' :
+               '<span class="status-badge" style="background: #00e5ff; color: #000;">Start Worksheet</span>') +
+               '</div>' +
+               '</div>';
+    }).join('');
+    html += '</div>';
+    
+    container.innerHTML = html;
+}
+
+
+
+// ============================================
+// BASICS WORKSHEET QUIZ FUNCTIONS
+// ============================================
+
+function showBasicsOverview(wsId) {
+    var basicsWS = getActiveBasicsWorksheets();
+    var ws = basicsWS.find(function(w) { return w.id === wsId; });
+    if (!ws) return;
+    
+    document.querySelectorAll('.content-section').forEach(function(s) { s.classList.remove('active'); });
+    document.getElementById('quiz-section').classList.add('active');
+    
+    var overviewContent = ws.overview || ('This worksheet covers: ' + ws.desc + '. Answer 5 multiple-choice questions to test your knowledge.');
+    
+    document.getElementById('quiz-container').innerHTML =
+        '<h2 class="section-title" style="color:#00e5ff;font-family:Orbitron,monospace;">Fundamentals: ' + ws.title + '</h2>' +
+        '<div style="background:linear-gradient(135deg,#1a1a3e,#0d2137);border:2px solid #00e5ff40;border-radius:16px;padding:30px;margin:20px 0;">' +
+            '<div style="display:flex;align-items:center;gap:14px;margin-bottom:20px;">' +
+                '<div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#00e5ff,#00b0ff);display:flex;align-items:center;justify-content:center;font-size:22px;color:#000;font-weight:bold;flex-shrink:0;">F</div>' +
+                '<div><h3 style="color:#fff;margin:0;font-size:1.2em;">' + ws.title + '</h3>' +
+                '<p style="color:#aaa;font-size:0.85em;margin:4px 0 0 0;">B2B Bridge Course Worksheet</p></div>' +
+            '</div>' +
+            '<div style="background:rgba(0,229,255,0.05);border:1px solid rgba(0,229,255,0.15);border-radius:12px;padding:20px;margin-bottom:20px;">' +
+                '<h4 style="color:#00e5ff;margin:0 0 10px 0;font-size:1em;">What You Will Learn</h4>' +
+                '<p style="color:#ccc;font-size:0.95em;line-height:1.7;margin:0;">' + overviewContent + '</p>' +
+            '</div>' +
+            '<div style="display:flex;gap:15px;flex-wrap:wrap;">' +
+                '<div style="flex:1;min-width:120px;background:rgba(0,229,255,0.08);border-radius:10px;padding:15px;text-align:center;">' +
+                    '<div style="color:#00e5ff;font-size:1.5em;font-weight:bold;">5</div>' +
+                    '<div style="color:#aaa;font-size:0.8em;">Questions</div>' +
+                '</div>' +
+                '<div style="flex:1;min-width:120px;background:rgba(0,229,255,0.08);border-radius:10px;padding:15px;text-align:center;">' +
+                    '<div style="color:#00e5ff;font-size:1.5em;font-weight:bold;">MCQ</div>' +
+                    '<div style="color:#aaa;font-size:0.8em;">Format</div>' +
+                '</div>' +
+                '<div style="flex:1;min-width:120px;background:rgba(0,229,255,0.08);border-radius:10px;padding:15px;text-align:center;">' +
+                    '<div style="color:#00e5ff;font-size:1.5em;font-weight:bold;">60%</div>' +
+                    '<div style="color:#aaa;font-size:0.8em;">To Pass</div>' +
+                '</div>' +
+            '</div>' +
+        '</div>' +
+        '<div class="btn-group" style="display:flex;gap:15px;justify-content:center;">' +
+            '<button class="btn btn-primary" onclick="openBasicsWorksheet(\'' + wsId + '\')" style="padding:14px 36px;font-size:16px;font-weight:bold;border-radius:10px;cursor:pointer;background:linear-gradient(135deg,#00e5ff,#00b0ff);color:#000;border:none;">Start Quiz</button>' +
+            '<button class="btn" onclick="closeBasicsQuiz()" style="background:#333;color:#fff;padding:14px 24px;border:none;border-radius:10px;cursor:pointer;font-size:15px;">Back</button>' +
+        '</div>';
+}
+
+function openBasicsWorksheet(wsId) {
+    var basicsWS = getActiveBasicsWorksheets();
+    var ws = basicsWS.find(function(w) { return w.id === wsId; });
+    if (!ws) return;
+    
+    appState.currentBasicsWorksheet = ws;
+    appState.basicsQuizQuestion = 0;
+    appState.basicsQuizScore = 0;
+    appState.basicsQuizAnswers = [];
+    
+    showBasicsQuiz(ws);
+}
+
+function showBasicsQuiz(ws) {
+    appState.currentBasicsWorksheet = ws;
+    appState.basicsQuizQuestion = 0;
+    appState.basicsQuizScore = 0;
+    appState.basicsQuizAnswers = [];
+
+    document.querySelectorAll('.content-section').forEach(function(s) { s.classList.remove('active'); });
+    document.getElementById('quiz-section').classList.add('active');
+    renderBasicsQuestion(ws);
+}
+
+function renderBasicsQuestion(ws) {
+    var qIdx = appState.basicsQuizQuestion;
+    var total = ws.questions.length;
+
+    if (qIdx >= total) {
+        showBasicsResults(ws);
+        return;
+    }
+
+    var q = ws.questions[qIdx];
+    var progress = ((qIdx) / total * 100).toFixed(0);
+    var optLabels = ['A', 'B', 'C', 'D'];
+
+    document.getElementById('quiz-container').innerHTML =
+        '<h2 class="section-title">Basics: ' + ws.title + '</h2>' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">' +
+            '<span style="color:#00e5ff;font-size:13px;font-weight:bold;">Virtual Worksheet</span>' +
+            '<span style="color:#888;font-size:12px;">Question ' + (qIdx + 1) + ' of ' + total + '</span>' +
+        '</div>' +
+        '<div class="progress-container">' +
+            '<div class="progress-bar" style="width:' + progress + '%"></div>' +
+        '</div>' +
+        '<div class="progress-text">Question ' + (qIdx + 1) + ' of ' + total + '</div>' +
+        '<div class="question-card">' +
+            '<div class="question-number">Question ' + (qIdx + 1) + '</div>' +
+            '<div class="question-text">' + q.q + '</div>' +
+            '<div class="options">' +
+                q.options.map(function(opt, i) {
+                    return '<div class="option" onclick="selectBasicsAnswer(' + i + ')" id="basics-opt-' + i + '">' +
+                        optLabels[i] + '. ' + opt +
+                    '</div>';
+                }).join('') +
+            '</div>' +
+        '</div>' +
+        '<div class="btn-group">' +
+            '<button class="btn" onclick="closeBasicsQuiz()" style="background:#333;color:#fff;padding:12px 24px;border:none;border-radius:8px;cursor:pointer;">Back to Chapters</button>' +
+        '</div>';
+}
+
+function selectBasicsAnswer(optIdx) {
+    var ws = appState.currentBasicsWorksheet;
+    var qIdx = appState.basicsQuizQuestion;
+    var q = ws.questions[qIdx];
+    var correct = q.answer;
+    var isCorrect = (optIdx === correct);
+
+    if (isCorrect) appState.basicsQuizScore++;
+    appState.basicsQuizAnswers.push(optIdx);
+
+    // Highlight correct/incorrect options
+    for (var i = 0; i < q.options.length; i++) {
+        var el = document.getElementById('basics-opt-' + i);
+        if (!el) continue;
+        el.onclick = null;
+        el.style.pointerEvents = 'none';
+        if (i === correct) {
+            el.classList.add('selected');
+            el.style.borderColor = '#4CAF50';
+            el.style.background = 'rgba(76,175,80,0.15)';
+            el.style.color = '#4CAF50';
+        } else if (i === optIdx && !isCorrect) {
+            el.style.borderColor = '#f44336';
+            el.style.background = 'rgba(244,67,54,0.15)';
+            el.style.color = '#f44336';
+        } else {
+            el.style.opacity = '0.4';
+        }
+    }
+
+    // Show Brilliant-style feedback banner + Continue button
+    var feedbackDiv = document.getElementById('basics-feedback');
+    if (feedbackDiv) feedbackDiv.remove();
+
+    var total = ws.questions.length;
+    var isLast = (qIdx + 1 >= total);
+    var btnLabel = isLast ? 'See Results' : 'Continue';
+
+    var bannerHtml = '<div id="basics-feedback" style="margin-top:18px;border-radius:12px;padding:18px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;';
+    if (isCorrect) {
+        bannerHtml += 'background:rgba(76,175,80,0.13);border:1.5px solid #4CAF50;">';
+        bannerHtml += '<div style="display:flex;align-items:center;gap:10px;">';
+        bannerHtml += '<div style="width:32px;height:32px;border-radius:50%;background:#4CAF50;display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff;">&#10003;</div>';
+        bannerHtml += '<div><div style="color:#4CAF50;font-weight:bold;font-size:16px;">Correct!</div>';
+        bannerHtml += '<div style="color:#81C784;font-size:13px;margin-top:2px;">Great job, keep going!</div></div>';
+        bannerHtml += '</div>';
+    } else {
+        bannerHtml += 'background:rgba(244,67,54,0.13);border:1.5px solid #f44336;">';
+        bannerHtml += '<div style="display:flex;align-items:center;gap:10px;">';
+        bannerHtml += '<div style="width:32px;height:32px;border-radius:50%;background:#f44336;display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff;">&#10007;</div>';
+        bannerHtml += '<div><div style="color:#f44336;font-weight:bold;font-size:16px;">Wrong!</div>';
+        bannerHtml += '<div style="color:#E57373;font-size:13px;margin-top:2px;">The correct answer is: <strong>' + String.fromCharCode(65 + correct) + '. ' + q.options[correct] + '</strong></div></div>';
+        bannerHtml += '</div>';
+    }
+    bannerHtml += '<button onclick="basicsNextQuestion()" class="btn btn-primary" style="padding:10px 28px;border-radius:8px;font-size:15px;font-weight:bold;white-space:nowrap;cursor:pointer;">' + btnLabel + '</button>';
+    bannerHtml += '</div>';
+
+    // Insert feedback banner after the question card
+    var questionCard = document.querySelector('.question-card');
+    if (questionCard) {
+        questionCard.insertAdjacentHTML('afterend', bannerHtml);
+    }
+
+    // Hide the old Back to Chapters button while feedback is showing
+    var btnGroup = document.querySelector('#quiz-container .btn-group');
+    if (btnGroup) btnGroup.style.display = 'none';
+
+    // Increment question index (ready for next)
+    appState.basicsQuizQuestion++;
+}
+
+function basicsNextQuestion() {
+    var ws = appState.currentBasicsWorksheet;
+    renderBasicsQuestion(ws);
+}
+
+function showBasicsResults(ws) {
+    var total = ws.questions.length;
+    var score = appState.basicsQuizScore;
+    var pct = Math.round((score / total) * 100);
+    var emoji = pct === 100 ? '&#127942;' : pct >= 60 ? '&#11088;' : '&#128170;';
+
+    // Save progress
+    var prog = getBasicsProgress();
+    prog[ws.id] = { score: score, total: total, pct: pct };
+    setBasicsProgress(prog);
+
+    var reviewHtml = '';
+    for (var i = 0; i < ws.questions.length; i++) {
+        var q = ws.questions[i];
+        var userAns = appState.basicsQuizAnswers[i];
+        var isCorrect = (userAns === q.answer);
+        reviewHtml += '<div style="background:rgba(255,255,255,0.03);border:1px solid ' + (isCorrect ? 'rgba(76,175,80,0.3)' : 'rgba(244,67,54,0.3)') + ';border-radius:10px;padding:15px;margin-bottom:10px;">';
+        reviewHtml += '<div style="color:#aaa;font-size:12px;margin-bottom:5px;">Question ' + (i + 1) + '</div>';
+        reviewHtml += '<div style="color:#fff;font-size:15px;margin-bottom:10px;">' + q.q + '</div>';
+        for (var j = 0; j < q.options.length; j++) {
+            var optColor = '#888';
+            var optBg = 'transparent';
+            var optLabel = '';
+            if (j === q.answer) { optColor = '#4CAF50'; optBg = 'rgba(76,175,80,0.1)'; optLabel = ' (Correct)'; }
+            if (j === userAns && !isCorrect) { optColor = '#f44336'; optBg = 'rgba(244,67,54,0.15)'; optLabel = ' (Your Answer)'; }
+            if (j === userAns && isCorrect) { optLabel = ' (Your Answer)'; }
+            reviewHtml += '<div style="padding:8px 12px;margin:4px 0;border-radius:5px;color:' + optColor + ';background:' + optBg + ';">' + String.fromCharCode(65 + j) + '. ' + q.options[j] + optLabel + '</div>';
+        }
+        reviewHtml += '</div>';
+    }
+
+    document.getElementById('quiz-container').innerHTML =
+        '<h2 class="section-title">Basics: ' + ws.title + ' - Results</h2>' +
+        '<div style="text-align:center;padding:30px 20px;">' +
+            '<div style="font-size:3em;margin-bottom:15px;">' + emoji + '</div>' +
+            '<h3 style="color:#E94560;font-size:22px;margin-bottom:10px;">Score: ' + score + '/' + total + ' (' + pct + '%)</h3>' +
+            '<p style="color:#aaa;margin-bottom:20px;">' + (pct === 100 ? 'Perfect! You mastered this topic!' : pct >= 60 ? 'Good job! Keep practicing!' : 'Keep trying! Practice makes perfect!') + '</p>' +
+        '</div>' +
+        '<div style="margin-bottom:20px;">' +
+            '<h3 style="color:#fff;margin-bottom:15px;">Answer Review</h3>' +
+            reviewHtml +
+        '</div>' +
+        '<div class="btn-group">' +
+            '<button class="btn btn-primary" onclick="retryBasicsWorksheet()">Retry Worksheet</button>' +
+            '<button class="btn" onclick="closeBasicsQuiz()" style="background:#333;color:#fff;padding:12px 24px;border:none;border-radius:8px;cursor:pointer;">Back to Chapters</button>' +
+        '</div>';
+}
+
+function retryBasicsWorksheet() {
+    var ws = appState.currentBasicsWorksheet;
+    appState.basicsQuizQuestion = 0;
+    appState.basicsQuizScore = 0;
+    appState.basicsQuizAnswers = [];
+    renderBasicsQuestion(ws);
+}
+
+function closeBasicsQuiz() {
+    document.querySelectorAll('.content-section').forEach(function(s) { s.classList.remove('active'); });
+    document.getElementById('fundamentals-section').classList.add('active');
+    renderFundamentals();
+}
+
 
 // Render Formula Videos tab - formula video for chapter N unlocks when chapter N quiz is completed
 // Same progressive pattern as chapters: complete ch1 → ch1 formula video unlocks + ch2 unlocks
@@ -5598,7 +6260,6 @@ function renderWhiteboard() {
             '<button onclick="redoWhiteboard()" style="padding:10px 15px;background:#333;color:#fff;border:1px solid #555;border-radius:8px;cursor:pointer;font-size:1.1em;" title="Redo">&#8618;</button>' +
             '<button onclick="downloadWhiteboardNote()" style="padding:10px 15px;background:#333;color:#fff;border:1px solid #555;border-radius:8px;cursor:pointer;font-size:0.9em;font-family:Orbitron,monospace;" title="Download as PNG">DOWNLOAD</button>' +
             '<button onclick="toggleWhiteboardGrid()" id="wb-grid-btn" style="padding:10px 15px;background:#333;color:#fff;border:1px solid #555;border-radius:8px;cursor:pointer;font-size:0.9em;font-family:Orbitron,monospace;" title="Toggle Grid">GRID</button>' +
-            '<button onclick="toggleWhiteboardRotation()" id="wb-rotate-btn" style="padding:10px 20px;background:linear-gradient(135deg,#ff6600,#ff9900);color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:Orbitron,monospace;font-weight:bold;font-size:0.9em;" title="Rotate Canvas">&#x1F504; ROTATE</button>' +
             '<button onclick="toggleWhiteboardFullscreen()" id="wb-fullscreen-btn" style="padding:10px 20px;background:linear-gradient(135deg,#ff6600,#ff9900);color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:Orbitron,monospace;font-weight:bold;font-size:0.9em;" title="Fullscreen Mode">&#x26F6; FULLSCREEN</button>' +
         '</div>' +
         '<div id="wb-toolbar-tools" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:15px;align-items:center;">' +
@@ -6271,17 +6932,22 @@ function wbCreateFloatingTools() {
         { emoji: '\u{1F5D1}\uFE0F', label: 'Clear', fn: 'clearWhiteboardCanvas()' },
         { emoji: '\u{1F4BE}', label: 'Save', fn: 'saveWhiteboardNote()' },
         { emoji: '\u2B07\uFE0F', label: 'Download', fn: 'downloadWhiteboardNote()' },
-        { emoji: '\u{1F504}', label: 'Rotate', fn: 'toggleWhiteboardRotation()' },
-        { emoji: '\u274C', label: 'Exit', fn: 'toggleWhiteboardFullscreen()' }
+        { emoji: '', label: 'EXIT', fn: 'toggleWhiteboardFullscreen()' }
     ];
     
     var actRow = document.createElement('div');
     actRow.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;justify-content:center;';
     actions.forEach(function(a) {
         var btn = document.createElement('button');
-        btn.style.cssText = circBtnStyle + (a.label === 'Exit' ? 'background:#ff4444;border-color:#ff4444;' : '');
-        btn.innerHTML = a.emoji;
-        btn.title = a.label;
+        if (a.label === 'EXIT') {
+            btn.style.cssText = 'padding:8px 18px;background:#ff4444;color:#fff;border:2px solid #ff4444;border-radius:10px;cursor:pointer;font-family:Orbitron,monospace;font-weight:900;font-size:1em;letter-spacing:2px;';
+            btn.innerHTML = 'EXIT';
+            btn.title = 'Exit Fullscreen';
+        } else {
+            btn.style.cssText = circBtnStyle;
+            btn.innerHTML = a.emoji;
+            btn.title = a.label;
+        }
         btn.onclick = function() { eval(a.fn); };
         actRow.appendChild(btn);
     });
@@ -7723,39 +8389,64 @@ function generateMasterCertificate(score) {
 // Render certificates
 function renderCertificates() {
     var currentClassName = getClassName();
-    // Filter certificates by current class (show certs for current class, and legacy certs without className for Class 6)
     var classCerts = appState.certificates.filter(function(c) {
         if (c.className) return c.className === currentClassName;
-        return currentClassName === 'Class 6'; // legacy certs default to Class 6
+        return currentClassName === 'Class 6';
     });
+    
+    // Generate basics certificates from progress
+    var basicsProgress = getBasicsProgress();
+    var basicsWS = getActiveBasicsWorksheets();
+    var basicsCerts = [];
+    basicsWS.forEach(function(ws) {
+        var prog = basicsProgress[ws.id];
+        if (prog !== undefined) {
+            var pct = typeof prog === 'object' ? prog.pct : prog;
+            basicsCerts.push({ type: 'basics', title: ws.title, score: pct, wsId: ws.id });
+        }
+    });
+    
+    // Check if all basics are completed for basics master cert
+    var allBasicsDone = basicsWS.length > 0 && basicsCerts.length === basicsWS.length;
 
+    var certTabState = window.certTabState || 'chapter';
+    
+    var chapterCertsHtml = '';
+    var basicsCertsHtml = '';
+    
+    // Chapter certificates column
     if (classCerts.length === 0) {
-        document.getElementById('certificate-content').innerHTML = `
-            <div style="text-align: center; padding: 50px;">
-                <div style="font-size: 5em; margin-bottom: 20px;">📜</div>
-                <h3 style="color: #E94560;">No Certificates Yet - ${currentClassName}</h3>
-                <p style="margin-top: 20px; color: #aaa;">
-                    Complete chapter quizzes and the final exam to earn certificates!
-                </p>
-            </div>
-        `;
-        return;
+        chapterCertsHtml = '<div style="text-align:center;padding:40px;"><div style="font-size:3em;margin-bottom:15px;">\ud83d\udcdc</div><h4 style="color:#E94560;">No Chapter Certificates Yet</h4><p style="color:#aaa;font-size:0.9em;">Complete chapter quizzes and final exam to earn certificates!</p></div>';
+    } else {
+        var sortedCerts = classCerts.slice().sort(function(a, b) {
+            var order = { 'master': 0, 'final-exam': 1, 'chapter': 2 };
+            return (order[a.type] || 3) - (order[b.type] || 3);
+        });
+        chapterCertsHtml = sortedCerts.map(function(cert) { return renderCertificate(cert); }).join('<hr style="border-color:#E94560;margin:30px 0;">');
     }
     
-    // Sort certificates: master first, then final-exam, then chapters
-    const sortedCerts = [...classCerts].sort((a, b) => {
-        const order = { 'master': 0, 'final-exam': 1, 'chapter': 2 };
-        return order[a.type] - order[b.type];
-    });
+    // Basics certificates column
+    if (basicsCerts.length === 0) {
+        basicsCertsHtml = '<div style="text-align:center;padding:40px;"><div style="font-size:3em;margin-bottom:15px;">\ud83d\udcda</div><h4 style="color:#00e5ff;">No Basic Certificates Yet</h4><p style="color:#aaa;font-size:0.9em;">Complete Fundamentals worksheets to earn basic certificates!</p></div>';
+    } else {
+        if (allBasicsDone) {
+            basicsCertsHtml += '<div class="certificate" style="border-color:#FFD700;max-width:500px;margin:0 auto 30px;"><img src="logo.png" class="cert-logo" alt="GANITA PRAKASH"><h1 style="color:#FFD700;font-size:1.5em;">BASICS MASTER</h1><p style="color:#888;font-size:0.9em;">' + currentClassName + '</p><p>This is to certify that</p><div class="student-name">' + (appState.studentName || 'Student') + '</div><p>has completed all <strong>12 Fundamentals Worksheets</strong></p><p class="date">Date: ' + new Date().toLocaleDateString() + '</p></div><hr style="border-color:#00e5ff;margin:30px 0;">';
+        }
+        basicsCertsHtml += basicsCerts.map(function(bc) {
+            return '<div class="certificate" style="max-width:500px;margin:0 auto 20px;border-color:#00e5ff;"><img src="logo.png" class="cert-logo" alt="GANITA PRAKASH"><h1 style="font-size:1.5em;color:#00e5ff;">BASICS COMPLETION</h1><p style="color:#888;font-size:0.9em;">' + currentClassName + '</p><p>This is to certify that</p><div class="student-name" style="font-size:1.3em;">' + (appState.studentName || 'Student') + '</div><p>has successfully completed</p><p style="font-size:1.1em;color:#00e5ff;font-weight:bold;">' + bc.title + '</p><p>with a score of <strong>' + bc.score + '%</strong></p></div>';
+        }).join('');
+    }
     
-    document.getElementById('certificate-content').innerHTML = `
-        <div style="margin-bottom: 30px;">
-            <h3 style="color: #E94560; text-align: center;">${currentClassName} Certificates</h3>
-            <p style="color: #aaa; text-align: center;">You have earned ${classCerts.length} certificate(s) for ${currentClassName}</p>
-        </div>
-        
-        ${sortedCerts.map(cert => renderCertificate(cert)).join('<hr style="border-color: #E94560; margin: 40px 0;">')}
-    `;
+    document.getElementById('certificate-content').innerHTML =
+        '<div style="margin-bottom:30px;text-align:center;">' +
+            '<h3 style="color:#E94560;">' + currentClassName + ' Certificates</h3>' +
+            '<p style="color:#aaa;">Total: ' + (classCerts.length + basicsCerts.length) + ' certificate(s)</p>' +
+        '</div>' +
+        '<div style="display:flex;gap:10px;justify-content:center;margin-bottom:30px;">' +
+            '<button onclick="window.certTabState=\'basics\';renderCertificates();" style="padding:12px 28px;border-radius:10px;border:2px solid ' + (certTabState === 'basics' ? '#00e5ff' : '#333') + ';background:' + (certTabState === 'basics' ? 'rgba(0,229,255,0.15)' : '#1a1a2e') + ';color:' + (certTabState === 'basics' ? '#00e5ff' : '#aaa') + ';font-weight:bold;cursor:pointer;font-size:15px;font-family:Orbitron,monospace;">Basic Certificates</button>' +
+            '<button onclick="window.certTabState=\'chapter\';renderCertificates();" style="padding:12px 28px;border-radius:10px;border:2px solid ' + (certTabState === 'chapter' ? '#E94560' : '#333') + ';background:' + (certTabState === 'chapter' ? 'rgba(233,69,96,0.15)' : '#1a1a2e') + ';color:' + (certTabState === 'chapter' ? '#E94560' : '#aaa') + ';font-weight:bold;cursor:pointer;font-size:15px;font-family:Orbitron,monospace;">Chapter Certificates</button>' +
+        '</div>' +
+        '<div>' + (certTabState === 'basics' ? basicsCertsHtml : chapterCertsHtml) + '</div>';
 }
 
 // Render individual certificate
@@ -10803,6 +11494,7 @@ showSection = function(section) {
     document.querySelectorAll('.nav-tab').forEach(function(t) { t.classList.remove('active'); });
     var sectionMap = { 
         'chapters': 'chapters-section', 
+        'fundamentals': 'fundamentals-section',
         'progress': 'progress-section', 
         'final-exam': 'final-exam-section', 
         'formula-videos': 'formula-videos-section',
@@ -10828,6 +11520,7 @@ showSection = function(section) {
     if (section === 'chat') { if (typeof loadChatMessages === 'function') loadChatMessages(); if (typeof startUserChatRefresh === 'function') startUserChatRefresh(); }
     if (section === 'admin' && appState.isAdmin) { if (typeof loadAdminDashboard === 'function') loadAdminDashboard(); if (typeof startAdminChatRefresh === 'function') startAdminChatRefresh(); if (typeof startScreenSharePolling === 'function') startScreenSharePolling(); if (typeof startScreenShareAutoConnect === 'function') startScreenShareAutoConnect(); }
     if (section === 'ai-assistant' && typeof renderAIMessages === 'function') renderAIMessages();
+    if (section === 'fundamentals' && typeof renderFundamentals === 'function') renderFundamentals();
     if (section === 'whiteboard' && typeof renderWhiteboard === 'function') renderWhiteboard();
 };
 
