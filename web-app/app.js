@@ -7767,12 +7767,56 @@ function renderQuizQuestion() {
 
 let selectedOption = null;
 function selectOption(index) {
+    if (selectedOption !== null) return; // Already answered
     selectedOption = index;
-    document.querySelectorAll('.option').forEach((opt, i) => {
+    var quiz = appState.currentQuiz;
+    var phase = examPhases[examPhaseIndex];
+    var phaseQuestions = getExamPhaseQuestions(quiz)[phase];
+    var question = phaseQuestions[examPhaseQuestionIndex];
+    var isCorrect = (index === question.answer);
+    
+    // Highlight correct/incorrect options
+    document.querySelectorAll('.option').forEach(function(opt, i) {
         opt.classList.remove('selected');
-        if (i === index) opt.classList.add('selected');
+        opt.style.pointerEvents = 'none';
+        if (i === question.answer) {
+            opt.style.border = '2px solid #4CAF50';
+            opt.style.background = 'rgba(76,175,80,0.15)';
+        }
+        if (i === index && !isCorrect) {
+            opt.style.border = '2px solid #f44336';
+            opt.style.background = 'rgba(244,67,54,0.15)';
+        }
     });
+    
+    // Show feedback banner + Why button
+    var feedbackDiv = document.createElement('div');
+    feedbackDiv.id = 'chapter-feedback';
+    feedbackDiv.innerHTML = '<div style="background:' + (isCorrect ? 'rgba(76,175,80,0.15);border:1px solid #4CAF50' : 'rgba(244,67,54,0.15);border:1px solid #f44336') + ';border-radius:10px;padding:12px 18px;margin:12px 0;display:flex;align-items:center;gap:10px;">' +
+        '<span style="font-size:22px;">' + (isCorrect ? '\u2713' : '\u2717') + '</span>' +
+        '<div><strong style="color:' + (isCorrect ? '#4CAF50' : '#f44336') + ';">' + (isCorrect ? 'Correct!' : 'Incorrect') + '</strong>' +
+        '<div style="color:#aaa;font-size:13px;">' + (isCorrect ? 'Great job, keep going!' : 'The correct answer is: ' + String.fromCharCode(65 + question.answer) + '. ' + question.options[question.answer]) + '</div></div></div>' +
+        '<div onclick="toggleChapterWhy(this)" style="cursor:pointer;background:rgba(255,193,7,0.1);border:1px solid rgba(255,193,7,0.4);border-radius:8px;padding:10px 15px;margin:8px 0;display:flex;justify-content:space-between;align-items:center;">' +
+        '<span><strong style="color:#FFC107;">Why?</strong> <span style="color:#aaa;font-size:13px;">Tap to see why this is the answer</span></span>' +
+        '<span style="color:#FFC107;">\u25B6</span></div>' +
+        '<div id="chapter-why-content" style="display:none;background:rgba(255,255,255,0.05);border-radius:8px;padding:12px 15px;margin:4px 0;color:#ccc;font-size:14px;line-height:1.6;">' +
+        (question.why || 'The correct answer is ' + String.fromCharCode(65 + question.answer) + '. ' + question.options[question.answer]) + '</div>';
+    
+    var btnGroup = document.querySelector('#quiz-container .btn-group');
+    if (btnGroup) { btnGroup.parentNode.insertBefore(feedbackDiv, btnGroup); }
+    
     document.getElementById('submit-btn').disabled = false;
+    document.getElementById('submit-btn').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function toggleChapterWhy(el) {
+    var whyDiv = document.getElementById('chapter-why-content');
+    if (whyDiv) {
+        var isHidden = whyDiv.style.display === 'none';
+        whyDiv.style.display = isHidden ? 'block' : 'none';
+        var arrow = el.querySelector('span:last-child');
+        if (arrow) arrow.textContent = isHidden ? '\u25BC' : '\u25B6';
+    }
 }
 
 async function submitAnswer() {
