@@ -5951,6 +5951,7 @@ function renderFundamentals() {
 // ============================================
 
 function showBasicsOverview(wsId) {
+    appState.currentBasicsOverviewId = wsId;
     var basicsWS = getActiveBasicsWorksheets();
     var ws = basicsWS.find(function(w) { return w.id === wsId; });
     if (!ws) return;
@@ -5969,7 +5970,7 @@ function showBasicsOverview(wsId) {
                 '<span class="topic-arrow" style="color: #00e5ff; font-size: 18px;">\u25B6</span>' +
                 '</div>' +
                 '<div class="topic-detail" style="display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1);">' +
-                '<pre style="color: #ddd; font-size: 14px; line-height: 1.8; white-space: pre-wrap; font-family: inherit; margin: 0;">' + topic.content + '</pre>' +
+                '<pre style="color: #ddd; font-size: 14px; line-height: 1.8; white-space: pre-wrap; font-family: inherit; margin: 0;">' + topic.content.replace(/\\n/g, '\n') + '</pre>' +
                 '</div></div>';
         });
         topicHTML += '</div>';
@@ -6000,6 +6001,14 @@ function showBasicsOverview(wsId) {
             '</div>' +
             '<button class="btn btn-primary" onclick="startBasicsQuiz()" style="width:100%;padding:15px;font-size:16px;margin-top:20px;font-family:Orbitron,monospace;">Start Quiz</button>' +
         '</div>';
+}
+
+function startBasicsQuiz() {
+    // Called from the overview screen - uses the worksheet currently being viewed
+    var wsId = appState.currentBasicsOverviewId;
+    if (wsId) {
+        openBasicsWorksheet(wsId);
+    }
 }
 
 function openBasicsWorksheet(wsId) {
