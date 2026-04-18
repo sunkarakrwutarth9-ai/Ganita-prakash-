@@ -5424,6 +5424,12 @@ export default function App() {
   const [adminStats, setAdminStats] = useState({});
   const [adminMessages, setAdminMessages] = useState([]);
 
+  // Profile modal state (change name / class selection)
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [profileNameInput, setProfileNameInput] = useState('');
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [selectedClass, setSelectedClass] = useState('6'); // Class 6 default; Class 7 coming soon
+
   // 3D Models state
   const [selectedModel, setSelectedModel] = useState(null);
   const [showModelViewer, setShowModelViewer] = useState(false);
@@ -6685,7 +6691,7 @@ export default function App() {
       <ScrollView style={styles.container} contentContainerStyle={{paddingBottom: 100}}>
         {/* Header - Command Bridge Style */}
         <View style={styles.homeHeader}>
-          <View style={styles.headerLeft}>
+          <TouchableOpacity style={styles.headerLeft} onPress={() => { setProfileNameInput(studentName || ''); setShowProfileModal(true); }}>
             <View style={styles.userAvatarCircle}>
               <Text style={styles.userAvatarText}>
                 {studentName ? studentName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'GP'}
@@ -6694,8 +6700,9 @@ export default function App() {
             <View>
               <Text style={styles.welcomeText}>WELCOME</Text>
               <Text style={styles.userName}>{studentName || 'Student'}</Text>
+              <Text style={styles.userClass}>NCERT Class {selectedClass}</Text>
             </View>
-          </View>
+          </TouchableOpacity>
           <View style={styles.headerIcons}>
             <TouchableOpacity style={styles.headerIconBtn} onPress={() => setScreen('progress')}>
               <Text style={styles.headerIconText}>◉</Text>
@@ -8538,6 +8545,83 @@ export default function App() {
         </View>
       </Modal>
 
+      <Modal visible={showProfileModal} transparent animationType="fade" onRequestClose={() => setShowProfileModal(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { maxWidth: 420 }]}>
+            <Text style={styles.modalTitle}>Profile</Text>
+
+            <Text style={[styles.modalText, { marginTop: 8 }]}>Display Name</Text>
+            <TextInput
+              style={styles.input}
+              value={profileNameInput}
+              onChangeText={setProfileNameInput}
+              placeholder="Your name"
+              placeholderTextColor="#888"
+            />
+
+            <Text style={[styles.modalText, { marginTop: 12 }]}>Class</Text>
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              {['6', '7'].map((cls) => (
+                <TouchableOpacity
+                  key={cls}
+                  style={[
+                    styles.primaryBtn,
+                    { flex: 1, backgroundColor: selectedClass === cls ? '#00E5FF' : 'rgba(0,229,255,0.12)', borderWidth: 1, borderColor: '#00E5FF' },
+                  ]}
+                  onPress={() => {
+                    if (cls === '7') {
+                      Alert.alert('Class 7 coming soon', 'NCERT Class 7 Mathematics content is on the way.');
+                      return;
+                    }
+                    setSelectedClass(cls);
+                  }}
+                >
+                  <Text style={[styles.primaryBtnText, { color: selectedClass === cls ? '#0a0a2e' : '#00E5FF' }]}>Class {cls}{cls === '7' ? ' (soon)' : ''}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <TouchableOpacity
+              style={[styles.primaryBtn, { marginTop: 16, opacity: profileSaving ? 0.6 : 1 }]}
+              disabled={profileSaving}
+              onPress={async () => {
+                const name = (profileNameInput || '').trim();
+                if (!name) { Alert.alert('Name required', 'Please enter a display name.'); return; }
+                try {
+                  setProfileSaving(true);
+                  const res = await fetch(API_URL + '/api/user/update-name', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
+                    body: JSON.stringify({ name }),
+                  });
+                  if (!res.ok) throw new Error('HTTP ' + res.status);
+                  setStudentName(name);
+                  try { await AsyncStorage.setItem('studentName', name); } catch (e) {}
+                  setShowProfileModal(false);
+                } catch (e) {
+                  Alert.alert('Error', 'Could not update name. Check your connection.');
+                } finally {
+                  setProfileSaving(false);
+                }
+              }}
+            >
+              <Text style={styles.primaryBtnText}>{profileSaving ? 'Saving...' : 'Save'}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.primaryBtn, { marginTop: 8, backgroundColor: 'rgba(255,82,82,0.15)', borderWidth: 1, borderColor: 'rgba(255,82,82,0.4)' }]}
+              onPress={() => { setShowProfileModal(false); handleLogout(); }}
+            >
+              <Text style={[styles.primaryBtnText, { color: '#FF5252' }]}>Log Out</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={{ marginTop: 10, alignItems: 'center' }} onPress={() => setShowProfileModal(false)}>
+              <Text style={{ color: 'rgba(255,255,255,0.6)' }}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       <Modal visible={showResult} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -8870,6 +8954,7 @@ const styles = StyleSheet.create({
   userAvatarText: { fontSize: 20, fontWeight: 'bold', color: '#00E5FF', textShadowColor: '#00E5FF', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 8 },
   welcomeText: { fontSize: 11, color: '#00E5FF', fontWeight: '600', letterSpacing: 2, textTransform: 'uppercase' },
   userName: { fontSize: 18, fontWeight: 'bold', color: '#fff', letterSpacing: 1 },
+  userClass: { fontSize: 10, color: 'rgba(0,229,255,0.7)', letterSpacing: 1, marginTop: 2 },
   headerIcons: { flexDirection: 'row', gap: 14 },
   headerIconBtn: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(41,121,255,0.15)', borderWidth: 1, borderColor: 'rgba(41,121,255,0.5)', justifyContent: 'center', alignItems: 'center', shadowColor: '#2979FF', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.4, shadowRadius: 8, elevation: 6 },
   headerIcon: { fontSize: 20 },
