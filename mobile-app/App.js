@@ -5424,11 +5424,15 @@ export default function App() {
   const [adminStats, setAdminStats] = useState({});
   const [adminMessages, setAdminMessages] = useState([]);
 
-  // Profile modal state (change name / class selection)
+  // Profile modal state (change name / class selection / change password)
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [profileNameInput, setProfileNameInput] = useState('');
   const [profileSaving, setProfileSaving] = useState(false);
   const [selectedClass, setSelectedClass] = useState('6'); // Class 6 default; Class 7 coming soon
+  const [showPasswordSection, setShowPasswordSection] = useState(false);
+  const [currentPasswordInput, setCurrentPasswordInput] = useState('');
+  const [newPasswordInput, setNewPasswordInput] = useState('');
+  const [passwordChanging, setPasswordChanging] = useState(false);
 
   // 3D Models state
   const [selectedModel, setSelectedModel] = useState(null);
@@ -8607,6 +8611,60 @@ export default function App() {
             >
               <Text style={styles.primaryBtnText}>{profileSaving ? 'Saving...' : 'Save'}</Text>
             </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.primaryBtn, { marginTop: 10, backgroundColor: 'rgba(41,121,255,0.15)', borderWidth: 1, borderColor: 'rgba(41,121,255,0.4)' }]}
+              onPress={() => setShowPasswordSection(!showPasswordSection)}
+            >
+              <Text style={[styles.primaryBtnText, { color: '#2979FF' }]}>{showPasswordSection ? 'Hide' : 'Change'} Password</Text>
+            </TouchableOpacity>
+
+            {showPasswordSection && (
+              <View style={{ marginTop: 10 }}>
+                <TextInput
+                  style={styles.input}
+                  value={currentPasswordInput}
+                  onChangeText={setCurrentPasswordInput}
+                  placeholder="Current password"
+                  placeholderTextColor="#888"
+                  secureTextEntry
+                />
+                <TextInput
+                  style={[styles.input, { marginTop: 8 }]}
+                  value={newPasswordInput}
+                  onChangeText={setNewPasswordInput}
+                  placeholder="New password (min 6 chars)"
+                  placeholderTextColor="#888"
+                  secureTextEntry
+                />
+                <TouchableOpacity
+                  style={[styles.primaryBtn, { marginTop: 8, opacity: passwordChanging ? 0.6 : 1 }]}
+                  disabled={passwordChanging}
+                  onPress={async () => {
+                    if (!currentPasswordInput || !newPasswordInput) { Alert.alert('Required', 'Enter both passwords.'); return; }
+                    if (newPasswordInput.length < 6) { Alert.alert('Too short', 'New password must be at least 6 characters.'); return; }
+                    try {
+                      setPasswordChanging(true);
+                      const res = await fetch(API_URL + '/api/user/change-password', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
+                        body: JSON.stringify({ current_password: currentPasswordInput, new_password: newPasswordInput }),
+                      });
+                      const data = await res.json().catch(() => ({}));
+                      if (!res.ok) { Alert.alert('Error', data.detail || 'Could not change password'); return; }
+                      Alert.alert('Success', 'Password changed successfully.');
+                      setCurrentPasswordInput(''); setNewPasswordInput(''); setShowPasswordSection(false);
+                    } catch (e) {
+                      Alert.alert('Error', 'Network error. Try again.');
+                    } finally {
+                      setPasswordChanging(false);
+                    }
+                  }}
+                >
+                  <Text style={styles.primaryBtnText}>{passwordChanging ? 'Changing...' : 'Update Password'}</Text>
+                </TouchableOpacity>
+              </View>
+            )}
 
             <TouchableOpacity
               style={[styles.primaryBtn, { marginTop: 8, backgroundColor: 'rgba(255,82,82,0.15)', borderWidth: 1, borderColor: 'rgba(255,82,82,0.4)' }]}

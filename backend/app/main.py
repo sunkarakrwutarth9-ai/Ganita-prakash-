@@ -363,6 +363,26 @@ async def update_user_name(name_data: NameUpdate, user: dict = Depends(get_curre
         await db.commit()
         return {"status": "success", "message": "Name updated successfully"}
 
+class PasswordChange(BaseModel):
+    current_password: str
+    new_password: str
+
+@app.post("/api/user/change-password")
+async def change_password(data: PasswordChange, user: dict = Depends(get_current_user)):
+    """Change the authenticated user's password."""
+    if not data.new_password or len(data.new_password) < 6:
+        raise HTTPException(status_code=400, detail="New password must be at least 6 characters")
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        cursor = await db.execute("SELECT password_hash FROM users WHERE id = ?", (user["id"],))
+        row = await cursor.fetchone()
+        if not row or not verify_password(data.current_password, row["password_hash"]):
+            raise HTTPException(status_code=401, detail="Current password is incorrect")
+        new_hash = hash_password(data.new_password)
+        await db.execute("UPDATE users SET password_hash = ? WHERE id = ?", (new_hash, user["id"]))
+        await db.commit()
+    return {"status": "success", "message": "Password changed successfully"}
+
 @app.get("/api/progress")
 async def get_progress(user: dict = Depends(get_current_user)):
     async with aiosqlite.connect(DB_PATH) as db:
