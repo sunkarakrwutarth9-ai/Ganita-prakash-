@@ -276,7 +276,7 @@ const generate3DModelHTML = (modelType, modelName) => {
   `;
 };
 
-const API_URL = "https://app-zmatwbmr.fly.dev";
+const API_URL = "https://app-lmanxcts.fly.dev";
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // Admin email for Google OAuth
@@ -9023,11 +9023,11 @@ const styles = StyleSheet.create({
   examInfo: { fontSize: 13, color: 'rgba(255,82,82,0.8)', marginBottom: 16, textAlign: 'center' },
   textArea: { backgroundColor: 'rgba(0,229,255,0.08)', borderRadius: 14, padding: 14, color: '#fff', fontSize: 14, minHeight: 110, textAlignVertical: 'top', marginTop: 12, borderWidth: 1, borderColor: 'rgba(0,229,255,0.2)' },
   // Login styles - Deep Space Authentication Portal
-  loginContainer: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 50, paddingHorizontal: 24 },
-  loginLogoContainer: { width: 110, height: 110, borderRadius: 55, overflow: 'hidden', marginBottom: 20, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,229,255,0.1)', borderWidth: 2, borderColor: '#00E5FF', shadowColor: '#00E5FF', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.6, shadowRadius: 16 },
-  loginLogo: { width: 100, height: 100, borderRadius: 50 },
-  loginTitle: { fontSize: 26, fontWeight: 'bold', color: '#fff', marginBottom: 6, letterSpacing: 3, textShadowColor: '#00E5FF', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 8 },
-  loginSubtitle: { fontSize: 12, color: '#00E5FF', marginBottom: 36, letterSpacing: 2, textTransform: 'uppercase' },
+  loginContainer: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 30, paddingHorizontal: 24 },
+  loginLogoContainer: { width: 80, height: 80, borderRadius: 40, overflow: 'hidden', marginBottom: 14, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,229,255,0.1)', borderWidth: 2, borderColor: '#00E5FF', shadowColor: '#00E5FF', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.6, shadowRadius: 12 },
+  loginLogo: { width: 72, height: 72, borderRadius: 36 },
+  loginTitle: { fontSize: 22, fontWeight: 'bold', color: '#fff', marginBottom: 4, letterSpacing: 2.5, textShadowColor: '#00E5FF', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 8 },
+  loginSubtitle: { fontSize: 11, color: '#00E5FF', marginBottom: 22, letterSpacing: 1.8, textTransform: 'uppercase' },
   loginCard: { width: '100%', maxWidth: 400, backgroundColor: 'rgba(41,121,255,0.08)', borderRadius: 24, padding: 32, borderWidth: 1, borderColor: 'rgba(41,121,255,0.25)', shadowColor: '#2979FF', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.2, shadowRadius: 20 },
   welcomeTitle: { fontSize: 22, fontWeight: 'bold', color: '#fff', marginBottom: 10, letterSpacing: 1 },
   welcomeSubtitle: { fontSize: 13, color: 'rgba(0,229,255,0.7)', marginBottom: 28, letterSpacing: 0.5 },
