@@ -36,6 +36,7 @@ import { Audio } from 'expo-av';
 import { captureRef } from 'react-native-view-shot';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import auth from '@react-native-firebase/auth';
+import * as ImagePicker from 'expo-image-picker';
 
 // Configure notifications
 Notifications.setNotificationHandler({
@@ -5510,6 +5511,7 @@ export default function App() {
   const [isFinalExam, setIsFinalExam] = useState(false);
   const [examPhase, setExamPhase] = useState('mcq');
   const [penPaperAnswers, setPenPaperAnswers] = useState({});
+  const [penPaperPhotos, setPenPaperPhotos] = useState({}); // {index: imageUri} — photo of handwritten answer for Sections C/D/E
   const [mcqScore, setMcqScore] = useState(0);
 
   // Auth state
@@ -6789,6 +6791,35 @@ export default function App() {
     }
   };
 
+  // Capture a photo of the handwritten answer (Sections C/D/E require photo verification).
+  // Uses expo-image-picker; falls back to gallery if camera denied.
+  const capturePhotoForAnswer = async (index) => {
+    try {
+      const camPerm = await ImagePicker.requestCameraPermissionsAsync();
+      if (camPerm.status !== 'granted') {
+        Alert.alert('Camera permission required', 'Grant camera access to photograph your handwritten answer, or use Gallery instead.');
+        const libPerm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (libPerm.status !== 'granted') return;
+        const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.6, allowsEditing: false });
+        if (!result.canceled && result.assets && result.assets[0]) {
+          setPenPaperPhotos(prev => ({ ...prev, [index]: result.assets[0].uri }));
+        }
+        return;
+      }
+      const result = await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.6, allowsEditing: false });
+      if (!result.canceled && result.assets && result.assets[0]) {
+        setPenPaperPhotos(prev => ({ ...prev, [index]: result.assets[0].uri }));
+      }
+    } catch (e) {
+      console.log('capturePhotoForAnswer error:', e);
+      Alert.alert('Camera error', 'Could not open camera. Try again.');
+    }
+  };
+
+  const clearPhotoForAnswer = (index) => {
+    setPenPaperPhotos(prev => { const n = { ...prev }; delete n[index]; return n; });
+  };
+
   const submitPenPaperAnswer = (index, answer) => {
     setPenPaperAnswers({ ...penPaperAnswers, [index]: answer });
   };
@@ -7372,21 +7403,44 @@ export default function App() {
           <Text style={styles.sectionTitle}>Final Exam - Pen and Paper Section</Text>
           <Text style={styles.examInfo}>MCQ Score: {mcqScore}/50 | Pen-Paper: 50 marks (5 questions x 10 marks)</Text>
 
-          {finalExamPenPaper.map((question, index) => (
-            <View key={index} style={styles.questionCard}>
-              <Text style={styles.questionNumber}>Question {index + 1} ({question.marks} marks)</Text>
-              <Text style={styles.questionText}>{question.q}</Text>
-              <TextInput
-                style={styles.textArea}
-                multiline
-                numberOfLines={4}
-                placeholder="Write your answer here..."
-                placeholderTextColor="#888"
-                value={penPaperAnswers[index] || ''}
-                onChangeText={(text) => submitPenPaperAnswer(index, text)}
-              />
-            </View>
-          ))}
+          {finalExamPenPaper.map((question, index) => {
+            // Sections: 0=C (Very Short), 1=C, 2=D (Short), 3=D, 4=E (Long) — all require photo of handwritten answer
+            const sectionLabel = index <= 1 ? 'Section C (Very Short Answer)' : index <= 3 ? 'Section D (Short Answer)' : 'Section E (Long Answer)';
+            const photoUri = penPaperPhotos[index];
+            return (
+              <View key={index} style={styles.questionCard}>
+                <Text style={{fontSize: 11, color: '#00d4ff', fontWeight: '600', letterSpacing: 1, marginBottom: 4}}>{sectionLabel.toUpperCase()}</Text>
+                <Text style={styles.questionNumber}>Question {index + 1} ({question.marks} marks)</Text>
+                <Text style={styles.questionText}>{question.q}</Text>
+                <TextInput
+                  style={styles.textArea}
+                  multiline
+                  numberOfLines={4}
+                  placeholder="Write your answer here..."
+                  placeholderTextColor="#888"
+                  value={penPaperAnswers[index] || ''}
+                  onChangeText={(text) => submitPenPaperAnswer(index, text)}
+                />
+                <View style={{flexDirection: 'row', alignItems: 'center', marginTop: 8, gap: 8}}>
+                  <TouchableOpacity
+                    onPress={() => capturePhotoForAnswer(index)}
+                    style={{flex: 1, backgroundColor: '#0a4d68', paddingVertical: 10, paddingHorizontal: 14, borderRadius: 8, alignItems: 'center', flexDirection: 'row', justifyContent: 'center'}}
+                  >
+                    <Text style={{color: '#00d4ff', fontSize: 18, marginRight: 6}}>📷</Text>
+                    <Text style={{color: '#fff', fontWeight: '600'}}>{photoUri ? 'Retake Photo' : 'Attach Photo of Written Answer'}</Text>
+                  </TouchableOpacity>
+                  {photoUri ? (
+                    <TouchableOpacity onPress={() => clearPhotoForAnswer(index)} style={{backgroundColor: '#7a1f2b', paddingVertical: 10, paddingHorizontal: 14, borderRadius: 8}}>
+                      <Text style={{color: '#fff', fontWeight: '600'}}>Remove</Text>
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
+                {photoUri ? (
+                  <Image source={{uri: photoUri}} style={{width: '100%', height: 180, marginTop: 10, borderRadius: 8, resizeMode: 'cover', borderWidth: 1, borderColor: '#00d4ff'}} />
+                ) : null}
+              </View>
+            );
+          })}
 
           <TouchableOpacity style={styles.primaryBtn} onPress={submitFinalExam}>
             <Text style={styles.primaryBtnText}>Submit Final Exam</Text>
@@ -8331,7 +8385,7 @@ export default function App() {
         setCallStatus('Calling ' + user.name + '...');
         
         // Open in-app WebView for WebRTC call instead of external browser
-        const callUrl = `https://cbse-ai-learning-app-o4rl0um1.devinapps.com?autoLogin=true&token=${authToken}&callId=${data.call_id}&callType=${type}&targetUserId=${user.id}&mode=call`;
+        const callUrl = `https://ganitaprakash-math.web.app?autoLogin=true&token=${authToken}&callId=${data.call_id}&callType=${type}&targetUserId=${user.id}&mode=call`;
         setCallWebViewUrl(callUrl);
         setCallWebViewTitle(type === 'video' ? 'Video Call with ' + user.name : 'Voice Call with ' + user.name);
         setShowCallWebView(true);
