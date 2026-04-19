@@ -38,6 +38,14 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+# Fallback: load keys from untracked local file if env not set
+if not GROQ_API_KEY or not GEMINI_API_KEY:
+    try:
+        from app import secrets_local
+        GROQ_API_KEY = GROQ_API_KEY or getattr(secrets_local, "GROQ_API_KEY", "")
+        GEMINI_API_KEY = GEMINI_API_KEY or getattr(secrets_local, "GEMINI_API_KEY", "")
+    except Exception:
+        pass
 DB_PATH = "/data/app.db" if os.path.exists("/data") else "app.db"
 ADMIN_EMAIL = "admin@ganitaprakash.com"
 
