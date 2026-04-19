@@ -5720,7 +5720,9 @@ async function init() {
     var mode = urlParams.get('mode');
     
     // If we have auto-login parameters from mobile app
-    if (autoLoginToken && (mode === 'call' || mode === 'answer')) {
+    // (mode=call/answer for WebRTC; or mode=section with a ?section=... for Fundamentals/Whiteboard deep-links from the APK WebView)
+    var sectionParam = urlParams.get('section');
+    if (autoLoginToken && (mode === 'call' || mode === 'answer' || mode === 'section' || sectionParam)) {
         appState.authToken = autoLoginToken;
         appState.isLoggedIn = true;
         localStorage.setItem('authToken', autoLoginToken);
@@ -5755,6 +5757,9 @@ async function init() {
             setTimeout(function() {
                 initiateCallFromMobile(parseInt(targetUserId), callType || 'audio', callId || '');
             }, 1000);
+        } else if (sectionParam) {
+            // Deep-link from APK WebView: navigate to the requested section (fundamentals/whiteboard/etc.)
+            setTimeout(function(){ try { showSection(sectionParam); } catch(e){} }, 600);
         }
         return;
     }
@@ -5780,6 +5785,12 @@ async function init() {
             loadAdminDashboard();
             autoCompleteAdminProgress();
         }
+        // Honor URL ?section=... param so the APK WebView can deep-link into Fundamentals / Whiteboard
+        try {
+            var sp = new URLSearchParams(window.location.search);
+            var sec = sp.get('section');
+            if (sec) setTimeout(function(){ try { showSection(sec); } catch(e){} }, 400);
+        } catch(e) {}
     } else {
         // No valid token, show login screen
         showLoginScreen();
@@ -5914,7 +5925,7 @@ function renderFundamentals() {
         // First worksheet always unlocked; others need previous completed (admin bypasses)
         var prevWs = idx > 0 ? basicsWS[idx - 1] : null;
         var prevCompleted = prevWs ? (basicsProgress[prevWs.id] !== undefined) : true;
-        var isUnlocked = isAdmin || idx === 0 || prevCompleted;
+        var isUnlocked = true; // Fundamentals always unlocked for every role (admin + students)
         
         if (!isUnlocked) {
             return '<div class="chapter-card" style="border-color: #333; cursor: not-allowed; opacity: 0.5; position: relative;">' +

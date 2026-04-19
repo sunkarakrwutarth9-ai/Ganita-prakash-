@@ -19,6 +19,7 @@ import {
   BackHandler,
   Vibration,
   AppState,
+  PermissionsAndroid,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Sharing from 'expo-sharing';
@@ -302,6 +303,9 @@ const indianFestivals2026 = [
     { date: "04-03", name: "Good Friday", wish: "Blessed Good Friday! May peace be with you!", emoji: "✝️", color: "#8B4513" },
     { date: "04-05", name: "Easter Sunday", wish: "Happy Easter! May joy and hope fill your heart!", emoji: "🐣", color: "#FFB6C1" },
     { date: "04-14", name: "Baisakhi / Ambedkar Jayanti", wish: "Happy Baisakhi! Happy Ambedkar Jayanti!", emoji: "🌾", color: "#F1C40F" },
+    { date: "04-18", name: "Akshaya Tritiya", wish: "Happy Akshaya Tritiya! May endless prosperity and knowledge be yours!", emoji: "🪙", color: "#FFD700" },
+    { date: "04-19", name: "Akshaya Tritiya", wish: "Happy Akshaya Tritiya! May endless prosperity and knowledge be yours!", emoji: "🪙", color: "#FFD700" },
+    { date: "04-20", name: "Akshaya Tritiya", wish: "Happy Akshaya Tritiya! May endless prosperity and knowledge be yours!", emoji: "🪙", color: "#FFD700" },
     { date: "05-01", name: "Buddha Purnima", wish: "Happy Buddha Purnima! May wisdom light your way!", emoji: "🪷", color: "#9B59B6" },
     { date: "05-28", name: "Eid ul-Adha", wish: "Eid Mubarak! Wishing you joy and prosperity!", emoji: "🌙", color: "#2ECC71" },
     { date: "07-16", name: "Jagannath Rath Yatra", wish: "Happy Rath Yatra! Jai Jagannath!", emoji: "🛕", color: "#E67E22" },
@@ -5356,23 +5360,98 @@ const topLevelChaptersClass6 = [
   }
 ];
 
-// Class 7 chapters - 15 NCERT chapters (topics/questions lightweight; PDF/Video/TB come from chapterMedia7)
+// Class 7 chapters - 15 NCERT chapters with topics (PDF/Video/TB come from chapterMedia7)
 const chaptersClass7 = [
-  { id: 1, number: "1", title: "Large Numbers Around Us", description: "Learn about large numbers and place value.", topics: [], questions: [] },
-  { id: 2, number: "2", title: "Arithmetic Expressions", description: "Understanding arithmetic expressions and operations.", topics: [], questions: [] },
-  { id: 3, number: "3", title: "A Peek Beyond the Point", description: "Explore decimals and their applications.", topics: [], questions: [] },
-  { id: 4, number: "4", title: "Expressions Using Letter-Numbers", description: "Learn algebraic expressions with variables.", topics: [], questions: [] },
-  { id: 5, number: "5", title: "Parallel and Intersecting Lines", description: "Understanding parallel and intersecting lines.", topics: [], questions: [] },
-  { id: 6, number: "6", title: "Number Play", description: "Explore number patterns and games.", topics: [], questions: [] },
-  { id: 7, number: "7", title: "A Tale of Three Intersecting Lines", description: "Learn about triangles and their properties.", topics: [], questions: [] },
-  { id: 8, number: "8", title: "Working with Fractions", description: "Master fraction operations and applications.", topics: [], questions: [] },
-  { id: 9, number: "9", title: "Geometric Twins", description: "Explore congruence and similarity.", topics: [], questions: [] },
-  { id: 10, number: "10", title: "Operations with Integers", description: "Learn integer operations and number line.", topics: [], questions: [] },
-  { id: 11, number: "11", title: "Finding Common Ground", description: "Discover LCM and HCF concepts.", topics: [], questions: [] },
-  { id: 12, number: "12", title: "Another Peek Beyond the Point", description: "Advanced decimal operations and conversions.", topics: [], questions: [] },
-  { id: 13, number: "13", title: "Connecting the Dots", description: "Learn about coordinates and graphs.", topics: [], questions: [] },
-  { id: 14, number: "14", title: "Constructions and Tilings", description: "Master geometric constructions and tessellations.", topics: [], questions: [] },
-  { id: 15, number: "15", title: "Finding the Unknown", description: "Solve equations and find unknown values.", topics: [], questions: [] },
+  { id: 1, number: "1", title: "Large Numbers Around Us", description: "Learn about large numbers and place value.",
+    topics: [
+      { name: "Reading Large Numbers", content: "Indian and International systems of numeration. Place values up to crores (Indian) and millions (International). Using commas correctly: 1,23,45,678 (Indian) vs 12,345,678 (International). Reading aloud large quantities in daily life — population, money, distances." },
+      { name: "Estimation and Rounding", content: "Rounding numbers to the nearest 10, 100, 1000, lakh, or crore. Estimating sums, differences, products, and quotients for real-world problem solving. Why approximate answers are useful (quick checks, reasonableness)." },
+      { name: "Arithmetic with Large Numbers", content: "Adding, subtracting, multiplying, and dividing large numbers using standard algorithms. Expanded form and place-value reasoning. Word problems involving budgets, populations, and measurements." }
+    ], questions: [] },
+  { id: 2, number: "2", title: "Arithmetic Expressions", description: "Understanding arithmetic expressions and operations.",
+    topics: [
+      { name: "Expressions and Equality", content: "Writing arithmetic expressions using +, −, ×, ÷ and numbers. Meaning of equality (LHS = RHS). Using brackets to change order of operations. Examples: 12 + (3 × 4) vs (12 + 3) × 4." },
+      { name: "Order of Operations (BODMAS)", content: "The rule for evaluating expressions: Brackets, Orders (powers), Division/Multiplication, Addition/Subtraction, left to right. Simplifying step by step and checking your work." },
+      { name: "Terms, Factors, and Simplification", content: "Identifying terms separated by + or −, and factors joined by ×. Combining like terms. Writing an expression for a word problem." }
+    ], questions: [] },
+  { id: 3, number: "3", title: "A Peek Beyond the Point", description: "Explore decimals and their applications.",
+    topics: [
+      { name: "Place Value of Decimals", content: "Tenths, hundredths, thousandths. Reading and writing decimals (0.25, 1.305). Connection between decimals and fractions (0.5 = 1/2, 0.25 = 1/4)." },
+      { name: "Comparing and Ordering Decimals", content: "Comparing by aligning decimal points. Converting fractions to decimals and vice versa. Ascending/descending order." },
+      { name: "Adding and Subtracting Decimals", content: "Aligning the decimal point, borrowing/carrying, word problems involving money and measurement (weight, length, capacity)." }
+    ], questions: [] },
+  { id: 4, number: "4", title: "Expressions Using Letter-Numbers", description: "Learn algebraic expressions with variables.",
+    topics: [
+      { name: "Variables and Constants", content: "Letters as placeholders for unknown numbers. Distinguishing variables (x, y) from constants. Writing simple expressions from word statements: 'three more than n' → n + 3." },
+      { name: "Forming Algebraic Expressions", content: "Translating real-world situations into algebraic form: perimeter of a square = 4s, cost of n pencils at ₹5 each = 5n. Identifying coefficient, variable, and constant in each term." },
+      { name: "Substitution and Evaluation", content: "Plugging in specific values for variables to evaluate expressions. Verifying identities like 2(x+3) = 2x + 6 with sample values." }
+    ], questions: [] },
+  { id: 5, number: "5", title: "Parallel and Intersecting Lines", description: "Understanding parallel and intersecting lines.",
+    topics: [
+      { name: "Parallel vs Intersecting", content: "Parallel lines never meet, no matter how far extended. Intersecting lines meet at exactly one point. Real examples: railway tracks, crossroads, edges of a book." },
+      { name: "Angles Formed by a Transversal", content: "When a transversal cuts two lines, it forms corresponding, alternate interior, alternate exterior, and co-interior angles. If lines are parallel, corresponding angles are equal, alternate angles are equal, and co-interior angles are supplementary." },
+      { name: "Perpendicular Lines", content: "Two lines that meet at 90°. Drawing perpendiculars with a set-square or compass. Perpendicular distance is the shortest distance from a point to a line." }
+    ], questions: [] },
+  { id: 6, number: "6", title: "Number Play", description: "Explore number patterns and games.",
+    topics: [
+      { name: "Number Patterns", content: "Arithmetic patterns (constant difference), geometric patterns (constant ratio), square and triangular numbers, Fibonacci-like sequences. Finding the rule from the first few terms." },
+      { name: "Tests of Divisibility", content: "Quick tests for divisibility by 2, 3, 4, 5, 6, 8, 9, 10, 11. Using these to simplify factorization and number puzzles." },
+      { name: "Number Games and Puzzles", content: "Magic squares, digit-sum tricks, number pyramids. Exploring why some tricks work using place-value reasoning." }
+    ], questions: [] },
+  { id: 7, number: "7", title: "A Tale of Three Intersecting Lines", description: "Learn about triangles and their properties.",
+    topics: [
+      { name: "Types of Triangles", content: "Classification by sides: equilateral (all sides equal), isosceles (two sides equal), scalene (all sides different). Classification by angles: acute, right, obtuse." },
+      { name: "Angle-Sum Property", content: "Sum of the three interior angles of any triangle is 180°. Exterior angle = sum of the two interior opposite angles. Using these to find unknown angles." },
+      { name: "Triangle Inequality", content: "The sum of any two sides of a triangle must be greater than the third side. Checking whether three given lengths can form a triangle." }
+    ], questions: [] },
+  { id: 8, number: "8", title: "Working with Fractions", description: "Master fraction operations and applications.",
+    topics: [
+      { name: "Equivalent and Simplified Fractions", content: "Same value, different form: 2/4 = 1/2 = 4/8. Simplifying by dividing numerator and denominator by the GCF. Converting between proper, improper, and mixed fractions." },
+      { name: "Addition and Subtraction", content: "Using a common denominator (LCM of denominators) to add or subtract. Word problems with shared quantities, time, and distance." },
+      { name: "Multiplication and Division", content: "Multiplying fractions: (a/b)×(c/d) = ac/bd. Dividing: multiply by the reciprocal. Fraction of a whole vs fraction of another fraction." }
+    ], questions: [] },
+  { id: 9, number: "9", title: "Geometric Twins", description: "Explore congruence and similarity.",
+    topics: [
+      { name: "Congruent Figures", content: "Figures with the same shape AND same size. Tests for congruence of triangles: SSS, SAS, ASA, RHS. Corresponding parts of congruent triangles are equal (CPCT)." },
+      { name: "Similar Figures", content: "Figures with the same shape but possibly different size. Corresponding angles equal, corresponding sides in the same ratio. Scaling and enlargement." },
+      { name: "Symmetry Revisited", content: "Line symmetry and rotational symmetry of common figures: square, rectangle, equilateral triangle, regular hexagon, circle. Order of rotational symmetry." }
+    ], questions: [] },
+  { id: 10, number: "10", title: "Operations with Integers", description: "Learn integer operations and number line.",
+    topics: [
+      { name: "Representing Integers", content: "Integers on the number line: positive, zero, negative. Absolute value |x|. Comparing integers (which is greater: −5 or −2?)." },
+      { name: "Addition and Subtraction", content: "Rules for same sign / different signs. Subtracting an integer = adding its opposite. Visualising on the number line." },
+      { name: "Multiplication and Division", content: "Sign rules: (+)×(+) = +, (+)×(−) = −, (−)×(−) = +. Division follows the same sign rules. Word problems involving temperature, altitude, bank balance." }
+    ], questions: [] },
+  { id: 11, number: "11", title: "Finding Common Ground", description: "Discover LCM and HCF concepts.",
+    topics: [
+      { name: "Factors and Multiples", content: "Factors divide a number exactly. Multiples are the products of a number with 1, 2, 3… Prime factorization using the factor tree or division method." },
+      { name: "HCF (GCD)", content: "Largest common factor of two or more numbers. Methods: listing factors, prime factorization, long division (Euclid). Applications to simplifying fractions and sharing problems." },
+      { name: "LCM", content: "Smallest common multiple. Methods: listing multiples, prime factorization (take highest powers). HCF × LCM = product of two numbers. Applications: synchronising events, common denominators." }
+    ], questions: [] },
+  { id: 12, number: "12", title: "Another Peek Beyond the Point", description: "Advanced decimal operations and conversions.",
+    topics: [
+      { name: "Multiplying Decimals", content: "Multiply as whole numbers, then place the decimal point (total decimal places = sum of decimal places in the factors). Multiplying by 10, 100, 1000 shifts the decimal point right." },
+      { name: "Dividing Decimals", content: "Dividing a decimal by a whole number, and a decimal by a decimal (convert divisor to whole number). Dividing by 10, 100, 1000 shifts the decimal point left." },
+      { name: "Percent, Decimal, Fraction", content: "Converting between percent, decimals, and fractions (50% = 0.5 = 1/2). Applications in discount, profit/loss, and data interpretation." }
+    ], questions: [] },
+  { id: 13, number: "13", title: "Connecting the Dots", description: "Learn about coordinates and graphs.",
+    topics: [
+      { name: "Cartesian Plane", content: "The x-axis and y-axis, origin (0,0), four quadrants. Plotting points using (x, y) coordinates. Reading coordinates from a plotted point." },
+      { name: "Linear Patterns", content: "Points that lie on a straight line. Tables of values and corresponding points. Simple linear relationships: y = x, y = 2x, y = x + 1." },
+      { name: "Bar Graphs and Line Graphs", content: "Reading and drawing bar graphs and line graphs. Choosing appropriate scales. Interpreting trends (increasing, decreasing, constant)." }
+    ], questions: [] },
+  { id: 14, number: "14", title: "Constructions and Tilings", description: "Master geometric constructions and tessellations.",
+    topics: [
+      { name: "Constructions with Compass and Ruler", content: "Copying a line segment, bisecting a segment, constructing a perpendicular, bisecting an angle, constructing specific angles (60°, 90°, 30°, 45°, 120°)." },
+      { name: "Constructing Triangles", content: "Given SSS, SAS, or ASA. Drawing accurate triangles with compass and protractor. Checking the construction with measurement." },
+      { name: "Tilings and Tessellations", content: "Patterns that cover a plane without gaps. Which regular polygons tile on their own (triangle, square, hexagon) and why. Simple tessellations using translation and rotation." }
+    ], questions: [] },
+  { id: 15, number: "15", title: "Finding the Unknown", description: "Solve equations and find unknown values.",
+    topics: [
+      { name: "Simple Equations", content: "An equation has an equals sign. Solving means finding the value of the variable that makes LHS = RHS. Using balance (do the same to both sides)." },
+      { name: "One-Step and Two-Step Equations", content: "Examples: x + 5 = 12 → x = 7. 3x = 21 → x = 7. 2x + 3 = 11 → 2x = 8 → x = 4. Checking by substitution." },
+      { name: "Word Problems", content: "Translating a word problem into an equation: 'three times a number plus four is nineteen' → 3x + 4 = 19. Solving and interpreting the answer in context." }
+    ], questions: [] },
 ];
 
 const finalExamMCQ = [
@@ -6566,6 +6645,43 @@ export default function App() {
     }
   };
 
+  // Open the web-app in an in-app browser tab with auto-login + deep-link to a specific section.
+  // Used by Fundamentals, Whiteboard, Formula Videos cards on the home screen.
+  const openInAppWeb = async (section, title) => {
+    try {
+      var base = 'https://ganitaprakash-math.web.app';
+      var url = base + '?mode=section&section=' + encodeURIComponent(section || '');
+      if (authToken) url += '&token=' + encodeURIComponent(authToken);
+      await WebBrowser.openBrowserAsync(url, {
+        toolbarColor: '#0a0e27',
+        controlsColor: '#00d4ff',
+        dismissButtonStyle: 'close',
+        showTitle: true,
+      });
+    } catch (e) {
+      try { Linking.openURL('https://ganitaprakash-math.web.app?section=' + encodeURIComponent(section || '')); } catch (_) {}
+    }
+  };
+
+  // Request camera + microphone permissions explicitly (Android runtime prompt).
+  // Returns true only if both granted. Caller should block the exam if false.
+  const requestExamPermissions = async () => {
+    try {
+      if (Platform.OS !== 'android') return true;
+      const perms = [
+        PermissionsAndroid.PERMISSIONS.CAMERA,
+        PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+      ];
+      const res = await PermissionsAndroid.requestMultiple(perms);
+      const camOk = res[PermissionsAndroid.PERMISSIONS.CAMERA] === PermissionsAndroid.RESULTS.GRANTED;
+      const micOk = res[PermissionsAndroid.PERMISSIONS.RECORD_AUDIO] === PermissionsAndroid.RESULTS.GRANTED;
+      return camOk && micOk;
+    } catch (e) {
+      console.log('Permission request error:', e);
+      return false;
+    }
+  };
+
   const startQuiz = () => {
     // Show exam proctoring instructions first with screen sharing permission request
     Alert.alert(
@@ -6575,7 +6691,12 @@ export default function App() {
         { text: 'Cancel', style: 'cancel' },
         { 
           text: 'Allow & Start Exam', 
-          onPress: () => {
+          onPress: async () => {
+            const ok = await requestExamPermissions();
+            if (!ok) {
+              Alert.alert('Permissions Required', 'Camera and microphone access are required to start the exam. Please allow them in Settings and try again.');
+              return;
+            }
             // Start screen sharing and monitoring
             startScreenSharing();
             Alert.alert(
@@ -6605,12 +6726,17 @@ export default function App() {
     // Show screen sharing permission request first
     Alert.alert(
       'Screen & Camera Permission Required',
-      'GANITA PRAKASH needs to monitor your screen and camera during the Final Exam to ensure fair assessment.\n\nIMPORTANT RULES:\n\n1. Your screen and camera will be monitored\n2. If you leave the app, your exam will be auto-submitted\n3. Any cheating will result in automatic submission and failure\n4. This exam has MCQ and Written sections\n5. You need 80% to pass\n6. Make sure you are in a quiet, well-lit place\n\nBy clicking "Allow & Start", you agree to screen and camera monitoring.',
+      'GANITA PRAKASH needs to monitor your screen and camera during the Final Exam to ensure fair assessment.\n\nIMPORTANT RULES:\n\n1. Your screen and camera will be monitored\n2. If you leave the app, your exam will be auto-submitted\n3. Any cheating will result in automatic submission and failure\n4. This exam has MCQ and Written sections (A, B, C, D, E)\n5. You need 80% to pass\n6. Make sure you are in a quiet, well-lit place\n\nBy clicking "Allow & Start", you agree to screen and camera monitoring.',
       [
         { text: 'Cancel', style: 'cancel' },
         { 
           text: 'Allow & Start Final Exam', 
-          onPress: () => {
+          onPress: async () => {
+            const ok = await requestExamPermissions();
+            if (!ok) {
+              Alert.alert('Permissions Required', 'Camera and microphone access are required for the Final Exam. Please grant them and try again.');
+              return;
+            }
             // Start screen sharing and monitoring
             startScreenSharing();
             Alert.alert(
@@ -6830,12 +6956,19 @@ export default function App() {
           <Text style={styles.quickActionTitle}>Neural AI</Text>
           <Text style={styles.quickActionSubtitle}>Query system</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.quickActionCard} onPress={() => Alert.alert('Transmissions', 'Visual transmissions loading...')}>
+        <TouchableOpacity style={styles.quickActionCard} onPress={() => openInAppWeb('fundamentals', 'Fundamentals')}>
           <View style={styles.quickActionIconBox}>
-            <Text style={styles.quickActionIconText}>◉</Text>
+            <Text style={styles.quickActionIconText}>📐</Text>
           </View>
-          <Text style={styles.quickActionTitle}>Transmissions</Text>
-          <Text style={styles.quickActionSubtitle}>Visual data</Text>
+          <Text style={styles.quickActionTitle}>Fundamentals</Text>
+          <Text style={styles.quickActionSubtitle}>Basics — unlocked</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.quickActionCard} onPress={() => openInAppWeb('whiteboard', 'Whiteboard')}>
+          <View style={styles.quickActionIconBox}>
+            <Text style={styles.quickActionIconText}>✏️</Text>
+          </View>
+          <Text style={styles.quickActionTitle}>Whiteboard</Text>
+          <Text style={styles.quickActionSubtitle}>Draw & solve</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.quickActionCard} onPress={() => setShowResources(true)}>
           <View style={styles.quickActionIconBox}>
@@ -6850,6 +6983,13 @@ export default function App() {
           </View>
           <Text style={styles.quickActionTitle}>Command Link</Text>
           <Text style={styles.quickActionSubtitle}>Contact base</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.quickActionCard} onPress={() => openInAppWeb('formula-videos', 'Formula Videos')}>
+          <View style={styles.quickActionIconBox}>
+            <Text style={styles.quickActionIconText}>◉</Text>
+          </View>
+          <Text style={styles.quickActionTitle}>Transmissions</Text>
+          <Text style={styles.quickActionSubtitle}>Formula videos</Text>
         </TouchableOpacity>
       </View>
 

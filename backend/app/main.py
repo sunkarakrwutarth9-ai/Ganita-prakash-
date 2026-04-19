@@ -160,6 +160,7 @@ class MessageCreate(BaseModel):
     content: str
     message_type: str = "text"
     media_url: Optional[str] = None
+    target_user_id: Optional[int] = None  # Optional; used by admin to reply to a specific student
 
 class AIChat(BaseModel):
     message: str
@@ -443,8 +444,24 @@ async def get_messages(limit: int = 100, user: dict = Depends(get_current_user))
 @app.post("/api/messages")
 async def send_message(message_data: MessageCreate, user: dict = Depends(get_current_user)):
     async with aiosqlite.connect(DB_PATH) as db:
-        cursor = await db.execute("INSERT INTO messages (user_id, content, message_type, media_url, platform) VALUES (?, ?, ?, ?, ?)",
-            (user["id"], message_data.content, message_data.message_type, message_data.media_url, user.get("platform", "apk")))
+        # Ensure admin-reply columns exist (idempotent)
+        for ddl in (
+            "ALTER TABLE messages ADD COLUMN is_admin_reply BOOLEAN DEFAULT FALSE",
+            "ALTER TABLE messages ADD COLUMN target_user_id INTEGER",
+        ):
+            try:
+                await db.execute(ddl)
+                await db.commit()
+            except Exception:
+                pass
+        # If the sender is admin, mark as admin reply so students can see it.
+        # target_user_id stays NULL = broadcast to all students.
+        is_admin_reply = bool(user.get("is_admin"))
+        target_user_id = getattr(message_data, "target_user_id", None)
+        cursor = await db.execute(
+            "INSERT INTO messages (user_id, content, message_type, media_url, platform, is_admin_reply, target_user_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (user["id"], message_data.content, message_data.message_type, message_data.media_url, user.get("platform", "apk"), is_admin_reply, target_user_id),
+        )
         await db.commit()
         return {"id": cursor.lastrowid, "status": "success"}
 
@@ -1029,11 +1046,12 @@ async def get_user_messages(user: dict = Depends(get_current_user)):
         except:
             pass  # Column already exists
         # Get messages sent by this user OR admin replies targeted to this user
+        # Student sees: their own messages + admin replies targeted to them + admin broadcasts (target_user_id IS NULL)
         cursor = await db.execute('''
             SELECT m.*, u.name as sender_name, u.username as sender_username
             FROM messages m 
             JOIN users u ON m.user_id = u.id 
-            WHERE m.user_id = ? OR (m.is_admin_reply = TRUE AND m.target_user_id = ?)
+            WHERE m.user_id = ? OR (m.is_admin_reply = TRUE AND (m.target_user_id = ? OR m.target_user_id IS NULL))
             ORDER BY m.created_at ASC
         ''', (user["id"], user["id"]))
         messages = [dict(m) for m in await cursor.fetchall()]
