@@ -366,6 +366,30 @@ const chapterMedia = {
     10: { title: "The Other Side of Zero", videoUrl: "https://drive.google.com/file/d/1FN9nkTnWCOTYF6El54AEtWtd-NKsUiBD/preview", videoSummary: "Introduction to integers.", pptUrl: "https://drive.google.com/file/d/18dQvLG_a1EOM5uz3JZKehQ-yOgtkzsJD/preview", pptTitle: "The Other Side of Zero", tbUrl: "https://drive.google.com/file/d/1fvKOqgxNrZFeqn5330REbgZoIcTgdyGi/preview", tbTitle: "Chapter 10 - The Other Side of Zero" },
 };
 
+// Chapter Media for Class 7 (NCERT Class 7 Mathematics)
+const chapterMedia7 = {
+    1: { title: "Large Numbers Around Us", pptUrl: "https://drive.google.com/file/d/1PnUzI9fqvDRy8FKpOmAA9EDaUfhuf4Z-/preview", pptTitle: 'Large Numbers Around Us PPT', videoUrl: "https://drive.google.com/file/d/1X7QzHm27NN-6nBobfxXZa1Nm4G6CQcZd/preview", videoSummary: 'Learn about large numbers and place value.', tbUrl: "https://drive.google.com/file/d/1x-pA5k71rU-2r8b2Jt3ItcKY3h4KJjKe/preview", tbTitle: "Chapter 1 - Maths T.B. (Class 7)" },
+    2: { title: "Arithmetic Expressions", pptUrl: "https://drive.google.com/file/d/1xvTFAdLyOyDoAo01nbWieKU0R2qdM7_8/preview", pptTitle: 'Arithmetic Expressions PPT', videoUrl: "https://drive.google.com/file/d/1sK1GMp-_N6Go9Q1vZgQ9V3yOxBY6cpsz/preview", videoSummary: 'Understanding arithmetic expressions and operations.', tbUrl: "https://drive.google.com/file/d/1AhOQJqrQbqhC2UTbxV7vQWhWWeBR-OvN/preview", tbTitle: "Chapter 2 - Maths T.B. (Class 7)" },
+    3: { title: "A Peek Beyond the Point", pptUrl: "https://drive.google.com/file/d/1-P9rU0YORr6i8TMbMZ-EP5Z8DSjitDsA/preview", pptTitle: 'A Peek Beyond the Point PPT', videoUrl: "https://drive.google.com/file/d/1ZAMjdzhld2m1at4RBIF2fxEVAoiQS4Yg/preview", videoSummary: 'Explore decimals and their applications.', tbUrl: "https://drive.google.com/file/d/1IC1e1lS2m_VEZymRFPidj976pqywcK5f/preview", tbTitle: "Chapter 3 - Maths T.B. (Class 7)" },
+    4: { title: "Expressions Using Letter-Numbers", pptUrl: "https://drive.google.com/file/d/15h1y4eUr9rAcxmik2GCvohoEsdZkJQ7m/preview", pptTitle: 'Expressions Using Letter-Numbers PPT', videoUrl: "https://drive.google.com/file/d/1JpHN1xoAfCTAxCFZFsw8G1xnTgbo_IAd/preview", videoSummary: 'Learn algebraic expressions with variables.', tbUrl: "https://drive.google.com/file/d/1gRtW2dURYE06R0hCLWsLR7jUCLo2CxC6/preview", tbTitle: "Chapter 4 - Maths T.B. (Class 7)" },
+    5: { title: "Parallel and Intersecting Lines", pptUrl: "https://drive.google.com/file/d/1gCrQ0eCdReQJBkO_4th0bHMF06pThPNM/preview", pptTitle: 'Parallel and Intersecting Lines PPT', videoUrl: "https://drive.google.com/file/d/1QoMI50p2Up32KlQE2_Um4EiAZeurIGXf/preview", videoSummary: 'Understanding parallel and intersecting lines.', tbUrl: "https://drive.google.com/file/d/1Ea6oZ7Datt3f7dRJHlCRTGjhsUFcD6bs/preview", tbTitle: "Chapter 5 - Maths T.B. (Class 7)" },
+    6: { title: "Number Play", pptUrl: "https://drive.google.com/file/d/1zHAnSrervSBRu30HrHIzhJYi39U1xB6p/preview", pptTitle: 'Number Play PPT', videoUrl: "https://drive.google.com/file/d/1-LBpIVFxvAju1VnaSG4jzQpilKc4ZgVr/preview", videoSummary: 'Explore number patterns and games.', tbUrl: "https://drive.google.com/file/d/1_YAfGFbiGsn5ySmMwd30DfVDToAriMdC/preview", tbTitle: "Chapter 6 - Maths T.B. (Class 7)" },
+    7: { title: "A Tale of Three Intersecting Lines", pptUrl: "https://drive.google.com/file/d/1DDn0YB9PftrWhIKOndfyCl81uEalfeLy/preview", pptTitle: 'A Tale of Three Intersecting Lines PPT', videoUrl: "https://drive.google.com/file/d/1g7okGSNzyKScQ_DU9-4HnqV28GTUejhp/preview", videoSummary: 'Learn about triangles and their properties.', tbUrl: "https://drive.google.com/file/d/1-ZA9wYIyeMCNaNDuTgcdwOH0dPnPoomL/preview", tbTitle: "Chapter 7 - Maths T.B. (Class 7)" },
+    8: { title: "Working with Fractions", pptUrl: "https://drive.google.com/file/d/16SRmBSTFrVCPTs2F-PDr7L2CbuIXIULa/preview", pptTitle: 'Working with Fractions PPT', videoUrl: "https://drive.google.com/file/d/1155B64YX5fCyWXUS-9tacPeRu8h_YY_h/preview", videoSummary: 'Master fraction operations and applications.', tbUrl: "https://drive.google.com/file/d/137oZEzZXej7N1WE9_i9_vK22annvRmVB/preview", tbTitle: "Chapter 8 - Maths T.B. (Class 7)" },
+    9: { title: "Geometric Twins", pptUrl: "https://drive.google.com/file/d/1Kyc1Za_FUjh7r88TH_iXRBSWM6y3fQGo/preview", pptTitle: 'Geometric Twins PPT', videoUrl: "https://drive.google.com/file/d/1ecFget9f37Byi6ClXJDO7gcpC-IRZ_xp/preview", videoSummary: 'Explore congruence and similarity.', tbUrl: "https://drive.google.com/file/d/1JFUx8oZejHebk124wAaRJJFVpVilCgGk/preview", tbTitle: "Chapter 9 - Maths T.B. (Class 7)" },
+    10: { title: "Operations with Integers", pptUrl: "https://drive.google.com/file/d/1BEiyNA3iMZ-b_AAq_ZyRO6lBbFxU8YP3/preview", pptTitle: 'Operations with Integers PPT', videoUrl: "https://drive.google.com/file/d/1Nk5SQv57L0a2zyKKsxLWkwzXDuCa5gwq/preview", videoSummary: 'Learn integer operations and number line.', tbUrl: "https://drive.google.com/file/d/1YZlVjAQAWNwGd0CNyOQQdRQyvQCBd9eV/preview", tbTitle: "Chapter 10 - Maths T.B. (Class 7)" },
+    11: { title: "Finding Common Ground", pptUrl: "https://drive.google.com/file/d/1T05PwRwf6hn9OM_wQ6Ahu7PcpQmZEPcA/preview", pptTitle: 'Finding Common Ground PPT', videoUrl: "https://drive.google.com/file/d/10zKY55ZDZR3kn2A44qZlMYfc63yEdHJs/preview", videoSummary: 'Discover LCM and HCF concepts.', tbUrl: "https://drive.google.com/file/d/1PSD1_m8jY_fDBBHuiR3jvfEm5HOvCPf3/preview", tbTitle: "Chapter 11 - Maths T.B. (Class 7)" },
+    12: { title: "Another Peek Beyond the Point", pptUrl: "https://drive.google.com/file/d/1VuaHKIrPd09Pp1aFfLZmcvtn9-P9kQnC/preview", pptTitle: 'Another Peek Beyond the Point PPT', videoUrl: "https://drive.google.com/file/d/1g-tt_wh9rORTW5z5HMwDRRR_kwZh5gGa/preview", videoSummary: 'Advanced decimal operations and conversions.', tbUrl: "https://drive.google.com/file/d/13l3XWmwILOT_54qErzPw4mKQT3ITB2GW/preview", tbTitle: "Chapter 12 - Maths T.B. (Class 7)" },
+    13: { title: "Connecting the Dots", pptUrl: "https://drive.google.com/file/d/1hQMfNCMKFg_cTOjtoWB9tXA2hNf-nG4r/preview", pptTitle: 'Connecting the Dots PPT', videoUrl: "https://drive.google.com/file/d/14GeI_8vmxT55x8htwqjtg8FpYDS3xfN5/preview", videoSummary: 'Learn about coordinates and graphs.', tbUrl: "https://drive.google.com/file/d/1gHOIMYrthkwAi9j2aqvMT2RxpCh0x8OH/preview", tbTitle: "Chapter 13 - Maths T.B. (Class 7)" },
+    14: { title: "Constructions and Tilings", pptUrl: "https://drive.google.com/file/d/1u-VMdnzYlzgIs2hxwmTyOOIztNRzSaAv/preview", pptTitle: 'Constructions and Tilings PPT', videoUrl: "https://drive.google.com/file/d/1B0TMjnLeRQeO5DaZYBDwoFnw6KvEOBY3/preview", videoSummary: 'Master geometric constructions and tessellations.', tbUrl: "https://drive.google.com/file/d/1T4YyM1dnspJ4oo3G9jVEjrOi-_Z-_3sk/preview", tbTitle: "Chapter 14 - Maths T.B. (Class 7)" },
+    15: { title: "Finding the Unknown", pptUrl: "https://drive.google.com/file/d/19n7EUdIFt9_uGIxhLTYaFIw2hX5W7S9C/preview", pptTitle: 'Finding the Unknown PPT', videoUrl: "https://drive.google.com/file/d/1bi0Y4jgPx1OYjcUJObtfLL7k2b9vAJUY/preview", videoSummary: 'Solve equations and find unknown values.', tbUrl: "https://drive.google.com/file/d/18vH5mCwdbFK5Lkk12gJMiH9E6-4Jhj7P/preview", tbTitle: "Chapter 15 - Maths T.B. (Class 7)" },
+};
+
+// Module-level current class ref; updated by component useEffect on selectedClass change
+let _currentClass = '6';
+const setCurrentClassRef = (c) => { _currentClass = String(c); };
+const getCurrentMedia = (chapterId) => (_currentClass === '7' ? chapterMedia7 : chapterMedia)[chapterId];
+
 // PDF Viewer HTML generator using PDF.js for inbuilt viewing
 const generatePDFViewerHTML = (base64Data) => {
   return `
@@ -771,14 +795,15 @@ let globalSetPdfUrl = null;
 // Helper function to open PDF files - INBUILT VIEWER
 const openPDF = async (chapterId, title, setShowPdfViewer, setPdfBase64, setPdfTitle, setPdfUrl) => {
   try {
-    // For chapters 1-10, we have PDF files
-    if (chapterId < 1 || chapterId > 10) {
+    // For Class 6: chapters 1-10; for Class 7: chapters 1-15
+    const maxChapter = _currentClass === '7' ? 15 : 10;
+    if (chapterId < 1 || chapterId > maxChapter) {
       Alert.alert('Coming Soon', 'PPT for this chapter will be available soon!');
       return;
     }
     
     // Check if using Google Drive URL
-    const media = chapterMedia[chapterId];
+    const media = getCurrentMedia(chapterId);
     if (media && media.pptUrl && media.pptUrl.includes('drive.google.com')) {
       // Use Google Drive URL directly in WebView
       if (setShowPdfViewer && setPdfTitle && setPdfUrl) {
@@ -871,13 +896,14 @@ let globalSetVideoUrl = null;
 // Helper function to open Video files - INBUILT VIEWER
 const openVideo = async (chapterId, title, setShowVideoPlayer, setVideoBase64, setVideoTitle, setVideoUrl) => {
   try {
-    if (chapterId < 1 || chapterId > 10) {
+    const maxChapter = _currentClass === '7' ? 15 : 10;
+    if (chapterId < 1 || chapterId > maxChapter) {
       Alert.alert('Coming Soon', 'Video for this chapter will be available soon!');
       return;
     }
     
     // Check if using Google Drive URL
-    const media = chapterMedia[chapterId];
+    const media = getCurrentMedia(chapterId);
     if (media && media.videoUrl && media.videoUrl.includes('drive.google.com')) {
       // Use Google Drive URL directly in WebView
       if (setShowVideoPlayer && setVideoTitle && setVideoUrl) {
@@ -1003,7 +1029,7 @@ const chapter3DModels = {
   ],
 };
 
-const chapters = [
+const topLevelChaptersClass6 = [
   {
     "id": 1,
     "number": "1",
@@ -5330,6 +5356,25 @@ const chapters = [
   }
 ];
 
+// Class 7 chapters - 15 NCERT chapters (topics/questions lightweight; PDF/Video/TB come from chapterMedia7)
+const chaptersClass7 = [
+  { id: 1, number: "1", title: "Large Numbers Around Us", description: "Learn about large numbers and place value.", topics: [], questions: [] },
+  { id: 2, number: "2", title: "Arithmetic Expressions", description: "Understanding arithmetic expressions and operations.", topics: [], questions: [] },
+  { id: 3, number: "3", title: "A Peek Beyond the Point", description: "Explore decimals and their applications.", topics: [], questions: [] },
+  { id: 4, number: "4", title: "Expressions Using Letter-Numbers", description: "Learn algebraic expressions with variables.", topics: [], questions: [] },
+  { id: 5, number: "5", title: "Parallel and Intersecting Lines", description: "Understanding parallel and intersecting lines.", topics: [], questions: [] },
+  { id: 6, number: "6", title: "Number Play", description: "Explore number patterns and games.", topics: [], questions: [] },
+  { id: 7, number: "7", title: "A Tale of Three Intersecting Lines", description: "Learn about triangles and their properties.", topics: [], questions: [] },
+  { id: 8, number: "8", title: "Working with Fractions", description: "Master fraction operations and applications.", topics: [], questions: [] },
+  { id: 9, number: "9", title: "Geometric Twins", description: "Explore congruence and similarity.", topics: [], questions: [] },
+  { id: 10, number: "10", title: "Operations with Integers", description: "Learn integer operations and number line.", topics: [], questions: [] },
+  { id: 11, number: "11", title: "Finding Common Ground", description: "Discover LCM and HCF concepts.", topics: [], questions: [] },
+  { id: 12, number: "12", title: "Another Peek Beyond the Point", description: "Advanced decimal operations and conversions.", topics: [], questions: [] },
+  { id: 13, number: "13", title: "Connecting the Dots", description: "Learn about coordinates and graphs.", topics: [], questions: [] },
+  { id: 14, number: "14", title: "Constructions and Tilings", description: "Master geometric constructions and tessellations.", topics: [], questions: [] },
+  { id: 15, number: "15", title: "Finding the Unknown", description: "Solve equations and find unknown values.", topics: [], questions: [] },
+];
+
 const finalExamMCQ = [
   { q: "What is the next number: 3, 6, 9, 12, ?", options: ["14", "15", "16", "18"], answer: 1 },
   { q: "An angle of 45 degrees is:", options: ["Acute", "Right", "Obtuse", "Reflex"], answer: 0 },
@@ -5428,7 +5473,11 @@ export default function App() {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [profileNameInput, setProfileNameInput] = useState('');
   const [profileSaving, setProfileSaving] = useState(false);
-  const [selectedClass, setSelectedClass] = useState('6'); // Class 6 default; Class 7 coming soon
+  const [selectedClass, setSelectedClass] = useState('6'); // '6' or '7'
+  // Sync the module-level currentClass ref so top-level helpers (openPDF/openVideo) resolve the correct media map
+  useEffect(() => { setCurrentClassRef(selectedClass); }, [selectedClass]);
+  // Per-class chapter list (shadows the top-level `chapters` array below)
+  const chapters = selectedClass === '7' ? chaptersClass7 : topLevelChaptersClass6;
   const [showPasswordSection, setShowPasswordSection] = useState(false);
   const [currentPasswordInput, setCurrentPasswordInput] = useState('');
   const [newPasswordInput, setNewPasswordInput] = useState('');
@@ -6550,7 +6599,7 @@ export default function App() {
   const startFinalExam = () => {
     const allCompleted = chapters.every(c => chapterProgress[c.id] === 'completed');
     if (!allCompleted && !isAdmin) {
-      Alert.alert('Locked', 'Complete all 10 chapters first!');
+      Alert.alert('Locked', `Complete all ${chapters.length} chapters first!`);
       return;
     }
     // Show screen sharing permission request first
@@ -6936,7 +6985,7 @@ export default function App() {
                     <TouchableOpacity 
                       style={[styles.resourceCard, {backgroundColor: '#EC4899'}]}
                       onPress={() => {
-                        const media = chapterMedia[currentChapter.id];
+                        const media = getCurrentMedia(currentChapter.id);
                         if (media && media.tbUrl) {
                           setPdfTitle(media.tbTitle || 'Maths T.B.');
                           setPdfUrl(media.tbUrl);
@@ -6956,7 +7005,7 @@ export default function App() {
                     <TouchableOpacity 
                       style={[styles.resourceCard, {backgroundColor: '#F97316'}]}
                       onPress={() => {
-                        const media = chapterMedia[currentChapter.id];
+                        const media = getCurrentMedia(currentChapter.id);
                         if (media && media.pptUrl) {
                           openPDF(currentChapter.id, media.pptTitle, setShowPdfViewer, setPdfBase64, setPdfTitle, setPdfUrl);
                         } else {
@@ -6974,7 +7023,7 @@ export default function App() {
           <TouchableOpacity 
             style={[styles.resourceCard, {backgroundColor: '#14B8A6'}]}
             onPress={() => {
-              const media = chapterMedia[currentChapter.id];
+              const media = getCurrentMedia(currentChapter.id);
               if (media && media.videoUrl) {
                 openVideo(currentChapter.id, media.title + ' Video', setShowVideoPlayer, setVideoBase64, setVideoTitle, setVideoUrl);
               } else {
@@ -7269,7 +7318,7 @@ export default function App() {
         <View style={styles.progressContainer}>
           <View style={[styles.progressBar, { width: overallProgress + '%' }]} />
         </View>
-        <Text style={styles.progressText}>{completedCount}/10 Chapters Completed ({overallProgress}%)</Text>
+        <Text style={styles.progressText}>{completedCount}/{chapters.length} Chapters Completed ({overallProgress}%)</Text>
 
         {chapters.map(chapter => (
           <View key={chapter.id} style={styles.progressCard}>
@@ -8573,14 +8622,10 @@ export default function App() {
                     { flex: 1, backgroundColor: selectedClass === cls ? '#00E5FF' : 'rgba(0,229,255,0.12)', borderWidth: 1, borderColor: '#00E5FF' },
                   ]}
                   onPress={() => {
-                    if (cls === '7') {
-                      Alert.alert('Class 7 coming soon', 'NCERT Class 7 Mathematics content is on the way.');
-                      return;
-                    }
                     setSelectedClass(cls);
                   }}
                 >
-                  <Text style={[styles.primaryBtnText, { color: selectedClass === cls ? '#0a0a2e' : '#00E5FF' }]}>Class {cls}{cls === '7' ? ' (soon)' : ''}</Text>
+                  <Text style={[styles.primaryBtnText, { color: selectedClass === cls ? '#0a0a2e' : '#00E5FF' }]}>Class {cls}</Text>
                 </TouchableOpacity>
               ))}
             </View>
