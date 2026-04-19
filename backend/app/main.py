@@ -118,8 +118,13 @@ def verify_password(password: str, hashed: str) -> bool:
 
 security = HTTPBearer()
 
-genai.configure(api_key=GEMINI_API_KEY)
-gemini_model = genai.GenerativeModel('gemini-pro')
+gemini_model = None
+if GEMINI_API_KEY:
+    try:
+        genai.configure(api_key=GEMINI_API_KEY)
+        gemini_model = genai.GenerativeModel('gemini-pro')
+    except Exception as e:
+        print(f"Gemini init error: {e}")
 
 class UserCreate(BaseModel):
     username: str
@@ -445,37 +450,46 @@ async def ai_chat(chat_data: AIChat, user: dict = Depends(get_optional_user)):
             system_prompt += f"\nCurrent chapter: {chapter_topics.get(chat_data.chapter_id, '')}"
         
         ai_response = None
-        
-        # Try Groq API first
-        try:
-            async with httpx.AsyncClient() as client:
-                groq_response = await client.post(
-                    "https://api.groq.com/openai/v1/chat/completions",
-                    headers={
-                        "Authorization": f"Bearer {GROQ_API_KEY}",
-                        "Content-Type": "application/json"
-                    },
-                    json={
-                        "model": "llama-3.3-70b-versatile",
-                        "messages": [
-                            {"role": "system", "content": system_prompt},
-                            {"role": "user", "content": chat_data.message}
-                        ],
-                        "max_tokens": 1024,
-                        "temperature": 0.7
-                    },
-                    timeout=30.0
-                )
-                if groq_response.status_code == 200:
-                    groq_data = groq_response.json()
-                    ai_response = groq_data["choices"][0]["message"]["content"]
-        except Exception as groq_error:
-            print(f"Groq API error: {groq_error}")
-        
-        # Fallback to Gemini if Groq fails
+
+        # Try Groq API first (preferred)
+        if GROQ_API_KEY:
+            try:
+                async with httpx.AsyncClient() as client:
+                    groq_response = await client.post(
+                        "https://api.groq.com/openai/v1/chat/completions",
+                        headers={
+                            "Authorization": f"Bearer {GROQ_API_KEY}",
+                            "Content-Type": "application/json"
+                        },
+                        json={
+                            "model": "llama-3.3-70b-versatile",
+                            "messages": [
+                                {"role": "system", "content": system_prompt},
+                                {"role": "user", "content": chat_data.message}
+                            ],
+                            "max_tokens": 1024,
+                            "temperature": 0.7
+                        },
+                        timeout=30.0
+                    )
+                    if groq_response.status_code == 200:
+                        groq_data = groq_response.json()
+                        ai_response = groq_data["choices"][0]["message"]["content"]
+                    else:
+                        print(f"Groq API status {groq_response.status_code}: {groq_response.text[:200]}")
+            except Exception as groq_error:
+                print(f"Groq API error: {groq_error}")
+
+        # Fallback to Gemini if Groq fails / not configured
+        if not ai_response and gemini_model is not None:
+            try:
+                response = gemini_model.generate_content(f"{system_prompt}\n\nStudent's question: {chat_data.message}")
+                ai_response = response.text
+            except Exception as gem_error:
+                print(f"Gemini error: {gem_error}")
+
         if not ai_response:
-            response = gemini_model.generate_content(f"{system_prompt}\n\nStudent's question: {chat_data.message}")
-            ai_response = response.text
+            ai_response = "AI assistant is not configured yet. Please contact admin to add an API key."
         
         # Only save to database if user is authenticated (not guest)
         if user["id"] != 0:
@@ -636,8 +650,33 @@ async def ai_chat_with_language(chat_data: GeminiChatWithLanguage, user: dict = 
             5: "Prime Time", 6: "Perimeter and Area", 7: "Fractions", 8: "Playing with Constructions", 9: "Symmetry", 10: "The Other Side of Zero"}
         if chat_data.chapter_id:
             system_prompt += f"\nCurrent chapter: {chapter_topics.get(chat_data.chapter_id, '')}"
-        response = gemini_model.generate_content(f"{system_prompt}\n\nStudent's question: {chat_data.message}")
-        ai_response = response.text
+
+        ai_response = None
+        # Prefer Groq
+        if GROQ_API_KEY:
+            try:
+                async with httpx.AsyncClient() as client:
+                    gr = await client.post(
+                        "https://api.groq.com/openai/v1/chat/completions",
+                        headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
+                        json={"model": "llama-3.3-70b-versatile",
+                              "messages": [{"role": "system", "content": system_prompt},
+                                           {"role": "user", "content": chat_data.message}],
+                              "max_tokens": 1024, "temperature": 0.7},
+                        timeout=30.0)
+                    if gr.status_code == 200:
+                        ai_response = gr.json()["choices"][0]["message"]["content"]
+            except Exception as ge:
+                print(f"Groq (lang) error: {ge}")
+        if not ai_response and gemini_model is not None:
+            try:
+                response = gemini_model.generate_content(f"{system_prompt}\n\nStudent's question: {chat_data.message}")
+                ai_response = response.text
+            except Exception as ee:
+                print(f"Gemini (lang) error: {ee}")
+        if not ai_response:
+            ai_response = "AI assistant is not configured yet."
+
         async with aiosqlite.connect(DB_PATH) as db:
             await db.execute("INSERT INTO ai_conversations (user_id, user_message, ai_response, chapter_id) VALUES (?, ?, ?, ?)",
                 (user["id"], chat_data.message, ai_response, chat_data.chapter_id))
