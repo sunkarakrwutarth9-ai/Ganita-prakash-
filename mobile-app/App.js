@@ -8369,6 +8369,23 @@ export default function App() {
     setCallingUser(user);
     setCallType(type);
     setCallStatus('Initiating ' + type + ' call...');
+    // Pre-request OS-level mic / camera permissions so the in-WebView WebRTC
+    // `getUserMedia()` call can actually succeed. Without this, Android denies
+    // the WebView access to mic/camera and media never flows.
+    try {
+      const micPerm = await Audio.requestPermissionsAsync();
+      if (!micPerm || micPerm.status !== 'granted') {
+        Alert.alert('Microphone permission required', 'Grant microphone access so the other person can hear you.');
+        return;
+      }
+      if (type === 'video') {
+        const camPerm = await ImagePicker.requestCameraPermissionsAsync();
+        if (!camPerm || camPerm.status !== 'granted') {
+          Alert.alert('Camera permission required', 'Grant camera access so the other person can see you.');
+          return;
+        }
+      }
+    } catch (_) { /* permission APIs may fail on very old Android; ignore and let WebView ask */ }
     try {
       const response = await fetch(`${API_URL}/api/webrtc/offer`, {
         method: 'POST',
@@ -9056,6 +9073,18 @@ export default function App() {
                   domStorageEnabled={true}
                   mediaPlaybackRequiresUserAction={false}
                   allowsInlineMediaPlayback={true}
+                  allowsProtectedMedia={true}
+                  mediaCapturePermissionGrantType={'grant'}
+                  originWhitelist={['*']}
+                  mixedContentMode={'always'}
+                  javaScriptCanOpenWindowsAutomatically={true}
+                  thirdPartyCookiesEnabled={true}
+                  allowFileAccess={true}
+                  allowUniversalAccessFromFileURLs={true}
+                  setSupportMultipleWindows={false}
+                  onPermissionRequest={(event) => {
+                    try { event && event.nativeEvent && event.nativeEvent.grant && event.nativeEvent.grant(event.nativeEvent.resources); } catch(_) {}
+                  }}
                   startInLoadingState={true}
                   renderLoading={() => (
                     <View style={{flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#1A1A2E'}}>

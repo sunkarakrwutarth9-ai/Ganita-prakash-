@@ -572,11 +572,20 @@ async def admin_action(action_data: AdminAction, admin: dict = Depends(get_admin
         elif action_data.action == "generate_certificate":
             await db.execute("INSERT INTO certificates (user_id, certificate_type, chapter_id) VALUES (?, 'admin_granted', ?)", (action_data.user_id, action_data.chapter_id))
         elif action_data.action == "delete_account":
-            # Delete all user data
-            await db.execute("DELETE FROM progress WHERE user_id = ?", (action_data.user_id,))
-            await db.execute("DELETE FROM certificates WHERE user_id = ?", (action_data.user_id,))
-            await db.execute("DELETE FROM messages WHERE user_id = ?", (action_data.user_id,))
-            await db.execute("DELETE FROM ai_chats WHERE user_id = ?", (action_data.user_id,))
+            # Delete all user data (ignore per-table errors so deletion still proceeds
+            # if an optional table doesn't exist on this deployment)
+            for stmt in (
+                "DELETE FROM progress WHERE user_id = ?",
+                "DELETE FROM certificates WHERE user_id = ?",
+                "DELETE FROM messages WHERE user_id = ?",
+                "DELETE FROM notifications WHERE user_id = ?",
+                "DELETE FROM ai_conversations WHERE user_id = ?",
+                "DELETE FROM exam_violations WHERE user_id = ?",
+            ):
+                try:
+                    await db.execute(stmt, (action_data.user_id,))
+                except Exception:
+                    pass
             await db.execute("DELETE FROM users WHERE id = ? AND is_admin = FALSE", (action_data.user_id,))
         await db.commit()
         return {"status": "success", "action": action_data.action}
@@ -1028,6 +1037,54 @@ async def websocket_webrtc(websocket: WebSocket, user_id: int):
             del webrtc_connections[user_id]
 
 # Get user's messages (for Connect with Master chat)
+@app.get("/api/admin/chat/{user_id}")
+async def admin_get_chat(user_id: int, admin: dict = Depends(get_admin_user)):
+    """Admin dashboard: fetch conversation between admin and a specific student.
+    Returns messages from the student + admin replies addressed to them."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        for ddl in (
+            "ALTER TABLE messages ADD COLUMN is_admin_reply BOOLEAN DEFAULT FALSE",
+            "ALTER TABLE messages ADD COLUMN target_user_id INTEGER",
+        ):
+            try:
+                await db.execute(ddl); await db.commit()
+            except Exception:
+                pass
+        cursor = await db.execute('''
+            SELECT m.*, u.name as sender_name, u.username as sender_username
+            FROM messages m JOIN users u ON m.user_id = u.id
+            WHERE m.user_id = ? OR (m.is_admin_reply = TRUE AND m.target_user_id = ?)
+            ORDER BY m.created_at ASC
+        ''', (user_id, user_id))
+        return {"messages": [dict(m) for m in await cursor.fetchall()]}
+
+class AdminReply(BaseModel):
+    user_id: int
+    message: str
+    message_type: str = "text"
+    media_url: Optional[str] = None
+
+@app.post("/api/admin/reply")
+async def admin_reply(reply: AdminReply, admin: dict = Depends(get_admin_user)):
+    """Admin posts a reply to a specific student. Creates a messages row
+    with is_admin_reply=TRUE and target_user_id set to the student."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        for ddl in (
+            "ALTER TABLE messages ADD COLUMN is_admin_reply BOOLEAN DEFAULT FALSE",
+            "ALTER TABLE messages ADD COLUMN target_user_id INTEGER",
+        ):
+            try:
+                await db.execute(ddl); await db.commit()
+            except Exception:
+                pass
+        cursor = await db.execute(
+            "INSERT INTO messages (user_id, content, message_type, media_url, platform, is_admin_reply, target_user_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (admin["id"], reply.message, reply.message_type, reply.media_url, "web", True, reply.user_id),
+        )
+        await db.commit()
+        return {"id": cursor.lastrowid, "status": "success"}
+
 @app.get("/api/user/messages")
 async def get_user_messages(user: dict = Depends(get_current_user)):
     """Get messages for the current user including admin replies"""
