@@ -1,12 +1,17 @@
-from fastapi import FastAPI, HTTPException, Depends, status, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Depends, status, WebSocket, WebSocketDisconnect, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from pydantic import BaseModel
+from fastapi.responses import Response
+from starlette.middleware.base import BaseHTTPMiddleware
+from pydantic import BaseModel, field_validator
 from typing import Optional, List, Dict
+from collections import defaultdict, deque
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
 import hashlib
 import secrets
+import re
+import time
 import google.generativeai as genai
 import aiosqlite
 import os
@@ -23,17 +28,108 @@ webrtc_calls: Dict[str, dict] = {}
 
 app = FastAPI(title="GANITA PRAKASH API", version="1.0.0")
 
-# Disable CORS. Do not remove this for full-stack development.
+# ---------------------------------------------------------------------------
+# Security: CORS restricted to our own first-party domains.
+# Previously allow_origins=["*"] which is a well-known XSS / CSRF risk.
+# ---------------------------------------------------------------------------
+ALLOWED_ORIGINS = [
+    "https://ganitaprakash-math.web.app",
+    "https://ganita-prakash-math-learning.web.app",
+    "https://ganita-prakash-maths.web.app",
+    "https://ganita-prakash-math-showcase.web.app",
+    "https://ganita-prakash-ncert-showcase.web.app",
+    "https://ganitaprakash-math.firebaseapp.com",
+    "https://ganita-prakash-math-learning.firebaseapp.com",
+    "https://ganita-prakash-maths.firebaseapp.com",
+    "https://ganita-prakash-math-showcase.firebaseapp.com",
+    "https://classics-92ea0.web.app",
+    "https://classics-92ea0.firebaseapp.com",
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://localhost:8080",
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
+    # The mobile APK does not send an Origin header (native fetch), so the
+    # browser-enforced CORS check doesn't apply to it — the APK is still
+    # allowed to hit the API normally.
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"],
 )
 
+# ---------------------------------------------------------------------------
+# Security headers: HSTS, CSP, X-Frame-Options, X-Content-Type-Options,
+# Referrer-Policy, Permissions-Policy. Applied to every response.
+# ---------------------------------------------------------------------------
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response: Response = await call_next(request)
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "camera=(self), microphone=(self), geolocation=()"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        return response
+
+app.add_middleware(SecurityHeadersMiddleware)
+
+# ---------------------------------------------------------------------------
+# Rate limiting: simple in-memory sliding-window by client IP.
+# Blocks abusive clients (bot signups, brute force) without adding a
+# Redis dependency. For production scale, swap for a persistent store.
+# ---------------------------------------------------------------------------
+_RATE_BUCKETS: Dict[str, Dict[str, deque]] = defaultdict(lambda: defaultdict(deque))
+_RATE_LIMITS: Dict[str, tuple] = {
+    # path_prefix -> (max_requests, window_seconds)
+    "/api/auth/register": (5, 3600),      # 5 signups / hour / IP  => stops bot floods
+    "/api/auth/login":    (10, 300),      # 10 logins / 5 min / IP => throttles brute-force
+    "/api/messages":      (60, 60),       # 60 messages / min / IP
+    "/api/ai/":           (30, 60),       # 30 AI calls / min / IP
+}
+
+def _rate_key(request: Request) -> str:
+    # Respect common proxy headers (Fly.io sets Fly-Client-IP and X-Forwarded-For)
+    for h in ("fly-client-ip", "x-forwarded-for", "x-real-ip"):
+        v = request.headers.get(h)
+        if v:
+            return v.split(",")[0].strip()
+    client = request.client
+    return client.host if client else "unknown"
+
+class RateLimitMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        path = request.url.path
+        limit = None; prefix_used = None
+        for prefix, lim in _RATE_LIMITS.items():
+            if path.startswith(prefix):
+                limit = lim; prefix_used = prefix; break
+        if limit:
+            max_req, window = limit
+            ip = _rate_key(request)
+            now = time.time()
+            bucket = _RATE_BUCKETS[prefix_used][ip]
+            while bucket and now - bucket[0] > window:
+                bucket.popleft()
+            if len(bucket) >= max_req:
+                retry_after = int(window - (now - bucket[0])) + 1
+                return Response(
+                    content='{"detail":"Too many requests. Please try again later."}',
+                    status_code=429,
+                    media_type="application/json",
+                    headers={"Retry-After": str(retry_after)},
+                )
+            bucket.append(now)
+        return await call_next(request)
+
+app.add_middleware(RateLimitMiddleware)
+
 # Configuration
-SECRET_KEY = "ganita-prakash-secret-key-2024"
+# Prefer env-provided secret. Fall back to a per-install hardcoded value so
+# existing tokens don't invalidate on deploy.
+SECRET_KEY = os.getenv("JWT_SECRET_KEY", "ganita-prakash-secret-key-2024")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
@@ -134,16 +230,64 @@ if GEMINI_API_KEY:
     except Exception as e:
         print(f"Gemini init error: {e}")
 
+_DANGEROUS_PATTERN = re.compile(r"(<\s*script|javascript:|onerror=|onload=|<iframe|<svg\s+on)", re.IGNORECASE)
+
+def _sanitize_text(v: str, field: str, max_len: int) -> str:
+    if v is None:
+        raise ValueError(f"{field} is required")
+    v = v.strip()
+    if not v:
+        raise ValueError(f"{field} cannot be empty")
+    if len(v) > max_len:
+        raise ValueError(f"{field} must be at most {max_len} characters")
+    if _DANGEROUS_PATTERN.search(v):
+        raise ValueError(f"{field} contains disallowed content")
+    return v
+
 class UserCreate(BaseModel):
     username: str
     password: str
     name: str
     platform: str = "apk"
 
+    @field_validator("username")
+    @classmethod
+    def _v_username(cls, v: str) -> str:
+        v = _sanitize_text(v, "username", 128)
+        # allow email OR short alphanumeric handle
+        if "@" in v:
+            if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", v):
+                raise ValueError("username must be a valid email or handle")
+        else:
+            if not re.match(r"^[a-zA-Z0-9_.\-]{3,40}$", v):
+                raise ValueError("username must be 3-40 chars (letters/digits/._-)")
+        return v.lower()
+
+    @field_validator("password")
+    @classmethod
+    def _v_password(cls, v: str) -> str:
+        if not v or len(v) < 6:
+            raise ValueError("password must be at least 6 characters")
+        if len(v) > 128:
+            raise ValueError("password too long")
+        return v
+
+    @field_validator("name")
+    @classmethod
+    def _v_name(cls, v: str) -> str:
+        return _sanitize_text(v, "name", 80)
+
 class UserLogin(BaseModel):
     username: str
     password: str
     platform: str = "apk"
+
+    @field_validator("username")
+    @classmethod
+    def _v_username(cls, v: str) -> str:
+        if not v:
+            raise ValueError("username is required")
+        return v.strip().lower()[:128]
 
 class Token(BaseModel):
     access_token: str
@@ -162,9 +306,28 @@ class MessageCreate(BaseModel):
     media_url: Optional[str] = None
     target_user_id: Optional[int] = None  # Optional; used by admin to reply to a specific student
 
+    @field_validator("content")
+    @classmethod
+    def _v_content(cls, v: str) -> str:
+        return _sanitize_text(v, "content", 4000)
+
+    @field_validator("message_type")
+    @classmethod
+    def _v_type(cls, v: str) -> str:
+        allowed = {"text", "image", "video", "audio", "file"}
+        v = (v or "text").lower()
+        if v not in allowed:
+            raise ValueError(f"message_type must be one of {sorted(allowed)}")
+        return v
+
 class AIChat(BaseModel):
     message: str
     chapter_id: Optional[int] = None
+
+    @field_validator("message")
+    @classmethod
+    def _v_message(cls, v: str) -> str:
+        return _sanitize_text(v, "message", 4000)
 
 class AdminAction(BaseModel):
     user_id: int
