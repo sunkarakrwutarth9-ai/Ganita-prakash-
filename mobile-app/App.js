@@ -8098,7 +8098,9 @@ export default function App() {
         keyExtractor={(item, index) => index.toString()}
         style={styles.chatList}
         renderItem={({ item, index }) => {
-          const isAdminMsg = item.sender_name === 'Master Admin' || item.is_admin;
+          const isAdminMsg = !!(item.is_admin_reply || item.is_admin ||
+            (item.sender_username && item.sender_username.toLowerCase().indexOf('admin') !== -1) ||
+            item.sender_name === 'Master' || item.sender_name === 'Master Admin');
           const isPDF = item.message_type === 'pdf' || (item.content && item.content.toLowerCase().endsWith('.pdf'));
           const isImage = item.message_type === 'image' || (item.content && (item.content.toLowerCase().endsWith('.jpg') || item.content.toLowerCase().endsWith('.png')));
           const isVoice = item.message_type === 'voice' || (item.content && item.content.startsWith('[Voice Message'));
