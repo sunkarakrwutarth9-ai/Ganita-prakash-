@@ -27,13 +27,14 @@ LG_SIZES = {
     "mipmap-xxxhdpi": 192,
 }
 
-# Adaptive icon visible inner safe-zone: 66dp / 108dp = 0.611. Anything inside
-# this radius is guaranteed visible regardless of mask shape.
-SAFE = 66.0 / 108.0
+# Full-bleed: logo fills the entire 108dp foreground canvas so it covers any
+# launcher mask (circle, squircle, square, rounded-square, teardrop) edge-to-
+# edge. User explicitly requested "cover entire shape".
+FILL = 1.0
 
 def make_foreground(size):
-    canvas = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-    inner = int(size * SAFE)
+    canvas = Image.new("RGBA", (size, size), BG)
+    inner = int(size * FILL)
     logo = src.resize((inner, inner), Image.LANCZOS)
     off = (size - inner) // 2
     canvas.paste(logo, (off, off), logo)
@@ -41,7 +42,7 @@ def make_foreground(size):
 
 def make_legacy(size, rounded=False):
     canvas = Image.new("RGBA", (size, size), BG)
-    inner = int(size * 0.78)
+    inner = int(size * 1.0)
     logo = src.resize((inner, inner), Image.LANCZOS)
     off = (size - inner) // 2
     canvas.paste(logo, (off, off), logo)
