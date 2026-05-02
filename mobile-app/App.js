@@ -37,6 +37,8 @@ import { captureRef } from 'react-native-view-shot';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import auth from '@react-native-firebase/auth';
 import * as ImagePicker from 'expo-image-picker';
+const WHITEBOARD_HTML = require('./whiteboardHtml');
+const { buildFundamentalsHtml } = require('./fundamentalsHtml');
 
 // Configure notifications
 Notifications.setNotificationHandler({
@@ -5363,96 +5365,6404 @@ const topLevelChaptersClass6 = [
 
 // Class 7 chapters - 15 NCERT chapters with topics (PDF/Video/TB come from chapterMedia7)
 const chaptersClass7 = [
-  { id: 1, number: "1", title: "Large Numbers Around Us", description: "Learn about large numbers and place value.",
-    topics: [
-      { name: "Reading Large Numbers", content: "Indian and International systems of numeration. Place values up to crores (Indian) and millions (International). Using commas correctly: 1,23,45,678 (Indian) vs 12,345,678 (International). Reading aloud large quantities in daily life — population, money, distances." },
-      { name: "Estimation and Rounding", content: "Rounding numbers to the nearest 10, 100, 1000, lakh, or crore. Estimating sums, differences, products, and quotients for real-world problem solving. Why approximate answers are useful (quick checks, reasonableness)." },
-      { name: "Arithmetic with Large Numbers", content: "Adding, subtracting, multiplying, and dividing large numbers using standard algorithms. Expanded form and place-value reasoning. Word problems involving budgets, populations, and measurements." }
-    ], questions: [] },
-  { id: 2, number: "2", title: "Arithmetic Expressions", description: "Understanding arithmetic expressions and operations.",
-    topics: [
-      { name: "Expressions and Equality", content: "Writing arithmetic expressions using +, −, ×, ÷ and numbers. Meaning of equality (LHS = RHS). Using brackets to change order of operations. Examples: 12 + (3 × 4) vs (12 + 3) × 4." },
-      { name: "Order of Operations (BODMAS)", content: "The rule for evaluating expressions: Brackets, Orders (powers), Division/Multiplication, Addition/Subtraction, left to right. Simplifying step by step and checking your work." },
-      { name: "Terms, Factors, and Simplification", content: "Identifying terms separated by + or −, and factors joined by ×. Combining like terms. Writing an expression for a word problem." }
-    ], questions: [] },
-  { id: 3, number: "3", title: "A Peek Beyond the Point", description: "Explore decimals and their applications.",
-    topics: [
-      { name: "Place Value of Decimals", content: "Tenths, hundredths, thousandths. Reading and writing decimals (0.25, 1.305). Connection between decimals and fractions (0.5 = 1/2, 0.25 = 1/4)." },
-      { name: "Comparing and Ordering Decimals", content: "Comparing by aligning decimal points. Converting fractions to decimals and vice versa. Ascending/descending order." },
-      { name: "Adding and Subtracting Decimals", content: "Aligning the decimal point, borrowing/carrying, word problems involving money and measurement (weight, length, capacity)." }
-    ], questions: [] },
-  { id: 4, number: "4", title: "Expressions Using Letter-Numbers", description: "Learn algebraic expressions with variables.",
-    topics: [
-      { name: "Variables and Constants", content: "Letters as placeholders for unknown numbers. Distinguishing variables (x, y) from constants. Writing simple expressions from word statements: 'three more than n' → n + 3." },
-      { name: "Forming Algebraic Expressions", content: "Translating real-world situations into algebraic form: perimeter of a square = 4s, cost of n pencils at ₹5 each = 5n. Identifying coefficient, variable, and constant in each term." },
-      { name: "Substitution and Evaluation", content: "Plugging in specific values for variables to evaluate expressions. Verifying identities like 2(x+3) = 2x + 6 with sample values." }
-    ], questions: [] },
-  { id: 5, number: "5", title: "Parallel and Intersecting Lines", description: "Understanding parallel and intersecting lines.",
-    topics: [
-      { name: "Parallel vs Intersecting", content: "Parallel lines never meet, no matter how far extended. Intersecting lines meet at exactly one point. Real examples: railway tracks, crossroads, edges of a book." },
-      { name: "Angles Formed by a Transversal", content: "When a transversal cuts two lines, it forms corresponding, alternate interior, alternate exterior, and co-interior angles. If lines are parallel, corresponding angles are equal, alternate angles are equal, and co-interior angles are supplementary." },
-      { name: "Perpendicular Lines", content: "Two lines that meet at 90°. Drawing perpendiculars with a set-square or compass. Perpendicular distance is the shortest distance from a point to a line." }
-    ], questions: [] },
-  { id: 6, number: "6", title: "Number Play", description: "Explore number patterns and games.",
-    topics: [
-      { name: "Number Patterns", content: "Arithmetic patterns (constant difference), geometric patterns (constant ratio), square and triangular numbers, Fibonacci-like sequences. Finding the rule from the first few terms." },
-      { name: "Tests of Divisibility", content: "Quick tests for divisibility by 2, 3, 4, 5, 6, 8, 9, 10, 11. Using these to simplify factorization and number puzzles." },
-      { name: "Number Games and Puzzles", content: "Magic squares, digit-sum tricks, number pyramids. Exploring why some tricks work using place-value reasoning." }
-    ], questions: [] },
-  { id: 7, number: "7", title: "A Tale of Three Intersecting Lines", description: "Learn about triangles and their properties.",
-    topics: [
-      { name: "Types of Triangles", content: "Classification by sides: equilateral (all sides equal), isosceles (two sides equal), scalene (all sides different). Classification by angles: acute, right, obtuse." },
-      { name: "Angle-Sum Property", content: "Sum of the three interior angles of any triangle is 180°. Exterior angle = sum of the two interior opposite angles. Using these to find unknown angles." },
-      { name: "Triangle Inequality", content: "The sum of any two sides of a triangle must be greater than the third side. Checking whether three given lengths can form a triangle." }
-    ], questions: [] },
-  { id: 8, number: "8", title: "Working with Fractions", description: "Master fraction operations and applications.",
-    topics: [
-      { name: "Equivalent and Simplified Fractions", content: "Same value, different form: 2/4 = 1/2 = 4/8. Simplifying by dividing numerator and denominator by the GCF. Converting between proper, improper, and mixed fractions." },
-      { name: "Addition and Subtraction", content: "Using a common denominator (LCM of denominators) to add or subtract. Word problems with shared quantities, time, and distance." },
-      { name: "Multiplication and Division", content: "Multiplying fractions: (a/b)×(c/d) = ac/bd. Dividing: multiply by the reciprocal. Fraction of a whole vs fraction of another fraction." }
-    ], questions: [] },
-  { id: 9, number: "9", title: "Geometric Twins", description: "Explore congruence and similarity.",
-    topics: [
-      { name: "Congruent Figures", content: "Figures with the same shape AND same size. Tests for congruence of triangles: SSS, SAS, ASA, RHS. Corresponding parts of congruent triangles are equal (CPCT)." },
-      { name: "Similar Figures", content: "Figures with the same shape but possibly different size. Corresponding angles equal, corresponding sides in the same ratio. Scaling and enlargement." },
-      { name: "Symmetry Revisited", content: "Line symmetry and rotational symmetry of common figures: square, rectangle, equilateral triangle, regular hexagon, circle. Order of rotational symmetry." }
-    ], questions: [] },
-  { id: 10, number: "10", title: "Operations with Integers", description: "Learn integer operations and number line.",
-    topics: [
-      { name: "Representing Integers", content: "Integers on the number line: positive, zero, negative. Absolute value |x|. Comparing integers (which is greater: −5 or −2?)." },
-      { name: "Addition and Subtraction", content: "Rules for same sign / different signs. Subtracting an integer = adding its opposite. Visualising on the number line." },
-      { name: "Multiplication and Division", content: "Sign rules: (+)×(+) = +, (+)×(−) = −, (−)×(−) = +. Division follows the same sign rules. Word problems involving temperature, altitude, bank balance." }
-    ], questions: [] },
-  { id: 11, number: "11", title: "Finding Common Ground", description: "Discover LCM and HCF concepts.",
-    topics: [
-      { name: "Factors and Multiples", content: "Factors divide a number exactly. Multiples are the products of a number with 1, 2, 3… Prime factorization using the factor tree or division method." },
-      { name: "HCF (GCD)", content: "Largest common factor of two or more numbers. Methods: listing factors, prime factorization, long division (Euclid). Applications to simplifying fractions and sharing problems." },
-      { name: "LCM", content: "Smallest common multiple. Methods: listing multiples, prime factorization (take highest powers). HCF × LCM = product of two numbers. Applications: synchronising events, common denominators." }
-    ], questions: [] },
-  { id: 12, number: "12", title: "Another Peek Beyond the Point", description: "Advanced decimal operations and conversions.",
-    topics: [
-      { name: "Multiplying Decimals", content: "Multiply as whole numbers, then place the decimal point (total decimal places = sum of decimal places in the factors). Multiplying by 10, 100, 1000 shifts the decimal point right." },
-      { name: "Dividing Decimals", content: "Dividing a decimal by a whole number, and a decimal by a decimal (convert divisor to whole number). Dividing by 10, 100, 1000 shifts the decimal point left." },
-      { name: "Percent, Decimal, Fraction", content: "Converting between percent, decimals, and fractions (50% = 0.5 = 1/2). Applications in discount, profit/loss, and data interpretation." }
-    ], questions: [] },
-  { id: 13, number: "13", title: "Connecting the Dots", description: "Learn about coordinates and graphs.",
-    topics: [
-      { name: "Cartesian Plane", content: "The x-axis and y-axis, origin (0,0), four quadrants. Plotting points using (x, y) coordinates. Reading coordinates from a plotted point." },
-      { name: "Linear Patterns", content: "Points that lie on a straight line. Tables of values and corresponding points. Simple linear relationships: y = x, y = 2x, y = x + 1." },
-      { name: "Bar Graphs and Line Graphs", content: "Reading and drawing bar graphs and line graphs. Choosing appropriate scales. Interpreting trends (increasing, decreasing, constant)." }
-    ], questions: [] },
-  { id: 14, number: "14", title: "Constructions and Tilings", description: "Master geometric constructions and tessellations.",
-    topics: [
-      { name: "Constructions with Compass and Ruler", content: "Copying a line segment, bisecting a segment, constructing a perpendicular, bisecting an angle, constructing specific angles (60°, 90°, 30°, 45°, 120°)." },
-      { name: "Constructing Triangles", content: "Given SSS, SAS, or ASA. Drawing accurate triangles with compass and protractor. Checking the construction with measurement." },
-      { name: "Tilings and Tessellations", content: "Patterns that cover a plane without gaps. Which regular polygons tile on their own (triangle, square, hexagon) and why. Simple tessellations using translation and rotation." }
-    ], questions: [] },
-  { id: 15, number: "15", title: "Finding the Unknown", description: "Solve equations and find unknown values.",
-    topics: [
-      { name: "Simple Equations", content: "An equation has an equals sign. Solving means finding the value of the variable that makes LHS = RHS. Using balance (do the same to both sides)." },
-      { name: "One-Step and Two-Step Equations", content: "Examples: x + 5 = 12 → x = 7. 3x = 21 → x = 7. 2x + 3 = 11 → 2x = 8 → x = 4. Checking by substitution." },
-      { name: "Word Problems", content: "Translating a word problem into an equation: 'three times a number plus four is nineteen' → 3x + 4 = 19. Solving and interpreting the answer in context." }
-    ], questions: [] },
+  {
+    "id": 1,
+    "number": "1",
+    "title": "Large Numbers Around Us",
+    "description": "Exploring large numbers like lakhs and crores, place value system, patterns in products, and real-world applications of big numbers",
+    "topics": [
+      {
+        "name": "1.1 A Lakh Varieties!",
+        "content": "This topic introduces large numbers through the fascinating story of rice varieties in India. Did you know there are more than 1,00,000 (one lakh) varieties of rice in the world? This helps students understand just how big one lakh really is.\n\n**Understanding One Lakh (1,00,000):**\nOne lakh = 100 thousands = 10 ten-thousands. If you count 1 number per second, it would take you about 28 hours to count to one lakh!\n\n**Real-World Examples of Large Numbers:**\n• India has approximately 140 crore people\n• The Earth is about 15 crore km from the Sun\n• A pinch of sand contains about 10,000 grains\n• The Indian Railways carries about 2.3 crore passengers daily\n\n**Place Value Connections:**\nIn the Indian system: 1,00,000 = 1 lakh. Each comma groups digits differently than the international system.\n• Indian: 1,00,00,000 (1 crore)\n• International: 10,000,000 (10 million)\n\n**Practice Tip:** When dealing with large numbers, always try to relate them to something you can visualize. For example, your school might have 1,000 students — so 1 lakh would be 100 schools like yours!"
+      },
+      {
+        "name": "1.2 Land of Tens",
+        "content": "Our number system is built entirely on powers of ten. This topic explores why we use base-10 and how place values work.\n\n**Powers of Ten:**\n• 10⁰ = 1 (ones place)\n• 10¹ = 10 (tens place)\n• 10² = 100 (hundreds place)\n• 10³ = 1,000 (thousands place)\n• 10⁴ = 10,000 (ten-thousands place)\n• 10⁵ = 1,00,000 (lakhs place)\n• 10⁶ = 10,00,000 (ten-lakhs place)\n• 10⁷ = 1,00,00,000 (crores place)\n\n**Why Base 10?**\nHumans have 10 fingers, which is likely why we developed a base-10 system. Other civilizations used base-12 (Babylonians counted finger joints) or base-20 (Mayans counted fingers and toes).\n\n**Expanded Form:**\nEvery number can be written as a sum of place values:\n5,34,267 = 5×1,00,000 + 3×10,000 + 4×1,000 + 2×100 + 6×10 + 7×1\n\n**Reading Large Numbers:**\nIn the Indian system, commas are placed after the hundreds, then every two digits: 1,23,45,678. Read as: one crore twenty-three lakh forty-five thousand six hundred seventy-eight.\n\n**Fun Fact:** Computers use base-2 (binary) because they work with ON/OFF switches!"
+      },
+      {
+        "name": "1.3 Of Crores and Crores!",
+        "content": "This section extends the place value system to crores and beyond. Students learn to read, write, and compare very large numbers used in real life.\n\n**Indian Place Value Chart (up to Crores):**\nCrores | Ten Lakhs | Lakhs | Ten Thousands | Thousands | Hundreds | Tens | Ones\n\n**Key Conversions:**\n• 1 lakh = 100 thousand\n• 10 lakhs = 1 million\n• 1 crore = 100 lakhs = 10 million\n• 10 crores = 100 million = 1 arab\n• 100 crores = 1 billion\n\n**Comparing Large Numbers:**\nStep 1: Count the digits — more digits means bigger number\nStep 2: If same digits, compare from the leftmost digit\nExample: 45,23,100 vs 45,32,100 → Compare lakhs place: 23 < 32, so first number is smaller\n\n**Real-World Large Numbers:**\n• India's GDP: approximately 350 lakh crore rupees\n• Distance to nearest star (Proxima Centauri): about 4 light years = 40,00,00,00,00,000 km\n• Number of cells in human body: about 37 lakh crore\n\n**Practice Tip:** When comparing numbers, first check the number of digits. A 7-digit number is always greater than any 6-digit number, no matter what the digits are!"
+      },
+      {
+        "name": "1.4 Exact and Approximate Values",
+        "content": "In real life, we often don't need exact numbers — approximations are more practical and easier to understand.\n\n**When to Use Approximations:**\n• Population of a city: We say 'about 2 crore' not '2,01,34,567'\n• Distance between cities: 'about 300 km' not '297.4 km'\n• Cost of a project: 'approximately 50 lakh' not '49,87,342'\n\n**Rounding Rules:**\n• If the digit to be dropped is 0-4: round down (keep the digit same)\n• If the digit to be dropped is 5-9: round up (increase the digit by 1)\n\n**Examples:**\n• 7,32,461 rounded to nearest lakh = 7,00,000\n• 7,62,461 rounded to nearest lakh = 8,00,000\n• 3,456 rounded to nearest hundred = 3,500\n• 3,432 rounded to nearest hundred = 3,400\n\n**Estimation in Calculations:**\nTo estimate 4,891 + 3,207:\nRound each: 5,000 + 3,000 = 8,000 (actual: 8,098)\nThis is useful for quickly checking if your answer makes sense!\n\n**Real-World Application:** Scientists often work with approximate values. The speed of light is approximately 3,00,000 km/s (exact: 2,99,792.458 km/s). The approximation is much easier to work with!"
+      },
+      {
+        "name": "1.5 Patterns in Products",
+        "content": "This topic explores fascinating patterns that emerge when multiplying numbers, helping students discover relationships between products and factors.\n\n**Pattern 1 - Multiplying by Powers of 10:**\n• 37 × 10 = 370 (add one zero)\n• 37 × 100 = 3,700 (add two zeros)\n• 37 × 1,000 = 37,000 (add three zeros)\n\n**Pattern 2 - Interesting Product Patterns:**\n• 1 × 9 + 1 = 10\n• 12 × 9 + 2 = 110\n• 123 × 9 + 3 = 1110\n• 1234 × 9 + 4 = 11110\n\n**Pattern 3 - Products with Repeated Digits:**\n• 7 × 11 × 13 = 1001\n• 1001 × any 3-digit number repeats that number: 1001 × 235 = 235235\n\n**Pattern 4 - Multiplying by 11:**\n• For 2-digit numbers: 34 × 11 = 374 (3, 3+4, 4)\n• 45 × 11 = 495 (4, 4+5, 5)\n\n**Why Patterns Matter:**\nPatterns in multiplication help us:\n• Calculate faster mentally\n• Check if our answers are reasonable\n• Understand deeper relationships in mathematics\n\n**Practice Tip:** Try discovering your own patterns! What happens when you multiply any number by 9 and add its digits?"
+      },
+      {
+        "name": "1.6 Did You Ever Wonder...?",
+        "content": "A culminating section that poses fascinating questions about large numbers in nature, science, and everyday life, encouraging curiosity and mathematical thinking.\n\n**Amazing Number Facts:**\n• There are about 1 lakh hairs on a human head\n• A human heart beats about 1,00,000 times per day\n• There are about 10 lakh ants for every human on Earth\n• The Milky Way contains about 100 arab (10,000 crore) stars\n\n**Numbers in the Human Body:**\n• Red blood cells: about 2.5 crore are produced every second\n• Nerve signals travel at about 400 km/h\n• DNA: if stretched out, would be about 2 meters long per cell\n• Total DNA in your body would stretch from Earth to Pluto and back!\n\n**Numbers in Nature:**\n• A sunflower can have up to 2,000 seeds\n• A single tree can have 2,00,000 leaves\n• Bees visit about 50-100 flowers per trip\n• A colony of bees can have 60,000-80,000 members\n\n**Numbers in Technology:**\n• Internet users worldwide: about 500 crore\n• Google processes about 850 crore searches per day\n• A smartphone has about 1,000 crore transistors\n\n**Think About It:** Can you estimate how many words you speak in a day? (Hint: Average person speaks about 16,000 words per day!)"
+      }
+    ],
+    "questions": [
+      {
+        "q": "How many zeros are there in 1 lakh?",
+        "options": [
+          "3",
+          "4",
+          "5",
+          "6"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "1 crore is equal to how many lakhs?",
+        "options": [
+          "10",
+          "100",
+          "1000",
+          "10000"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "What is the place value of 5 in 5,34,267?",
+        "options": [
+          "5 thousands",
+          "5 ten-thousands",
+          "5 lakhs",
+          "5 crores"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Which is the largest 6-digit number?",
+        "options": [
+          "100000",
+          "999999",
+          "900000",
+          "999990"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Round 7,62,461 to the nearest lakh:",
+        "options": [
+          "7,00,000",
+          "8,00,000",
+          "7,60,000",
+          "7,62,000"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "10 lakhs is equal to:",
+        "options": [
+          "1 crore",
+          "1 million",
+          "10 million",
+          "100 thousand"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "In the number 3,45,678, the digit 4 is in which place?",
+        "options": [
+          "Thousands",
+          "Ten thousands",
+          "Lakhs",
+          "Hundreds"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "What is 37 x 1000?",
+        "options": [
+          "370",
+          "3700",
+          "37000",
+          "370000"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Which number is greater: 45,23,100 or 45,32,100?",
+        "options": [
+          "45,23,100",
+          "45,32,100",
+          "Both are equal",
+          "Cannot compare"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "The successor of 99,999 is:",
+        "options": [
+          "99,998",
+          "1,00,000",
+          "10,000",
+          "9,99,999"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "How many 6-digit numbers are there in all?",
+        "options": [
+          "9,00,000",
+          "1,00,000",
+          "8,99,999",
+          "9,99,999"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "The smallest 7-digit number is:",
+        "options": [
+          "9999999",
+          "1000000",
+          "1000001",
+          "7000000"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "1 billion = how many crores?",
+        "options": [
+          "10",
+          "100",
+          "1000",
+          "1"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Round 3,456 to the nearest hundred:",
+        "options": [
+          "3,400",
+          "3,500",
+          "3,000",
+          "3,460"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "What is the expanded form of 6,05,032?",
+        "options": [
+          "6x100000+5x1000+3x10+2x1",
+          "6x100000+5x100+3x10+2x1",
+          "6x100000+0x10000+5x1000+0x100+3x10+2x1",
+          "6x10000+5x1000+32"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "If you count 1 number per second, how long to count to 1 lakh?",
+        "options": [
+          "About 1 hour",
+          "About 10 hours",
+          "About 28 hours",
+          "About 100 hours"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "1001 x 235 = ?",
+        "options": [
+          "235000",
+          "235235",
+          "236235",
+          "235035"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Which is the predecessor of 10,00,000?",
+        "options": [
+          "9,99,999",
+          "10,00,001",
+          "99,999",
+          "9,99,990"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "45 x 11 = ?",
+        "options": [
+          "455",
+          "495",
+          "485",
+          "505"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "The number of zeros in 10 crore is:",
+        "options": [
+          "6",
+          "7",
+          "8",
+          "9"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Estimate 4,891 + 3,207 by rounding to thousands:",
+        "options": [
+          "7,000",
+          "8,000",
+          "9,000",
+          "7,500"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Which digit is in the ten-lakhs place of 3,45,67,890?",
+        "options": [
+          "3",
+          "4",
+          "5",
+          "6"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "1 lakh = ___ ten thousands",
+        "options": [
+          "1",
+          "10",
+          "100",
+          "1000"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "The Indian and International systems differ in:",
+        "options": [
+          "Digits used",
+          "Placement of commas",
+          "Value of numbers",
+          "Base system"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "What is 1 crore in the international system?",
+        "options": [
+          "1 million",
+          "10 million",
+          "100 million",
+          "1 billion"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "How many thousands make 1 lakh?",
+        "options": [
+          "10",
+          "100",
+          "1000",
+          "10000"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "The place value of 0 in 3,05,042 at thousands place is:",
+        "options": [
+          "0",
+          "5000",
+          "5",
+          "50"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "34 x 11 = ?",
+        "options": [
+          "344",
+          "374",
+          "354",
+          "384"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Which is the correct Indian representation of 10 million?",
+        "options": [
+          "10,00,000",
+          "1,00,00,000",
+          "100,00,000",
+          "1,00,000"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Round 8,45,600 to nearest lakh:",
+        "options": [
+          "8,00,000",
+          "9,00,000",
+          "8,50,000",
+          "8,45,000"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "The face value of 7 in 47,83,291 is:",
+        "options": [
+          "7",
+          "7,00,000",
+          "70,000",
+          "7000"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "100 crores = ?",
+        "options": [
+          "1 million",
+          "10 million",
+          "100 million",
+          "1 billion"
+        ],
+        "answer": 3
+      },
+      {
+        "q": "What comes just after 9,99,99,999?",
+        "options": [
+          "10,00,00,000",
+          "9,99,99,998",
+          "10,00,00,001",
+          "1,00,00,00,000"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "Which is greater: 8 lakhs or 80 thousand?",
+        "options": [
+          "8 lakhs",
+          "80 thousand",
+          "Both equal",
+          "Cannot compare"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "12 x 9 + 2 = ?",
+        "options": [
+          "100",
+          "108",
+          "110",
+          "112"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "How many digits does the number 1 crore have?",
+        "options": [
+          "6",
+          "7",
+          "8",
+          "9"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Approximate value of 4,97,850 to nearest lakh:",
+        "options": [
+          "4,00,000",
+          "5,00,000",
+          "4,98,000",
+          "4,97,000"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "The product of 999 and 5 is closest to:",
+        "options": [
+          "4000",
+          "4500",
+          "5000",
+          "5500"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "In 87,65,432, the digit in crores place is:",
+        "options": [
+          "There is no crores digit",
+          "8",
+          "7",
+          "6"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "1 arab = ?",
+        "options": [
+          "10 lakhs",
+          "10 crores",
+          "100 crores",
+          "1000 lakhs"
+        ],
+        "answer": 1
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "number": "2",
+    "title": "Arithmetic Expressions",
+    "description": "Understanding and evaluating arithmetic expressions, order of operations, comparing expressions, and reading complex mathematical phrases",
+    "topics": [
+      {
+        "name": "2.1 Simple Expressions",
+        "content": "An arithmetic expression is a combination of numbers and operations (+, –, ×, ÷) that represents a value. Every expression, no matter how complex, evaluates to a single number.\n\n**What is an Expression?**\nAn expression is a mathematical phrase that combines numbers with operations. Examples:\n• 13 + 2 = 15\n• 20 – 4 = 16\n• 12 × 5 = 60\n• 18 ÷ 3 = 6\n\n**Writing Expressions from Situations:**\n• 'Raju has 15 marbles and gets 8 more' → 15 + 8\n• 'A ribbon 20 cm long is cut into 4 equal pieces' → 20 ÷ 4\n• 'Price of 3 notebooks at Rs. 45 each' → 3 × 45\n\n**Properties of Operations:**\n• **Commutative:** a + b = b + a and a × b = b × a (works for addition and multiplication, NOT for subtraction and division)\n• **Identity:** a + 0 = a (zero is additive identity), a × 1 = a (one is multiplicative identity)\n• **Zero property:** a × 0 = 0\n\n**Real-World Connection:** Every time you calculate the total cost at a shop, figure out how to split a bill, or measure ingredients for cooking, you are evaluating arithmetic expressions!\n\n**Practice Tip:** When solving word problems, first identify the numbers and the operation needed before writing the expression."
+      },
+      {
+        "name": "2.2 Reading and Evaluating Complex Expressions",
+        "content": "When an expression has multiple operations, we need rules to decide which operation to do first. This is called the order of operations (BODMAS/PEMDAS).\n\n**BODMAS Rule:**\nB – Brackets (solve what's inside first)\nO – Orders (powers and roots)\nD – Division (left to right)\nM – Multiplication (left to right)\nA – Addition (left to right)\nS – Subtraction (left to right)\n\n**Important:** Division and Multiplication have EQUAL priority — do them left to right. Same for Addition and Subtraction.\n\n**Examples:**\n• 3 + 4 × 5 = 3 + 20 = 23 (NOT 35, because multiplication comes before addition)\n• (3 + 4) × 5 = 7 × 5 = 35 (brackets change the order!)\n• 24 ÷ 6 + 2 × 3 = 4 + 6 = 10\n• 100 – 5 × (8 + 2) = 100 – 5 × 10 = 100 – 50 = 50\n\n**Nested Brackets:**\nWhen expressions have brackets within brackets, solve the innermost bracket first:\n2 × {3 + (4 × 5)} = 2 × {3 + 20} = 2 × 23 = 46\n\n**Common Mistakes:**\n• Doing operations left to right without considering BODMAS\n• Forgetting that multiplication/division come before addition/subtraction\n• Not solving brackets first\n\n**Practice Tip:** Always underline or highlight the part you need to solve first, then rewrite the expression step by step."
+      }
+    ],
+    "questions": [
+      {
+        "q": "What is the value of 3 + 4 x 5?",
+        "options": [
+          "35",
+          "23",
+          "60",
+          "17"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Evaluate: (3 + 4) x 5",
+        "options": [
+          "23",
+          "35",
+          "60",
+          "17"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "What is 24 / 6 + 2 x 3?",
+        "options": [
+          "10",
+          "15",
+          "18",
+          "6"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "In BODMAS, what does 'B' stand for?",
+        "options": [
+          "Base",
+          "Brackets",
+          "Before",
+          "Below"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Evaluate: 100 - 5 x (8 + 2)",
+        "options": [
+          "950",
+          "50",
+          "60",
+          "45"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Which property says a + b = b + a?",
+        "options": [
+          "Associative",
+          "Commutative",
+          "Distributive",
+          "Identity"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "What is the value of 15 + 0?",
+        "options": [
+          "0",
+          "15",
+          "150",
+          "1"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Evaluate: 2 x {3 + (4 x 5)}",
+        "options": [
+          "46",
+          "70",
+          "50",
+          "26"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "Which operation is performed first in 8 + 6 / 2?",
+        "options": [
+          "Addition",
+          "Division",
+          "Both together",
+          "Neither"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "What is 48 / 8 x 2?",
+        "options": [
+          "3",
+          "12",
+          "6",
+          "16"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "The additive identity is:",
+        "options": [
+          "1",
+          "0",
+          "-1",
+          "None"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Evaluate: 5 x 4 - 3 x 2",
+        "options": [
+          "14",
+          "34",
+          "26",
+          "7"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "Which is NOT commutative?",
+        "options": [
+          "Addition",
+          "Multiplication",
+          "Subtraction",
+          "Both A and B"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "What is the value of 7 x 1?",
+        "options": [
+          "0",
+          "1",
+          "7",
+          "8"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Evaluate: 36 / (6 x 3)",
+        "options": [
+          "18",
+          "2",
+          "6",
+          "3"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "In the expression 4 + 3 x 2, which operation is done first?",
+        "options": [
+          "Addition",
+          "Multiplication",
+          "Either one",
+          "None"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "'Price of 5 books at Rs. 30 each' is written as:",
+        "options": [
+          "5 + 30",
+          "5 - 30",
+          "5 x 30",
+          "5 / 30"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Evaluate: (10 + 5) x (10 - 5)",
+        "options": [
+          "75",
+          "100",
+          "50",
+          "25"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "What is 0 x 999?",
+        "options": [
+          "999",
+          "0",
+          "1",
+          "9990"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Evaluate: 8 + 8 / 8 + 8 x 8 - 8",
+        "options": [
+          "65",
+          "1",
+          "72",
+          "57"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "Which expression equals 20?",
+        "options": [
+          "4 x 4 + 4",
+          "4 + 4 x 4",
+          "4 x (4 + 4)",
+          "(4 + 4) + 4"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Evaluate: 15 - 3 x 4 + 2",
+        "options": [
+          "50",
+          "5",
+          "8",
+          "10"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "The multiplicative identity is:",
+        "options": [
+          "0",
+          "1",
+          "-1",
+          "The number itself"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Evaluate: 50 - {20 - (10 - 5)}",
+        "options": [
+          "25",
+          "35",
+          "40",
+          "15"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "What is 12 / 4 / 3?",
+        "options": [
+          "1",
+          "9",
+          "3",
+          "4"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "A ribbon of 20 cm cut into 4 equal pieces gives each piece of:",
+        "options": [
+          "4 cm",
+          "5 cm",
+          "16 cm",
+          "24 cm"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Evaluate: 6 + 6 x 6 - 6 / 6",
+        "options": [
+          "41",
+          "42",
+          "36",
+          "30"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "In 5 + 3 x (2 + 4), which bracket is solved first?",
+        "options": [
+          "No brackets needed",
+          "(2 + 4)",
+          "5 + 3",
+          "3 x 2"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "What does BODMAS stand for?",
+        "options": [
+          "Brackets Orders Division Multiplication Addition Subtraction",
+          "Base Operations Division Multiplication Addition Subtraction",
+          "Brackets Of Division Multiplication Addition Subtraction",
+          "Both Orders Division Multiplication Addition Signs"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "Evaluate: 2 + 3 x 4 - 5",
+        "options": [
+          "15",
+          "9",
+          "20",
+          "0"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Is 8 - 3 the same as 3 - 8?",
+        "options": [
+          "Yes",
+          "No",
+          "Sometimes",
+          "Cannot determine"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Evaluate: (12 + 8) / (4 + 1)",
+        "options": [
+          "2",
+          "3",
+          "4",
+          "5"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "What is 5 x 5 + 5 x 5?",
+        "options": [
+          "50",
+          "100",
+          "625",
+          "30"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "Evaluate: 1000 / 10 / 10",
+        "options": [
+          "1",
+          "10",
+          "100",
+          "1000"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Which gives the largest value?",
+        "options": [
+          "2 + 3 x 4",
+          "(2 + 3) x 4",
+          "2 x 3 + 4",
+          "2 x (3 + 4)"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Evaluate: 7 x 8 - 6 x 9",
+        "options": [
+          "2",
+          "3",
+          "0",
+          "-2"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "Which is correct: 18 / 3 x 2 = 12 or 18 / 3 x 2 = 3?",
+        "options": [
+          "12 is correct",
+          "3 is correct",
+          "Both are correct",
+          "Neither"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "If a = 5, what is a x a + a?",
+        "options": [
+          "30",
+          "15",
+          "25",
+          "35"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "Evaluate: 4 x [8 - (3 + 2)]",
+        "options": [
+          "12",
+          "20",
+          "8",
+          "16"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "Which expression represents 'subtract 7 from the product of 3 and 8'?",
+        "options": [
+          "7 - 3 x 8",
+          "3 x 8 - 7",
+          "(3 - 7) x 8",
+          "3 x (8 - 7)"
+        ],
+        "answer": 1
+      }
+    ]
+  },
+  {
+    "id": 3,
+    "number": "3",
+    "title": "A Peek Beyond the Point",
+    "description": "Introduction to decimals - tenths, hundredths, place value, units of measurement, comparing and locating decimals, and arithmetic with decimals",
+    "topics": [
+      {
+        "name": "3.1 The Need for Smaller Units",
+        "content": "When whole numbers aren't enough to express a measurement precisely, we need smaller parts — and that's where decimals come in.\n\n**Why Do We Need Decimals?**\nImagine measuring your height. You're not exactly 1 meter tall and not exactly 2 meters — you're somewhere in between, like 1.35 meters. Whole numbers can't express this!\n\n**Situations Requiring Decimals:**\n• Temperature: 98.6°F (normal body temperature)\n• Money: Rs. 45.50 (forty-five rupees and fifty paise)\n• Weight: 2.5 kg of rice\n• Distance: The school is 1.8 km away\n\n**From Fractions to Decimals:**\nDecimals are really fractions with denominators that are powers of 10:\n• 1/10 = 0.1 (one-tenth)\n• 1/100 = 0.01 (one-hundredth)\n• 3/10 = 0.3\n• 25/100 = 0.25\n\n**The Decimal Point:**\nThe dot between the whole number part and the fractional part is the decimal point. It separates 'wholes' from 'parts'.\nIn 23.45: 23 is the whole part, 45 is the decimal (fractional) part.\n\n**Practice Tip:** Think of decimals as money — Rs. 3.75 means 3 whole rupees and 75 paise (hundredths of a rupee)."
+      },
+      {
+        "name": "3.2 A Tenth Part",
+        "content": "When we divide something into 10 equal parts, each part is called one-tenth. In decimal notation, one-tenth is written as 0.1.\n\n**Understanding Tenths:**\n• 1/10 = 0.1 = one-tenth\n• 2/10 = 0.2 = two-tenths\n• 5/10 = 0.5 = five-tenths = one-half\n• 10/10 = 1.0 = one whole\n\n**Visualizing Tenths:**\nImagine a strip of paper divided into 10 equal parts. Each part represents 0.1. If you shade 3 parts, you have shaded 0.3 of the strip.\n\n**Tenths on a Number Line:**\nBetween 0 and 1, there are 9 points at equal distances: 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9\nBetween 3 and 4: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9\n\n**Tenths in Measurement:**\n• 1 cm = 10 mm, so 1 mm = 0.1 cm\n• 1 meter = 10 decimeters, so 1 dm = 0.1 m\n• 1 kg = 10 hectograms\n\n**Real-World Application:** When a shopkeeper weighs vegetables and says '2.3 kg', it means 2 kg and 3 tenths of a kg (which is 300 grams)."
+      },
+      {
+        "name": "3.3 A Hundredth Part",
+        "content": "When we divide something into 100 equal parts, each part is called one-hundredth. In decimal notation, one-hundredth is written as 0.01.\n\n**Understanding Hundredths:**\n• 1/100 = 0.01 = one-hundredth\n• 5/100 = 0.05 = five-hundredths\n• 25/100 = 0.25 = twenty-five hundredths\n• 100/100 = 1.00 = one whole\n\n**Relationship Between Tenths and Hundredths:**\n• 1 tenth = 10 hundredths (0.1 = 0.10)\n• 0.30 = 0.3 (3 tenths = 30 hundredths)\n• 0.50 = 0.5 (5 tenths = 50 hundredths)\n\n**Money Connection:**\n• 1 rupee = 100 paise\n• 1 paisa = 0.01 rupee\n• 25 paise = 0.25 rupee = Rs. 0.25\n• Rs. 7.50 = 7 rupees and 50 paise\n\n**Percentage Connection:**\nPercent means 'per hundred'. So 25% = 25/100 = 0.25. This connection between percentages and decimals is very useful!\n\n**Practice Tip:** To convert a fraction with denominator 100 to decimal, simply write the numerator with a decimal point two places from the right: 75/100 = 0.75."
+      },
+      {
+        "name": "3.4 Decimal Place Value",
+        "content": "Just like whole numbers have ones, tens, hundreds places going left, decimals have tenths, hundredths, thousandths places going right from the decimal point.\n\n**Decimal Place Value Chart:**\n... Hundreds | Tens | Ones . Tenths | Hundredths | Thousandths ...\n... 100 | 10 | 1 . 1/10 | 1/100 | 1/1000 ...\n\n**Reading Decimal Numbers:**\n• 3.7 = 'three point seven' or 'three and seven-tenths'\n• 15.23 = 'fifteen point two three' or 'fifteen and twenty-three hundredths'\n• 0.456 = 'zero point four five six' or 'four hundred fifty-six thousandths'\n\n**Expanded Form of Decimals:**\n34.56 = 3×10 + 4×1 + 5×(1/10) + 6×(1/100)\n= 30 + 4 + 0.5 + 0.06\n\n**Key Rule:** Adding zeros at the end of a decimal doesn't change its value:\n0.5 = 0.50 = 0.500 (all equal five-tenths)\nBut adding zeros between the decimal point and a digit DOES change it:\n0.5 ≠ 0.05 ≠ 0.005\n\n**Practice Tip:** When comparing or adding decimals, it helps to make them have the same number of decimal places by adding trailing zeros."
+      },
+      {
+        "name": "3.5 Units of Measurement",
+        "content": "Decimals are essential for converting between different units of measurement. Understanding these conversions helps in science, cooking, and daily life.\n\n**Length Conversions:**\n• 1 km = 1000 m, so 1 m = 0.001 km\n• 1 m = 100 cm, so 1 cm = 0.01 m\n• 1 cm = 10 mm, so 1 mm = 0.1 cm\n• Example: 3 km 250 m = 3.250 km = 3.25 km\n• Example: 7 m 5 cm = 7.05 m\n\n**Weight Conversions:**\n• 1 kg = 1000 g, so 1 g = 0.001 kg\n• Example: 2 kg 500 g = 2.500 kg = 2.5 kg\n• Example: 750 g = 0.750 kg = 0.75 kg\n\n**Capacity Conversions:**\n• 1 litre = 1000 mL, so 1 mL = 0.001 L\n• Example: 1 L 200 mL = 1.200 L = 1.2 L\n\n**Common Mistakes to Avoid:**\n• 3 m 5 cm is NOT 3.5 m! It is 3.05 m (since 5 cm = 0.05 m)\n• 2 kg 50 g is NOT 2.50 kg! It is 2.050 kg (since 50 g = 0.050 kg)\n\n**Practice Tip:** Always check: how many smaller units make one larger unit? If 100 cm = 1 m, then to convert cm to m, divide by 100 (move decimal point 2 places left)."
+      },
+      {
+        "name": "3.6 Locating and Comparing Decimals",
+        "content": "Being able to place decimals on a number line and compare them is a crucial skill. This helps in understanding the size of decimal numbers.\n\n**Locating Decimals on Number Line:**\nTo locate 2.7 on a number line:\n1. Find the interval 2 to 3\n2. Divide this interval into 10 equal parts\n3. Count 7 parts from 2 → that's 2.7\n\n**Comparing Decimals:**\nStep 1: Compare the whole number parts first\nStep 2: If equal, compare tenths\nStep 3: If still equal, compare hundredths, and so on\n\n**Examples:**\n• 3.5 vs 2.9: 3 > 2, so 3.5 > 2.9\n• 4.3 vs 4.7: Same whole part (4), compare tenths: 3 < 7, so 4.3 < 4.7\n• 5.23 vs 5.27: Same whole (5) and tenths (2), compare hundredths: 3 < 7, so 5.23 < 5.27\n\n**Ordering Decimals:**\nTo arrange in ascending order: 0.5, 0.35, 0.53, 0.3\nMake all same length: 0.50, 0.35, 0.53, 0.30\nOrder: 0.30 < 0.35 < 0.50 < 0.53\n\n**Between Any Two Decimals:**\nThere are infinitely many decimals between any two decimals! Between 0.1 and 0.2: 0.11, 0.12, 0.15, 0.19, etc."
+      },
+      {
+        "name": "3.7 Addition and Subtraction of Decimals",
+        "content": "Adding and subtracting decimals follows the same rules as whole numbers — just make sure to line up the decimal points!\n\n**Rules for Adding Decimals:**\n1. Write numbers one below the other, aligning decimal points\n2. Add trailing zeros if needed to make decimal places equal\n3. Add as usual, column by column from right to left\n4. Place the decimal point in the answer directly below\n\n**Examples:**\n• 23.45 + 7.3 = 23.45 + 7.30 = 30.75\n• 0.6 + 0.04 = 0.60 + 0.04 = 0.64\n• 134.5 + 28.75 = 134.50 + 28.75 = 163.25\n\n**Rules for Subtracting Decimals:**\nSame alignment rules as addition. Borrow from the left when needed, just like with whole numbers.\n\n**Examples:**\n• 45.8 - 23.5 = 22.3\n• 10 - 3.75 = 10.00 - 3.75 = 6.25\n• 5.2 - 0.86 = 5.20 - 0.86 = 4.34\n\n**Real-World Problems:**\n• You have Rs. 100. You spend Rs. 45.50. Balance = 100.00 - 45.50 = Rs. 54.50\n• Your height last year was 1.32 m. Now it's 1.40 m. You grew 0.08 m = 8 cm\n\n**Practice Tip:** Always align decimal points vertically. If a number has no decimal point (like 10), write it as 10.00."
+      },
+      {
+        "name": "3.8 More on the Decimal System",
+        "content": "The decimal system extends infinitely in both directions — larger place values to the left and smaller ones to the right.\n\n**The Pattern of Ten:**\nMoving left: each place is 10 times the previous\n... 1000, 100, 10, 1, 0.1, 0.01, 0.001 ...\nMoving right: each place is 1/10 of the previous\n\n**Thousandths:**\n• 0.001 = one-thousandth = 1/1000\n• 0.025 = twenty-five thousandths\n• 3.142 = 3 ones + 1 tenth + 4 hundredths + 2 thousandths\n\n**Decimal Equivalents of Common Fractions:**\n• 1/2 = 0.5\n• 1/4 = 0.25\n• 3/4 = 0.75\n• 1/5 = 0.2\n• 1/8 = 0.125\n• 1/3 = 0.333... (repeating)\n\n**Interesting Facts:**\n• The number π (pi) = 3.14159... has infinite non-repeating decimals\n• Some fractions give terminating decimals (1/4 = 0.25) while others give repeating decimals (1/3 = 0.333...)\n• A fraction gives a terminating decimal only when its denominator (in lowest form) has no prime factors other than 2 and 5\n\n**Practice Tip:** Memorize common fraction-decimal equivalents. They come up frequently in calculations and make mental math much faster!"
+      }
+    ],
+    "questions": [
+      {
+        "q": "What is 1/10 in decimal form?",
+        "options": [
+          "0.01",
+          "0.1",
+          "1.0",
+          "10"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "How many tenths make one whole?",
+        "options": [
+          "5",
+          "10",
+          "100",
+          "1000"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "What is 3/100 in decimal?",
+        "options": [
+          "0.3",
+          "0.03",
+          "3.0",
+          "0.003"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "5 cm = ___ m",
+        "options": [
+          "0.5",
+          "0.05",
+          "0.005",
+          "5.0"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Which is greater: 0.5 or 0.35?",
+        "options": [
+          "0.5",
+          "0.35",
+          "Both equal",
+          "Cannot compare"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "23.45 + 7.3 = ?",
+        "options": [
+          "30.75",
+          "30.48",
+          "96.45",
+          "24.18"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "What is the place value of 6 in 3.46?",
+        "options": [
+          "6 tenths",
+          "6 hundredths",
+          "6 ones",
+          "6 thousandths"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "10 - 3.75 = ?",
+        "options": [
+          "7.25",
+          "6.25",
+          "6.75",
+          "7.75"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "1 km 250 m = ___ km",
+        "options": [
+          "1.25",
+          "1.250",
+          "1.025",
+          "Both A and B"
+        ],
+        "answer": 3
+      },
+      {
+        "q": "0.5 = 0.50 is:",
+        "options": [
+          "True",
+          "False",
+          "Sometimes",
+          "Undefined"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "Which decimal is between 0.3 and 0.4?",
+        "options": [
+          "0.25",
+          "0.35",
+          "0.45",
+          "0.29"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "750 g = ___ kg",
+        "options": [
+          "7.50",
+          "0.750",
+          "75.0",
+          "0.075"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Arrange in ascending order: 0.5, 0.35, 0.53",
+        "options": [
+          "0.5, 0.35, 0.53",
+          "0.35, 0.5, 0.53",
+          "0.53, 0.5, 0.35",
+          "0.35, 0.53, 0.5"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "0.6 + 0.04 = ?",
+        "options": [
+          "0.10",
+          "0.64",
+          "1.0",
+          "0.604"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "What is 1/4 as a decimal?",
+        "options": [
+          "0.4",
+          "0.25",
+          "0.14",
+          "0.75"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "3 m 5 cm = ___ m",
+        "options": [
+          "3.5",
+          "3.05",
+          "3.005",
+          "35"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "45.8 - 23.5 = ?",
+        "options": [
+          "22.3",
+          "23.3",
+          "21.3",
+          "22.5"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "How many hundredths are in 0.3?",
+        "options": [
+          "3",
+          "30",
+          "300",
+          "0.3"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "5.2 - 0.86 = ?",
+        "options": [
+          "4.34",
+          "4.44",
+          "4.66",
+          "4.36"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "The decimal 0.05 means:",
+        "options": [
+          "5 tenths",
+          "5 hundredths",
+          "5 thousandths",
+          "5 ones"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "2 kg 50 g = ___ kg",
+        "options": [
+          "2.50",
+          "2.050",
+          "2.005",
+          "2.5"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Which is smallest: 0.5, 0.05, 0.005?",
+        "options": [
+          "0.5",
+          "0.05",
+          "0.005",
+          "All are equal"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "0.125 in fraction form is:",
+        "options": [
+          "1/4",
+          "1/8",
+          "1/5",
+          "1/125"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "134.5 + 28.75 = ?",
+        "options": [
+          "163.25",
+          "162.25",
+          "163.75",
+          "422.5"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "1 paisa = ___ rupees",
+        "options": [
+          "0.1",
+          "0.01",
+          "0.001",
+          "1"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "The expanded form of 4.56 is:",
+        "options": [
+          "4+5+6",
+          "4+0.5+0.06",
+          "4+56",
+          "4+0.56"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Which fraction gives a terminating decimal?",
+        "options": [
+          "1/3",
+          "1/7",
+          "1/4",
+          "1/6"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "1.8 + 2.75 = ?",
+        "options": [
+          "4.55",
+          "4.45",
+          "3.55",
+          "4.53"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "0.333... is the decimal for:",
+        "options": [
+          "1/2",
+          "1/3",
+          "1/4",
+          "3/10"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Rs. 100 - Rs. 45.50 = ?",
+        "options": [
+          "Rs. 54.50",
+          "Rs. 55.50",
+          "Rs. 55.00",
+          "Rs. 45.50"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "Between 2.3 and 2.4, there are:",
+        "options": [
+          "No numbers",
+          "1 number",
+          "9 numbers",
+          "Infinite numbers"
+        ],
+        "answer": 3
+      },
+      {
+        "q": "7.05 means:",
+        "options": [
+          "7 and 5 tenths",
+          "7 and 5 hundredths",
+          "7 and 50 hundredths",
+          "7 and 5 thousandths"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "What is 3/4 as a decimal?",
+        "options": [
+          "0.34",
+          "0.75",
+          "0.25",
+          "3.4"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "1 L 200 mL = ___ L",
+        "options": [
+          "1.200",
+          "1.2",
+          "12.00",
+          "Both A and B"
+        ],
+        "answer": 3
+      },
+      {
+        "q": "4.3 vs 4.7: which is larger?",
+        "options": [
+          "4.3",
+          "4.7",
+          "Same",
+          "Cannot tell"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "What is 1/5 as a decimal?",
+        "options": [
+          "0.15",
+          "0.5",
+          "0.2",
+          "0.05"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "The value of pi (3.14159...) is:",
+        "options": [
+          "Terminating",
+          "Repeating",
+          "Non-terminating non-repeating",
+          "A whole number"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "25/100 = ?",
+        "options": [
+          "2.5",
+          "0.25",
+          "25",
+          "0.025"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "0.50 and 0.5 are:",
+        "options": [
+          "Equal",
+          "0.50 is greater",
+          "0.5 is greater",
+          "Cannot compare"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "Height grew from 1.32 m to 1.40 m. Growth = ?",
+        "options": [
+          "0.8 m",
+          "0.08 m",
+          "8 m",
+          "0.12 m"
+        ],
+        "answer": 1
+      }
+    ]
+  },
+  {
+    "id": 4,
+    "number": "4",
+    "title": "Expressions Using Letter-Numbers",
+    "description": "Introduction to algebraic thinking - using letters to represent unknowns, forming expressions, simplifying algebraic expressions, and discovering patterns",
+    "topics": [
+      {
+        "name": "4.1 The Notion of Letter-Numbers",
+        "content": "In mathematics, we often use letters like x, y, n, a, b to represent numbers we don't know yet. These are called variables or letter-numbers.\n\n**Why Use Letters?**\nLetters help us write general rules that work for ALL numbers, not just specific ones. For example:\n• 'Any number plus zero equals that number' can be written as: a + 0 = a\n• 'The perimeter of a square with side s' can be written as: P = 4s\n\n**Letters as Unknowns:**\nWhen we write x + 3 = 7, the letter x represents an unknown number (which is 4).\n\n**Letters as Variables:**\nWhen we write 2n + 1, n can take different values, and the expression gives different results:\n• n = 1: 2(1) + 1 = 3\n• n = 2: 2(2) + 1 = 5\n• n = 3: 2(3) + 1 = 7\nThis generates the pattern of odd numbers!\n\n**Rules for Writing Letter-Numbers:**\n• We usually write the number before the letter: 3x (not x3)\n• We don't write the multiplication sign: 3x means 3 × x\n• 1×x is written as just x (not 1x)\n\n**Practice Tip:** Think of a letter as a box that can hold any number. When you see 'x', imagine a box — whatever number goes in that box, the expression tells you what to do with it."
+      },
+      {
+        "name": "4.2 Revisiting Arithmetic Expressions",
+        "content": "Before jumping into algebraic expressions, let's revisit how arithmetic expressions work and see how they connect to algebraic thinking.\n\n**From Arithmetic to Algebra:**\nArithmetic: 5 + 3 = 8 (specific numbers, specific answer)\nAlgebra: a + b = ? (general expression, answer depends on values of a and b)\n\n**Translating Words to Expressions:**\n• 'A number increased by 5' → x + 5\n• 'Twice a number' → 2x\n• 'Three less than a number' → x – 3\n• 'A number divided by 4' → x/4\n• 'The sum of two numbers' → a + b\n• 'Product of a number and 7' → 7x\n\n**Evaluating Expressions:**\nTo find the value of an expression for a given value of the variable, substitute (replace) the letter with the number:\nIf x = 4, then 3x + 2 = 3(4) + 2 = 12 + 2 = 14\n\n**Forming Expressions from Patterns:**\n• Matchstick squares: 1 square needs 4 sticks, 2 squares need 7, 3 need 10...\n• Pattern: 3n + 1 sticks for n squares\n\n**Practice Tip:** Practice converting word phrases to mathematical expressions daily. This skill is the foundation of equation solving!"
+      },
+      {
+        "name": "4.3 Omission of the Multiplication Symbol",
+        "content": "In algebra, we simplify how we write expressions by dropping the multiplication sign (×) between numbers and letters.\n\n**Convention Rules:**\n• 3 × x is written as 3x\n• a × b is written as ab\n• 2 × a × b is written as 2ab\n• 1 × x is written as x (not 1x)\n• x × x is written as x² (x squared)\n\n**Important:** We ONLY omit the multiplication sign when at least one factor is a letter. We NEVER write 35 to mean 3 × 5 (that would be thirty-five!).\n\n**Coefficient:**\nIn 5x, the number 5 is called the coefficient of x. It tells us how many x's we have.\n• In 3ab: coefficient is 3\n• In x (same as 1x): coefficient is 1\n• In -2y: coefficient is -2\n\n**Terms:**\nParts of an expression separated by + or – signs are called terms.\nIn 3x + 5y – 2: the terms are 3x, 5y, and –2\n\n**Like Terms:**\nTerms with the same variables are called like terms:\n• 3x and 5x are like terms (both have x)\n• 3x and 3y are NOT like terms (different variables)\n• 4ab and 7ab are like terms\n\n**Practice Tip:** When reading algebraic expressions, always remember that letters next to each other (or next to numbers) means multiplication."
+      },
+      {
+        "name": "4.4 Simplification of Algebraic Expressions",
+        "content": "Simplification means combining like terms to make an expression shorter and easier to work with.\n\n**Combining Like Terms:**\n• 3x + 5x = 8x (combine the x terms: 3 + 5 = 8)\n• 7a – 3a = 4a (7 – 3 = 4)\n• 4x + 3y + 2x + y = 6x + 4y (combine x terms and y terms separately)\n\n**Step-by-Step Method:**\n1. Identify like terms\n2. Group like terms together\n3. Combine the coefficients\n\n**Example:** Simplify 5a + 3b – 2a + 7b\n= (5a – 2a) + (3b + 7b)\n= 3a + 10b\n\n**With Constants:**\n2x + 5 + 3x + 8 = (2x + 3x) + (5 + 8) = 5x + 13\n\n**Cannot Simplify:**\n3x + 4y cannot be simplified further (different variables = unlike terms)\n5x + 3 cannot be simplified (x term and constant are unlike)\n\n**Common Mistakes:**\n• 3x + 4y ≠ 7xy (WRONG! You can't combine unlike terms)\n• x + x = 2x, NOT x² (adding, not multiplying)\n• 2x × 3x = 6x², NOT 6x (multiplying gives higher power)\n\n**Practice Tip:** Underline like terms with the same color or mark, then combine them. This visual approach helps avoid mistakes."
+      },
+      {
+        "name": "4.5 Pick Patterns and Reveal Relationships",
+        "content": "One of the most powerful uses of algebraic expressions is describing number patterns and geometric relationships.\n\n**Number Patterns:**\n• Even numbers: 2, 4, 6, 8... → Formula: 2n (where n = 1, 2, 3...)\n• Odd numbers: 1, 3, 5, 7... → Formula: 2n – 1\n• Multiples of 5: 5, 10, 15, 20... → Formula: 5n\n• Square numbers: 1, 4, 9, 16... → Formula: n²\n\n**Matchstick Patterns:**\n• Triangle pattern: 3, 5, 7, 9... sticks → Formula: 2n + 1\n• Square pattern: 4, 7, 10, 13... sticks → Formula: 3n + 1\n• Pentagon pattern: 5, 9, 13, 17... sticks → Formula: 4n + 1\n\n**Geometric Formulas:**\n• Perimeter of square = 4s (s = side)\n• Perimeter of rectangle = 2(l + b) or 2l + 2b\n• Perimeter of equilateral triangle = 3s\n• Area of square = s²\n• Area of rectangle = l × b\n\n**How to Find a Pattern Formula:**\n1. Write out first few terms with their position numbers\n2. Look for the relationship between position (n) and term value\n3. Test your formula with the known terms\n\n**Practice Tip:** When looking for patterns, always calculate the differences between consecutive terms. If the difference is constant, the formula is linear (an + b)."
+      }
+    ],
+    "questions": [
+      {
+        "q": "If x = 3, what is 2x + 5?",
+        "options": [
+          "8",
+          "11",
+          "10",
+          "16"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "3 x y is written in algebra as:",
+        "options": [
+          "3y",
+          "y3",
+          "3+y",
+          "3-y"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "In the expression 5x, the coefficient of x is:",
+        "options": [
+          "x",
+          "5",
+          "5x",
+          "1"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Simplify: 3x + 5x",
+        "options": [
+          "8x",
+          "8x2",
+          "15x",
+          "35x"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "Which represents 'a number increased by 5'?",
+        "options": [
+          "x - 5",
+          "5x",
+          "x + 5",
+          "x/5"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Simplify: 4a + 3b - 2a + b",
+        "options": [
+          "2a + 4b",
+          "6a + 4b",
+          "2a + 2b",
+          "6ab"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "If n = 4, what is n squared?",
+        "options": [
+          "8",
+          "12",
+          "16",
+          "44"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "The perimeter of a square with side s is:",
+        "options": [
+          "s + 4",
+          "4s",
+          "s x s",
+          "2s"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "'Twice a number' is written as:",
+        "options": [
+          "x + 2",
+          "x - 2",
+          "2x",
+          "x/2"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "3x + 4y can be simplified to:",
+        "options": [
+          "7xy",
+          "7x",
+          "7y",
+          "Cannot be simplified"
+        ],
+        "answer": 3
+      },
+      {
+        "q": "x + x equals:",
+        "options": [
+          "x squared",
+          "2x",
+          "xx",
+          "x"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "If a = 2, b = 3, what is ab?",
+        "options": [
+          "5",
+          "6",
+          "23",
+          "1"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "The formula for even numbers is:",
+        "options": [
+          "n + 2",
+          "2n",
+          "n/2",
+          "2n + 1"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Simplify: 2x + 5 + 3x + 8",
+        "options": [
+          "5x + 13",
+          "5x + 58",
+          "13x + 5",
+          "10x + 13"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "The formula for odd numbers is:",
+        "options": [
+          "2n",
+          "2n + 1",
+          "2n - 1",
+          "n + 1"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "1 x x is written as:",
+        "options": [
+          "1x",
+          "x",
+          "x1",
+          "11x"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Perimeter of rectangle with length l and breadth b:",
+        "options": [
+          "l + b",
+          "lb",
+          "2(l+b)",
+          "4(l+b)"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "If y = 5, what is 3y - 7?",
+        "options": [
+          "8",
+          "22",
+          "15",
+          "1"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "Which are like terms?",
+        "options": [
+          "3x and 3y",
+          "5a and 7a",
+          "2x and 2",
+          "ab and a"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "In 3x + 5y - 2, how many terms are there?",
+        "options": [
+          "1",
+          "2",
+          "3",
+          "5"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "2x x 3x = ?",
+        "options": [
+          "5x",
+          "6x",
+          "6x squared",
+          "5x squared"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Matchstick pattern 4, 7, 10, 13... formula is:",
+        "options": [
+          "4n",
+          "3n + 1",
+          "n + 3",
+          "4n + 3"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "If x = 0, what is 5x + 3?",
+        "options": [
+          "0",
+          "3",
+          "5",
+          "8"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Area of square with side s:",
+        "options": [
+          "4s",
+          "2s",
+          "s squared",
+          "s + s"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Simplify: 7a - 3a + 2a",
+        "options": [
+          "6a",
+          "2a",
+          "12a",
+          "7a"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "'Three less than a number' is:",
+        "options": [
+          "3 - x",
+          "x - 3",
+          "3x",
+          "x/3"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "If a = 5, what is a squared + 1?",
+        "options": [
+          "11",
+          "26",
+          "36",
+          "51"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Simplify: 3(x + 2)",
+        "options": [
+          "3x + 2",
+          "3x + 6",
+          "x + 6",
+          "3x + 5"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Which formula gives 1, 4, 9, 16...?",
+        "options": [
+          "n + 3",
+          "4n",
+          "n squared",
+          "2n"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "In the expression -2y, the coefficient is:",
+        "options": [
+          "2",
+          "-2",
+          "y",
+          "-y"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Can 5x + 3 be simplified further?",
+        "options": [
+          "Yes, to 8x",
+          "Yes, to 8",
+          "Yes, to 15x",
+          "No"
+        ],
+        "answer": 3
+      },
+      {
+        "q": "If x = 2, y = 3, what is x + 2y?",
+        "options": [
+          "7",
+          "8",
+          "10",
+          "12"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Simplify: 4x + 3x + 2y + 5y",
+        "options": [
+          "7x + 7y",
+          "14xy",
+          "7x + 5y",
+          "4x + 7y"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "The constant term in 5x + 3 is:",
+        "options": [
+          "5",
+          "x",
+          "3",
+          "5x"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Perimeter of equilateral triangle with side a:",
+        "options": [
+          "a + 3",
+          "3a",
+          "a squared",
+          "6a"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "If x = 10, what is x/2 + 3?",
+        "options": [
+          "8",
+          "6.5",
+          "13",
+          "53"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "Simplify: 5(2a + 3) - 4a",
+        "options": [
+          "6a + 15",
+          "10a + 15",
+          "6a + 3",
+          "14a + 3"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "x x x is written as:",
+        "options": [
+          "3x",
+          "x + x + x",
+          "x cubed",
+          "xxx"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "The next term in 2, 5, 8, 11... is:",
+        "options": [
+          "12",
+          "13",
+          "14",
+          "15"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "If p = 4, what is 2p squared?",
+        "options": [
+          "16",
+          "32",
+          "64",
+          "8"
+        ],
+        "answer": 1
+      }
+    ]
+  },
+  {
+    "id": 5,
+    "number": "5",
+    "title": "Parallel and Intersecting Lines",
+    "description": "Understanding parallel lines, perpendicular lines, transversals, corresponding and alternate angles, and optical illusions with parallel lines",
+    "topics": [
+      {
+        "name": "5.1 Across the Line",
+        "content": "A line extends infinitely in both directions. When we draw a line on paper, we are actually drawing a line segment. This section explores what happens when we cross a line and the angles formed.\n\n**Points and Lines:**\nA point has no dimensions - just a position. A line has one dimension - length (infinite). A line segment has two endpoints and a definite length.\n\n**Angles Formed by Intersecting Lines:**\nWhen two lines cross each other, they form 4 angles at the point of intersection. These angles have special properties:\n• **Vertically opposite angles** are equal\n• **Adjacent angles** on a straight line add up to 180° (supplementary)\n\n**Example:** If two lines intersect and one angle is 60°, then:\n• The vertically opposite angle = 60°\n• The adjacent angles = 180° - 60° = 120°\n\n**Linear Pair:**\nTwo adjacent angles that form a straight line are called a linear pair. They always add up to 180°.\n\n**Real-World Examples:**\n• Scissors form intersecting lines when opened\n• Railroad crossings (X-shaped) show intersecting lines\n• Clock hands intersect at the center\n\n**Practice Tip:** When two lines intersect, you only need to find ONE angle - the rest can be calculated using vertically opposite angles and linear pairs!"
+      },
+      {
+        "name": "5.2 Perpendicular Lines",
+        "content": "Perpendicular lines are a special case of intersecting lines where the angle between them is exactly 90° (a right angle).\n\n**Definition:**\nTwo lines are perpendicular if they intersect at right angles (90°). We write: line AB ⊥ line CD\n\n**Properties of Perpendicular Lines:**\n• They form four 90° angles at the intersection point\n• They create four equal angles (all 90°)\n• The symbol for a right angle is a small square at the corner\n\n**Drawing Perpendicular Lines:**\nMethod 1: Using a protractor - draw a line, measure 90° at a point, draw another line\nMethod 2: Using a set square - align one edge with the line, draw along the perpendicular edge\nMethod 3: Paper folding - fold a line onto itself to create a perpendicular crease\n\n**Perpendicular from a Point to a Line:**\nThe shortest distance from a point to a line is always along the perpendicular. This is why we measure the height of a triangle perpendicular to its base.\n\n**Real-World Examples:**\n• Walls are perpendicular to the floor\n• The hands of a clock at 3 o'clock or 9 o'clock\n• The corner of a book, a door frame, a window\n• Cross-roads meeting at right angles\n\n**Practice Tip:** The letter 'L' and '+' symbol naturally show perpendicular lines!"
+      },
+      {
+        "name": "5.3 Between Lines",
+        "content": "This section explores what happens in the space between two lines - whether they get closer, farther, or stay the same distance apart.\n\n**Three Possibilities for Two Lines:**\n1. **Intersecting lines:** They meet at exactly one point\n2. **Parallel lines:** They never meet (same distance apart everywhere)\n3. **Coincident lines:** They overlap completely (same line)\n\n**Parallel Lines:**\n• Two lines in the same plane that never intersect\n• They maintain a constant distance between them\n• Symbol: AB ∥ CD (AB is parallel to CD)\n• They go in the same direction\n\n**How to Check if Lines are Parallel:**\n• Measure the distance between them at two different points\n• If the distances are equal, the lines are parallel\n• Use a ruler and set square to verify\n\n**Real-World Examples of Parallel Lines:**\n• Railway tracks\n• Opposite edges of a ruler, book, or door\n• Lines on ruled notebook paper\n• Lanes on a highway\n• Opposite sides of a rectangle\n\n**Important Note:** Parallel lines must be in the same plane. In 3D space, lines can be neither parallel nor intersecting (called skew lines) - like two edges of a box that don't share a face."
+      },
+      {
+        "name": "5.4 Parallel and Perpendicular Lines in Paper Folding",
+        "content": "Paper folding is a hands-on way to understand geometric concepts. By folding paper, we can create parallel and perpendicular lines without any measuring tools!\n\n**Creating Perpendicular Lines by Folding:**\n1. Take a rectangular sheet of paper\n2. Fold it so one edge falls exactly on itself\n3. The fold line (crease) is perpendicular to the edge!\n4. Open it up - you have two perpendicular lines\n\n**Creating Parallel Lines by Folding:**\n1. Make a fold (crease 1)\n2. Make another fold perpendicular to crease 1 (crease 2)\n3. Make a third fold perpendicular to crease 2 (crease 3)\n4. Crease 1 and crease 3 are parallel!\n\n**Key Insight:**\nIf two lines are both perpendicular to a third line, then they are parallel to each other. This is a fundamental property of Euclidean geometry.\n\n**Paper Folding Properties:**\n• A fold creates a line of symmetry\n• Folding a line onto itself creates a perpendicular bisector\n• Multiple parallel folds create evenly spaced parallel lines\n\n**Activity:** Take a piece of paper and create a set of parallel lines using only folding (no ruler). You should be able to make 4 or more evenly spaced parallel lines!\n\n**Practice Tip:** Paper folding helps verify geometric constructions - if your drawn perpendicular/parallel lines don't match the fold lines, something needs correction."
+      },
+      {
+        "name": "5.5 Transversals",
+        "content": "A transversal is a line that crosses two or more lines at distinct points. When a transversal cuts two lines, it creates 8 angles with special relationships.\n\n**Definition:**\nA transversal is a line that intersects two or more lines at different points. It 'cuts across' the lines.\n\n**Angles Formed:**\nWhen a transversal cuts two lines, it creates:\n• 8 angles in total (4 at each intersection point)\n• 4 interior angles (between the two lines)\n• 4 exterior angles (outside the two lines)\n\n**Naming the Angles:**\nAt each intersection, the four angles are typically labeled using numbers (1-8) or letters. The angles are classified as:\n• **Interior angles:** angles 3, 4, 5, 6 (between the lines)\n• **Exterior angles:** angles 1, 2, 7, 8 (outside the lines)\n• **Co-interior angles:** angles on the same side between the lines (3&5, 4&6)\n\n**Special Case - Parallel Lines with Transversal:**\nWhen the two lines are parallel, the transversal creates angle pairs with special properties (discussed in next sections).\n\n**Real-World Examples:**\n• A road crossing two railway tracks\n• A diagonal line cutting through ruled paper\n• A staircase railing crossing the horizontal steps\n\n**Practice Tip:** When working with transversals, always mark which angles are interior and which are exterior first. This helps identify the special angle pairs."
+      },
+      {
+        "name": "5.6 Corresponding Angles",
+        "content": "Corresponding angles are in the same position at each intersection when a transversal cuts two lines. If the lines are parallel, corresponding angles are equal.\n\n**What Are Corresponding Angles?**\nAt each intersection, there are 4 angles. Corresponding angles are the ones in matching positions:\n• Angles 1 and 5 (both above-right of intersection)\n• Angles 2 and 6 (both above-left)\n• Angles 3 and 7 (both below-right)\n• Angles 4 and 8 (both below-left)\n\n**The Corresponding Angles Property:**\nIf two parallel lines are cut by a transversal, then each pair of corresponding angles is equal.\n• ∠1 = ∠5\n• ∠2 = ∠6\n• ∠3 = ∠7\n• ∠4 = ∠8\n\n**Converse:** If corresponding angles are equal, then the lines are parallel. This gives us a way to CHECK if lines are parallel!\n\n**Finding Angles:**\nIf line l ∥ line m and a transversal makes 70° with line l, then:\n• Corresponding angle at line m = 70°\n• Adjacent angle at line l = 110°\n• Corresponding adjacent angle at line m = 110°\n\n**Think of it like:** If you're standing at one intersection facing the transversal, the angle you see is the same as what someone standing at the other intersection (in the same position) would see."
+      },
+      {
+        "name": "5.7 Drawing Parallel Lines",
+        "content": "There are several methods to draw parallel lines accurately. This section teaches the construction methods used in geometry.\n\n**Method 1: Using Set Squares**\n1. Place one edge of the set square along the given line\n2. Place a ruler along another edge of the set square\n3. Slide the set square along the ruler to the desired position\n4. Draw along the edge - this line is parallel to the first\n\n**Method 2: Using Ruler and Compass**\n1. Draw the given line l and mark a point P not on l\n2. Draw any transversal through P intersecting l at point Q\n3. At P, construct an angle equal to the angle at Q (corresponding angle)\n4. The new line through P is parallel to l\n\n**Method 3: Using Corresponding Angles**\n1. Draw a transversal to the given line\n2. Measure the angle at the first intersection\n3. Replicate this angle at the desired point on the transversal\n4. The new line is parallel to the given line\n\n**Checking Your Construction:**\n• Measure the distance between the lines at multiple points\n• If the distance is constant, the lines are parallel\n• Use the set square method to verify\n\n**Practice Tip:** When drawing parallel lines with a compass, make sure the compass width doesn't change between the two angle constructions!"
+      },
+      {
+        "name": "5.8 Alternate Angles",
+        "content": "Alternate angles are on opposite sides of the transversal and between the two lines. When the lines are parallel, alternate angles are equal.\n\n**Types of Alternate Angles:**\n• **Alternate interior angles:** Between the lines, on opposite sides of the transversal\n  - Angles 3 and 6, Angles 4 and 5\n• **Alternate exterior angles:** Outside the lines, on opposite sides of the transversal\n  - Angles 1 and 8, Angles 2 and 7\n\n**The Alternate Angles Property:**\nIf two parallel lines are cut by a transversal:\n• Alternate interior angles are equal: ∠3 = ∠6, ∠4 = ∠5\n• Alternate exterior angles are equal: ∠1 = ∠8, ∠2 = ∠7\n\n**Co-Interior Angles (Same-Side Interior):**\nCo-interior angles are between the lines and on the SAME side of the transversal.\n• For parallel lines: co-interior angles add up to 180°\n• ∠3 + ∠5 = 180° and ∠4 + ∠6 = 180°\n\n**Example:** If parallel lines are cut by a transversal and one alternate interior angle is 55°, then:\n• The other alternate interior angle = 55°\n• Co-interior angle = 180° - 55° = 125°\n\n**Real-World Application:** The Z-shape made by alternate angles appears in zigzag patterns, staircases, and the letter Z itself! That's why alternate angles are sometimes called 'Z-angles'."
+      },
+      {
+        "name": "5.9 Parallel Illusions",
+        "content": "Our eyes can be tricked into thinking parallel lines are not parallel! These optical illusions teach us about perception and the importance of precise measurement.\n\n**Famous Parallel Illusions:**\n• **Zollner Illusion:** Parallel lines crossed by short diagonal lines appear to converge or diverge\n• **Hering Illusion:** Parallel horizontal lines appear curved when crossed by radial lines\n• **Cafe Wall Illusion:** Parallel horizontal lines appear slanted due to offset black and white tiles\n• **Ponzo Illusion:** Converging lines make parallel objects appear different sizes\n\n**Why Do These Illusions Work?**\nOur brain interprets visual information based on context. When additional lines or patterns surround parallel lines, our brain is 'tricked' into seeing angles and curves that don't exist.\n\n**Lessons from Illusions:**\n1. Visual estimation of parallelism can be unreliable\n2. We need mathematical tools (rulers, protractors, set squares) to verify parallelism\n3. Corresponding angles and alternate angles are reliable tests - not our eyes\n\n**Creating Your Own Illusion:**\nDraw two parallel horizontal lines. Then add short diagonal lines crossing them at different angles. The parallel lines will appear to tilt!\n\n**Connection to Architecture:**\nAncient Greek architects used optical corrections in buildings like the Parthenon. They made columns slightly thicker in the middle and tilted inward to counteract the illusion that straight columns appear thinner in the middle and to lean outward.\n\n**Practice Tip:** When checking if lines are parallel in geometry problems, NEVER rely on how they look. Always use angle properties or measurements!"
+      }
+    ],
+    "questions": [
+      {
+        "q": "When two lines intersect, vertically opposite angles are:",
+        "options": [
+          "Supplementary",
+          "Equal",
+          "Complementary",
+          "None of these"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "If two parallel lines are cut by a transversal and one angle is 65°, its corresponding angle is:",
+        "options": [
+          "65°",
+          "115°",
+          "25°",
+          "90°"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "Two lines that never meet and are always the same distance apart are:",
+        "options": [
+          "Intersecting",
+          "Perpendicular",
+          "Parallel",
+          "Coincident"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "A right angle measures:",
+        "options": [
+          "45°",
+          "90°",
+          "180°",
+          "360°"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Alternate interior angles for parallel lines are:",
+        "options": [
+          "Supplementary",
+          "Equal",
+          "Complementary",
+          "Unrelated"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "A transversal cutting two lines creates how many angles?",
+        "options": [
+          "4",
+          "6",
+          "8",
+          "12"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Co-interior angles for parallel lines add up to:",
+        "options": [
+          "90°",
+          "180°",
+          "270°",
+          "360°"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "The symbol for parallel is:",
+        "options": [
+          "⊥",
+          "∥",
+          "∠",
+          "∆"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "If a transversal makes 70° with a line, the adjacent angle is:",
+        "options": [
+          "70°",
+          "110°",
+          "20°",
+          "90°"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Perpendicular lines form angles of:",
+        "options": [
+          "45°",
+          "60°",
+          "90°",
+          "180°"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Which of these shows parallel lines in daily life?",
+        "options": [
+          "Scissors",
+          "Railway tracks",
+          "Clock hands",
+          "Letter X"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "If two corresponding angles are equal, the lines are:",
+        "options": [
+          "Perpendicular",
+          "Parallel",
+          "Intersecting",
+          "Coincident"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "A linear pair of angles adds up to:",
+        "options": [
+          "90°",
+          "180°",
+          "270°",
+          "360°"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Alternate angles are sometimes called:",
+        "options": [
+          "F-angles",
+          "Z-angles",
+          "C-angles",
+          "X-angles"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "If one angle of intersecting lines is 40°, the vertically opposite angle is:",
+        "options": [
+          "140°",
+          "40°",
+          "50°",
+          "320°"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Two lines perpendicular to the same line are:",
+        "options": [
+          "Perpendicular to each other",
+          "Parallel to each other",
+          "Intersecting",
+          "None of these"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "If co-interior angles are 75° and x°, find x:",
+        "options": [
+          "75",
+          "105",
+          "115",
+          "85"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "The shortest distance from a point to a line is:",
+        "options": [
+          "Along a parallel",
+          "Along the perpendicular",
+          "Along a diagonal",
+          "Along a transversal"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "How many pairs of corresponding angles are formed by a transversal?",
+        "options": [
+          "2",
+          "4",
+          "6",
+          "8"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "If alternate angles are 3x and 60° (lines parallel), x = ?",
+        "options": [
+          "10",
+          "15",
+          "20",
+          "30"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Which illusion makes parallel lines appear curved?",
+        "options": [
+          "Zollner",
+          "Hering",
+          "Ponzo",
+          "Cafe Wall"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Interior angles are between:",
+        "options": [
+          "The two lines",
+          "Outside the lines",
+          "On the transversal",
+          "At one intersection"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "If angle 1 = 120° and angle 5 are corresponding, angle 5 = ?",
+        "options": [
+          "60°",
+          "120°",
+          "180°",
+          "30°"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "The letter that represents corresponding angles pattern is:",
+        "options": [
+          "Z",
+          "F",
+          "C",
+          "X"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Two angles adding to 90° are:",
+        "options": [
+          "Supplementary",
+          "Complementary",
+          "Vertically opposite",
+          "Linear pair"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "If a transversal is perpendicular to one of two parallel lines, it is:",
+        "options": [
+          "Parallel to the other",
+          "Perpendicular to the other too",
+          "At 45° to the other",
+          "Not related to the other"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Angle at 3 o'clock position of a clock is:",
+        "options": [
+          "60°",
+          "90°",
+          "120°",
+          "180°"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "If two lines intersect at 90°, all four angles are:",
+        "options": [
+          "Different",
+          "All 90°",
+          "Two 90° and two 0°",
+          "Unknown"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Exterior angles are:",
+        "options": [
+          "Between the two lines",
+          "Outside the two lines",
+          "On the transversal",
+          "Equal to 90°"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Co-interior angles are also called:",
+        "options": [
+          "Z-angles",
+          "F-angles",
+          "C-angles or U-angles",
+          "X-angles"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "If lines are NOT parallel, corresponding angles are:",
+        "options": [
+          "Always equal",
+          "Never equal",
+          "Not necessarily equal",
+          "Always 90°"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Paper folding creates a:",
+        "options": [
+          "Parallel line",
+          "Perpendicular bisector",
+          "Curve",
+          "Circle"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "How many pairs of alternate interior angles does a transversal create?",
+        "options": [
+          "1",
+          "2",
+          "3",
+          "4"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "If angle 3 = 55°, its co-interior angle = ?",
+        "options": [
+          "55°",
+          "125°",
+          "145°",
+          "35°"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "The Cafe Wall illusion involves:",
+        "options": [
+          "Circles",
+          "Offset tiles making lines look slanted",
+          "Curved lines",
+          "Missing lines"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Perpendicular from point to line gives the ___ distance:",
+        "options": [
+          "Longest",
+          "Shortest",
+          "Average",
+          "Random"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "If two angles form a linear pair and one is x°, the other is:",
+        "options": [
+          "x°",
+          "(90-x)°",
+          "(180-x)°",
+          "(360-x)°"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Opposite sides of a rectangle are:",
+        "options": [
+          "Perpendicular",
+          "Parallel",
+          "Intersecting",
+          "Curved"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Adjacent sides of a rectangle are:",
+        "options": [
+          "Parallel",
+          "Perpendicular",
+          "Skew",
+          "Equal"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "If vertically opposite angles are 2x and 80°, x = ?",
+        "options": [
+          "40",
+          "80",
+          "160",
+          "20"
+        ],
+        "answer": 0
+      }
+    ]
+  },
+  {
+    "id": 6,
+    "number": "6",
+    "title": "Number Play",
+    "description": "Exploring numbers through patterns, parity, grid explorations, the Virahanka-Fibonacci sequence, and cryptarithmetic puzzles",
+    "topics": [
+      {
+        "name": "6.1 Numbers Tell Us Things",
+        "content": "Numbers carry information about themselves in their digits. By examining a number's digits, we can discover many properties without doing complex calculations.\n\n**Divisibility Rules:**\n• **By 2:** Last digit is 0, 2, 4, 6, or 8 (even number)\n• **By 3:** Sum of digits is divisible by 3\n• **By 4:** Last two digits form a number divisible by 4\n• **By 5:** Last digit is 0 or 5\n• **By 9:** Sum of digits is divisible by 9\n• **By 10:** Last digit is 0\n• **By 11:** Difference between sum of alternate digits is 0 or divisible by 11\n\n**Digit Sum Properties:**\n• The digit sum of any multiple of 9 is always 9 (or a multiple of 9): 18→1+8=9, 81→8+1=9, 108→1+0+8=9\n• Any number and its digit sum give the same remainder when divided by 9\n\n**Palindromic Numbers:**\nNumbers that read the same forwards and backwards: 121, 1331, 12321\n• All single-digit numbers are palindromes\n• There are 9 two-digit palindromes: 11, 22, 33, ..., 99\n\n**Real-World Use:** Phone numbers, PIN codes, postal codes - numbers tell us location, identity, and much more!\n\n**Practice Tip:** Memorize divisibility rules - they save enormous time in mental math and simplifying fractions."
+      },
+      {
+        "name": "6.2 Picking Parity",
+        "content": "Parity refers to whether a number is even or odd. Understanding parity helps solve many mathematical problems without actual computation.\n\n**Even and Odd Numbers:**\n• Even: Divisible by 2 (0, 2, 4, 6, 8, 10, 12...)\n• Odd: Not divisible by 2 (1, 3, 5, 7, 9, 11...)\n• Zero is even!\n\n**Parity Rules for Operations:**\n• Even + Even = Even (4 + 6 = 10)\n• Odd + Odd = Even (3 + 5 = 8)\n• Even + Odd = Odd (4 + 5 = 9)\n• Even × Even = Even\n• Odd × Odd = Odd\n• Even × Odd = Even\n\n**Powerful Parity Arguments:**\n• Can the sum of 5 odd numbers be 100? No! (odd+odd=even, +odd=odd, +odd=even, +odd=odd) - 5 odds always give odd sum\n• Can 15 people shake hands so each person shakes exactly 3 hands? No! (15×3=45 is odd, but handshake count must be even since each handshake involves 2 people)\n\n**Consecutive Number Properties:**\n• Two consecutive numbers: one is even, one is odd\n• Their sum is always odd\n• Their product is always even\n\n**Practice Tip:** Before solving complex problems, check parity first. It can sometimes tell you the answer (or that no answer exists) immediately!"
+      },
+      {
+        "name": "6.3 Some Explorations in Grids",
+        "content": "Number grids reveal fascinating patterns when we look at rows, columns, diagonals, and special arrangements of numbers.\n\n**Magic Squares:**\nA magic square is a grid where every row, column, and diagonal adds to the same sum (the magic constant).\n• 3×3 magic square with 1-9: magic constant = 15\n• 4×4 magic square with 1-16: magic constant = 34\n• Formula for n×n magic square using 1 to n²: magic constant = n(n²+1)/2\n\n**Example 3×3 Magic Square:**\n2 7 6\n9 5 1\n4 3 8\nEvery row, column, diagonal = 15\n\n**Number Patterns in Grids:**\n• Multiplication tables form a grid with interesting diagonal patterns\n• Pascal's Triangle can be arranged as a grid with binomial coefficients\n• Sudoku is a 9×9 grid puzzle based on number placement\n\n**Grid Coloring and Paths:**\n• How many paths exist from one corner of a grid to the opposite corner?\n• Chess problems: How many squares can a knight reach in n moves?\n\n**Practice Tip:** When working with magic squares, remember that the center number in a 3×3 magic square using 1-9 is always 5, and the magic constant is always 15."
+      },
+      {
+        "name": "6.4 Nature's Favourite Sequence: The Virahanka-Fibonacci",
+        "content": "The Fibonacci sequence (known in India as the Virahanka sequence, named after the ancient Indian mathematician) appears throughout nature and mathematics.\n\n**The Sequence:**\n1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233...\nRule: Each number = sum of the two before it\n\n**Indian Origins:**\nVirahanka (around 700 CE) and later Hemachandra (around 1150 CE) discovered this sequence while studying poetic meters in Sanskrit. It was later studied by Fibonacci in Italy (1202 CE).\n\n**In Nature:**\n• **Sunflower seeds:** Spiral in Fibonacci numbers (21, 34, or 55 spirals)\n• **Pine cones:** Spirals in 8 and 13 rows\n• **Flower petals:** Lilies have 3, buttercups have 5, daisies have 34 or 55\n• **Branching:** Trees often branch in Fibonacci patterns\n• **Shell spirals:** Nautilus shells follow the golden spiral\n\n**The Golden Ratio:**\nWhen you divide consecutive Fibonacci numbers, the ratio approaches 1.618... (called the Golden Ratio, φ):\n8/5 = 1.6, 13/8 = 1.625, 21/13 = 1.615, 34/21 = 1.619...\n\n**Properties:**\n• Sum of first n Fibonacci numbers = F(n+2) – 1\n• Every 3rd number is even, every 4th is divisible by 3, every 5th by 5\n\n**Practice Tip:** Generate the first 20 Fibonacci numbers and check which are even, which are divisible by 3, and verify the patterns!"
+      },
+      {
+        "name": "6.5 Digits in Disguise",
+        "content": "Cryptarithmetic puzzles replace digits with letters. Each letter represents a unique digit. Solving these puzzles develops logical reasoning and number sense.\n\n**What is Cryptarithmetic?**\nIn puzzles like SEND + MORE = MONEY, each letter stands for a different digit (0-9). Your job is to figure out which digit each letter represents.\n\n**Solving Strategy:**\n1. Look at the leftmost column first (it often reveals carries)\n2. Note that the leading digit of a number can't be 0\n3. Each letter represents a unique digit\n4. Use logical deduction, not just trial and error\n\n**Example: AB + BA = CDC**\n• A and B are single digits, CDC is a 3-digit number\n• Maximum: 98 + 89 = 187, Minimum: 12 + 21 = 33, so C = 1\n• AB + BA = (10A+B) + (10B+A) = 11(A+B) = 100+10D+1\n• So 11(A+B) must give a number like 1D1\n• If A+B = 10: 11×10 = 110, so D=1, but C=D=1 conflict\n• If A+B = 11: 11×11 = 121, D=2. Works! A=2,B=9 or A=9,B=2 etc.\n\n**Classic Puzzles to Try:**\n• EAT + THAT = APPLE\n• CROSS + ROADS = DANGER\n• BASE + BALL = GAMES\n\n**Practice Tip:** Start with simpler puzzles (2-digit + 2-digit) and work up to harder ones. Always list what you know and use elimination."
+      }
+    ],
+    "questions": [
+      {
+        "q": "A number divisible by 2 is called:",
+        "options": [
+          "Odd",
+          "Even",
+          "Prime",
+          "Composite"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "The digit sum of 108 is:",
+        "options": [
+          "8",
+          "9",
+          "10",
+          "18"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Which number is a palindrome?",
+        "options": [
+          "123",
+          "121",
+          "132",
+          "312"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Even + Odd = ?",
+        "options": [
+          "Even",
+          "Odd",
+          "Zero",
+          "Cannot determine"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "The Fibonacci sequence starts with:",
+        "options": [
+          "0, 1, 1, 2",
+          "1, 1, 2, 3",
+          "1, 2, 3, 4",
+          "Both A and B are accepted"
+        ],
+        "answer": 3
+      },
+      {
+        "q": "The magic constant of a 3x3 magic square using 1-9 is:",
+        "options": [
+          "10",
+          "12",
+          "15",
+          "20"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Is 0 even or odd?",
+        "options": [
+          "Even",
+          "Odd",
+          "Neither",
+          "Both"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "Odd x Odd = ?",
+        "options": [
+          "Even",
+          "Odd",
+          "Cannot tell",
+          "Zero"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Which is divisible by 9?",
+        "options": [
+          "123",
+          "234",
+          "432",
+          "531"
+        ],
+        "answer": 3
+      },
+      {
+        "q": "The 7th Fibonacci number is:",
+        "options": [
+          "8",
+          "13",
+          "21",
+          "34"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Can 3 odd numbers add up to 20?",
+        "options": [
+          "Yes",
+          "No",
+          "Sometimes",
+          "Need more info"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "What is the divisibility rule for 3?",
+        "options": [
+          "Last digit divisible by 3",
+          "Sum of digits divisible by 3",
+          "Last two digits divisible by 3",
+          "Number is odd"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "The Golden Ratio is approximately:",
+        "options": [
+          "1.414",
+          "1.618",
+          "2.718",
+          "3.14"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "In a magic square, which sums are equal?",
+        "options": [
+          "Only rows",
+          "Only diagonals",
+          "Rows, columns, and diagonals",
+          "Only columns"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Divisibility rule for 11: check the ___ of alternate digits.",
+        "options": [
+          "Sum",
+          "Product",
+          "Difference",
+          "Average"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Even x Even = ?",
+        "options": [
+          "Even",
+          "Odd",
+          "Cannot tell",
+          "Prime"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "The next Fibonacci number after 8, 13 is:",
+        "options": [
+          "18",
+          "20",
+          "21",
+          "26"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Which is divisible by 4?",
+        "options": [
+          "322",
+          "514",
+          "732",
+          "918"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "A 2-digit palindrome example is:",
+        "options": [
+          "12",
+          "21",
+          "33",
+          "45"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Sum of two consecutive numbers is always:",
+        "options": [
+          "Even",
+          "Odd",
+          "Prime",
+          "Composite"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "In cryptarithmetic, the leading digit of a number cannot be:",
+        "options": [
+          "1",
+          "0",
+          "9",
+          "5"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "The center of a 3x3 magic square (1-9) is always:",
+        "options": [
+          "1",
+          "5",
+          "9",
+          "Any number"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "How many 2-digit palindromes exist?",
+        "options": [
+          "5",
+          "9",
+          "10",
+          "18"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Sunflower seeds spiral in ___ numbers:",
+        "options": [
+          "Prime",
+          "Even",
+          "Fibonacci",
+          "Square"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Is 1001 divisible by 11?",
+        "options": [
+          "Yes (1-0+0-1=0)",
+          "No",
+          "Cannot determine",
+          "Only by 7"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "Product of two consecutive numbers is always:",
+        "options": [
+          "Odd",
+          "Even",
+          "Prime",
+          "Square"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "The Virahanka sequence was discovered in:",
+        "options": [
+          "Greece",
+          "India",
+          "Italy",
+          "China"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Which number is divisible by both 2 and 3?",
+        "options": [
+          "8",
+          "9",
+          "12",
+          "15"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "In a 4x4 magic square using 1-16, the magic constant is:",
+        "options": [
+          "20",
+          "30",
+          "34",
+          "40"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "What digit does each letter represent in cryptarithmetic?",
+        "options": [
+          "Any digit, repeated allowed",
+          "A unique digit 0-9",
+          "Only prime digits",
+          "Only even digits"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Sum of first 6 Fibonacci numbers (1,1,2,3,5,8) is:",
+        "options": [
+          "18",
+          "20",
+          "21",
+          "23"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Is 2024 divisible by 4?",
+        "options": [
+          "Yes (24 is divisible by 4)",
+          "No",
+          "Cannot determine",
+          "Only by 2"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "Odd + Odd + Odd = ?",
+        "options": [
+          "Even",
+          "Odd",
+          "Cannot tell",
+          "Zero"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "The digit sum of any multiple of 9 is:",
+        "options": [
+          "Always 9",
+          "A multiple of 9",
+          "Always odd",
+          "Always even"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "11 x 11 = 121. Is 121 a palindrome?",
+        "options": [
+          "Yes",
+          "No",
+          "Cannot determine",
+          "Sometimes"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "Which Fibonacci number is even: 1, 1, 2, 3, 5, 8?",
+        "options": [
+          "1st and 2nd",
+          "3rd and 6th",
+          "4th and 5th",
+          "All of them"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "A number divisible by both 3 and 5 is also divisible by:",
+        "options": [
+          "8",
+          "10",
+          "15",
+          "20"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Is the sum of all digits 1 through 9 divisible by 9?",
+        "options": [
+          "Yes (sum=45, 45/9=5)",
+          "No",
+          "Cannot determine",
+          "Only by 3"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "The 10th Fibonacci number is:",
+        "options": [
+          "34",
+          "55",
+          "89",
+          "144"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "AB + BA = 11(A+B). If the result is 132, then A+B = ?",
+        "options": [
+          "10",
+          "11",
+          "12",
+          "13"
+        ],
+        "answer": 2
+      }
+    ]
+  },
+  {
+    "id": 7,
+    "number": "7",
+    "title": "A Tale of Three Intersecting Lines",
+    "description": "Exploring triangles through construction, types of triangles, properties of sides and angles, and altitude constructions",
+    "topics": [
+      {
+        "name": "7.1 Equilateral Triangles",
+        "content": "An equilateral triangle is the most symmetric of all triangles - all three sides are equal and all three angles are 60°.\n\n**Properties of Equilateral Triangles:**\n• All 3 sides are equal in length\n• All 3 angles are equal = 60° each\n• All 3 medians, altitudes, angle bisectors, and perpendicular bisectors are equal\n• It has 3 lines of symmetry\n• Rotational symmetry of order 3 (looks the same after 120°, 240°, 360° rotation)\n\n**Constructing an Equilateral Triangle:**\nGiven side length = 5 cm:\n1. Draw a line segment AB = 5 cm\n2. With compass at A, radius 5 cm, draw an arc above AB\n3. With compass at B, radius 5 cm, draw another arc cutting the first at point C\n4. Join AC and BC\n\n**Area of Equilateral Triangle:**\nArea = (√3/4) × side²\nFor side = 6 cm: Area = (√3/4) × 36 = 9√3 ≈ 15.59 cm²\n\n**Perimeter:** P = 3 × side\n\n**In Nature and Design:**\n• Honeycomb cells are made of equilateral triangles\n• The yield sign is an equilateral triangle\n• Many logos use equilateral triangles for balance and symmetry\n\n**Practice Tip:** When constructing equilateral triangles with compass, make sure the compass opening stays the SAME as the side length throughout."
+      },
+      {
+        "name": "7.2 Constructing a Triangle When its Sides are Known",
+        "content": "When all three sides of a triangle are given (SSS - Side-Side-Side), we can construct it uniquely using ruler and compass.\n\n**SSS Construction Method:**\nGiven sides a = 5 cm, b = 4 cm, c = 6 cm:\n1. Draw the longest side as base: AB = 6 cm (side c)\n2. With compass at A, radius = 4 cm (side b), draw an arc\n3. With compass at B, radius = 5 cm (side a), draw an arc\n4. Mark the intersection point as C\n5. Join AC and BC to complete the triangle\n\n**Triangle Inequality Rule:**\nNot any three lengths can form a triangle! The sum of any two sides must be greater than the third side:\n• a + b > c\n• b + c > a\n• a + c > b\n\n**Examples:**\n• 3, 4, 5 - Valid! (3+4>5, 4+5>3, 3+5>4)\n• 1, 2, 5 - Invalid! (1+2=3 < 5)\n• 5, 5, 5 - Valid! (equilateral)\n• 3, 3, 6 - Invalid! (3+3=6, not greater than 6)\n\n**Why SSS Gives a Unique Triangle:**\nWhen all three sides are fixed, there's only ONE possible triangle (up to position and orientation). This is because the arcs in step 2 and 3 can only intersect at one point above the base.\n\n**Practice Tip:** Always check the triangle inequality before attempting construction. If it fails, tell your teacher the triangle is impossible!"
+      },
+      {
+        "name": "7.3 Construction When Some Sides and Angles are Known",
+        "content": "We can construct triangles when given combinations of sides and angles: SAS (Side-Angle-Side) or ASA (Angle-Side-Angle).\n\n**SAS Construction:**\nGiven: Two sides and the included angle (the angle between them)\nExample: a = 5 cm, b = 4 cm, included angle C = 60°\n1. Draw one side: AB = 5 cm\n2. At point A, measure angle of 60° using protractor\n3. Along the angle ray, mark AC = 4 cm\n4. Join B to C\n\n**ASA Construction:**\nGiven: Two angles and the included side (the side between them)\nExample: Angle A = 50°, Angle B = 70°, side AB = 6 cm\n1. Draw AB = 6 cm\n2. At A, construct angle of 50°\n3. At B, construct angle of 70°\n4. The rays from A and B meet at C\n\n**Important Note:**\nThe third angle = 180° - 50° - 70° = 60° (angle sum property)\n\n**Why These Give Unique Triangles:**\nSAS and ASA each fix a triangle completely. Given the same measurements, everyone will construct the exact same triangle.\n\n**Angle Sum Property:**\nThe three angles of any triangle always add up to 180°. This is a fundamental property used in many geometry problems.\n\n**Practice Tip:** When using a protractor, make sure the center is exactly on the vertex and the base line aligns with one side of the angle."
+      },
+      {
+        "name": "7.4 Constructions Related to Altitudes of Triangles",
+        "content": "An altitude of a triangle is a perpendicular line from a vertex to the opposite side (or its extension). Every triangle has three altitudes.\n\n**What is an Altitude?**\n• A line segment from a vertex perpendicular to the opposite side\n• It represents the 'height' of the triangle from that vertex\n• Every triangle has exactly 3 altitudes\n\n**Constructing an Altitude:**\n1. From vertex A, you need a perpendicular to side BC\n2. With compass at A, draw arcs cutting BC at two points P and Q\n3. With compass at P, draw an arc below BC\n4. With compass at Q (same radius), draw an arc crossing the previous one at point D\n5. Join AD - this line is perpendicular to BC through A\n6. Mark the foot of the altitude where AD meets BC as H\n7. AH is the altitude from vertex A\n\n**Orthocentre:**\nThe three altitudes of a triangle always meet at a single point called the orthocentre (H).\n• For acute triangle: H is inside the triangle\n• For right triangle: H is at the vertex of the right angle\n• For obtuse triangle: H is outside the triangle\n\n**Area Connection:**\nArea = ½ × base × height (altitude)\nSince any side can be the base, each altitude gives the same area!\n\n**Practice Tip:** When drawing altitudes of obtuse triangles, extend the base line beyond the triangle so the perpendicular from the vertex can reach it."
+      },
+      {
+        "name": "7.5 Types of Triangles",
+        "content": "Triangles are classified based on their sides and angles. Understanding these classifications helps identify properties and solve problems quickly.\n\n**Classification by Sides:**\n• **Equilateral:** All 3 sides equal (also all angles = 60°)\n• **Isosceles:** Exactly 2 sides equal (the angles opposite equal sides are also equal)\n• **Scalene:** All 3 sides different (all angles different too)\n\n**Classification by Angles:**\n• **Acute:** All 3 angles less than 90°\n• **Right:** One angle exactly 90° (the side opposite the right angle is the hypotenuse)\n• **Obtuse:** One angle greater than 90°\n\n**Special Combinations:**\n• Right isosceles: 90°, 45°, 45° triangle (two equal sides)\n• Equilateral is always acute (60°, 60°, 60°)\n• A triangle CANNOT be both right and obtuse\n• A triangle CANNOT have more than one right angle or more than one obtuse angle\n\n**Angle Sum Property:**\nSum of all angles = 180°. This limits possible angle combinations:\n• Maximum one angle can be ≥ 90°\n• Two angles of a triangle must always be acute\n\n**Exterior Angle Theorem:**\nAn exterior angle of a triangle equals the sum of the two non-adjacent interior angles.\n\n**Practice Tip:** To quickly classify a triangle, check: are any sides equal? Then check: are any angles 90° or more?"
+      }
+    ],
+    "questions": [
+      {
+        "q": "An equilateral triangle has all angles equal to:",
+        "options": [
+          "45°",
+          "60°",
+          "90°",
+          "120°"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "The sum of angles in a triangle is:",
+        "options": [
+          "90°",
+          "180°",
+          "270°",
+          "360°"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Can sides 2, 3, and 6 form a triangle?",
+        "options": [
+          "Yes",
+          "No (2+3 < 6)",
+          "Sometimes",
+          "Only right triangle"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "A triangle with all different sides is:",
+        "options": [
+          "Equilateral",
+          "Isosceles",
+          "Scalene",
+          "Right"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "How many altitudes does a triangle have?",
+        "options": [
+          "1",
+          "2",
+          "3",
+          "4"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "In a right triangle, the longest side is called:",
+        "options": [
+          "Base",
+          "Height",
+          "Hypotenuse",
+          "Median"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "An isosceles triangle has:",
+        "options": [
+          "All sides equal",
+          "Two sides equal",
+          "No sides equal",
+          "All angles 60°"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "If two angles of a triangle are 50° and 60°, the third is:",
+        "options": [
+          "50°",
+          "60°",
+          "70°",
+          "80°"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "SSS stands for:",
+        "options": [
+          "Side-Side-Side",
+          "Sum-Side-Sum",
+          "Side-Sum-Side",
+          "Same-Same-Same"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "The point where all 3 altitudes meet is the:",
+        "options": [
+          "Centroid",
+          "Circumcentre",
+          "Orthocentre",
+          "Incentre"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "An equilateral triangle has how many lines of symmetry?",
+        "options": [
+          "1",
+          "2",
+          "3",
+          "6"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Can a triangle have two right angles?",
+        "options": [
+          "Yes",
+          "No",
+          "Sometimes",
+          "Only isosceles"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Perimeter of equilateral triangle with side 8 cm:",
+        "options": [
+          "16 cm",
+          "24 cm",
+          "32 cm",
+          "64 cm"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "A triangle with angles 90°, 45°, 45° is:",
+        "options": [
+          "Right isosceles",
+          "Right scalene",
+          "Equilateral",
+          "Obtuse"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "Can sides 3, 4, 5 form a triangle?",
+        "options": [
+          "Yes",
+          "No",
+          "Only right triangle",
+          "Both A and C"
+        ],
+        "answer": 3
+      },
+      {
+        "q": "In an obtuse triangle, the orthocentre lies:",
+        "options": [
+          "Inside",
+          "On a vertex",
+          "Outside",
+          "On a side"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "SAS construction needs:",
+        "options": [
+          "3 sides",
+          "2 sides and included angle",
+          "2 angles and included side",
+          "3 angles"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "An exterior angle of a triangle equals:",
+        "options": [
+          "Sum of all interior angles",
+          "Sum of two non-adjacent interior angles",
+          "The adjacent interior angle",
+          "180°"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Area of triangle = ?",
+        "options": [
+          "base x height",
+          "1/2 x base x height",
+          "2 x base x height",
+          "base + height"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "If exterior angle is 110°, the adjacent interior angle is:",
+        "options": [
+          "110°",
+          "70°",
+          "90°",
+          "180°"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Triangle inequality states that sum of any two sides must be:",
+        "options": [
+          "Equal to third side",
+          "Less than third side",
+          "Greater than third side",
+          "Double the third side"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "A triangle with one angle > 90° is:",
+        "options": [
+          "Acute",
+          "Right",
+          "Obtuse",
+          "Equilateral"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "How many unique triangles can SSS give?",
+        "options": [
+          "0",
+          "1",
+          "2",
+          "Infinite"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "In a right triangle, orthocentre is at:",
+        "options": [
+          "Centre",
+          "The right angle vertex",
+          "Outside",
+          "On hypotenuse"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "An equilateral triangle is also:",
+        "options": [
+          "Always acute",
+          "Always right",
+          "Always obtuse",
+          "Sometimes right"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "If isosceles triangle has equal sides of 5 cm and base 6 cm, perimeter = ?",
+        "options": [
+          "11 cm",
+          "16 cm",
+          "15 cm",
+          "17 cm"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "To construct a triangle, minimum information needed:",
+        "options": [
+          "1 side",
+          "2 sides",
+          "3 elements (sides/angles)",
+          "All 6 elements"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Two angles in a triangle MUST be:",
+        "options": [
+          "Obtuse",
+          "Right",
+          "Acute",
+          "Equal"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "ASA gives ___ triangle(s):",
+        "options": [
+          "No",
+          "Exactly 1",
+          "2",
+          "Infinite"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Altitude is ___ to the base:",
+        "options": [
+          "Parallel",
+          "Perpendicular",
+          "Equal",
+          "Adjacent"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "If all angles of a triangle are less than 90°, it is:",
+        "options": [
+          "Right",
+          "Obtuse",
+          "Acute",
+          "Equilateral"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Can sides 5, 5, 10 form a triangle?",
+        "options": [
+          "Yes, isosceles",
+          "No (5+5 = 10, not greater)",
+          "Yes, equilateral",
+          "Cannot determine"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "The angle sum property works for:",
+        "options": [
+          "Only equilateral triangles",
+          "Only right triangles",
+          "All triangles",
+          "Only isosceles triangles"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "In an equilateral triangle, each altitude also bisects:",
+        "options": [
+          "Only the base",
+          "Only the angle",
+          "Both the base and angle",
+          "Neither"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "A scalene triangle has ___ lines of symmetry:",
+        "options": [
+          "0",
+          "1",
+          "2",
+          "3"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "If two sides are 7 cm and 3 cm, the third side must be:",
+        "options": [
+          "Greater than 10",
+          "Between 4 and 10",
+          "Exactly 10",
+          "Less than 3"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "3-4-5 triangle is a:",
+        "options": [
+          "Equilateral",
+          "Isosceles",
+          "Right triangle",
+          "Obtuse triangle"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Construction using protractor is needed for:",
+        "options": [
+          "SSS",
+          "SAS or ASA",
+          "Only equilateral",
+          "None"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "An isosceles right triangle has angles:",
+        "options": [
+          "60-60-60",
+          "90-45-45",
+          "90-30-60",
+          "90-50-40"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "The hypotenuse is opposite the:",
+        "options": [
+          "Smallest angle",
+          "Right angle",
+          "Equal angles",
+          "Base"
+        ],
+        "answer": 1
+      }
+    ]
+  },
+  {
+    "id": 8,
+    "number": "8",
+    "title": "Working with Fractions",
+    "description": "Multiplication and division of fractions, word problems involving fractions, and real-world applications",
+    "topics": [
+      {
+        "name": "8.1 Multiplication of Fractions",
+        "content": "Multiplying fractions is straightforward: multiply numerators together and denominators together. Understanding why this works helps with word problems.\n\n**Rule: a/b × c/d = (a×c)/(b×d)**\n\n**Examples:**\n• 2/3 × 4/5 = 8/15\n• 3/4 × 2/7 = 6/28 = 3/14\n• 5 × 3/4 = 15/4 = 3¾\n\n**Meaning of Fraction Multiplication:**\n'1/2 of 1/3' means 1/2 × 1/3 = 1/6. If you take a third of something and then half of that, you get one-sixth.\n\n**Multiplying Mixed Numbers:**\nFirst convert to improper fractions:\n2½ × 1⅓ = 5/2 × 4/3 = 20/6 = 10/3 = 3⅓\n\n**Simplification Before Multiplying (Cross-Cancellation):**\n2/3 × 9/4: Cancel 2 and 4 (both ÷2), cancel 3 and 9 (both ÷3)\n= 1/1 × 3/2 = 3/2 = 1½\n\n**Properties:**\n• Multiplying by a fraction less than 1 makes the number smaller\n• Multiplying by a fraction greater than 1 makes the number larger\n• Multiplying by 1 (or any form of 1 like 3/3) keeps the number same\n• a/b × b/a = 1 (multiplicative inverse)\n\n**Real-World Applications:**\n• 'Half price' means multiplying by 1/2\n• 'Two-thirds of the class passed' means 2/3 × total students\n• Recipe scaling: 3/4 of a recipe that needs 2/3 cup sugar = 3/4 × 2/3 = 1/2 cup\n\n**Practice Tip:** Always simplify before multiplying when possible - it keeps numbers small and reduces errors."
+      },
+      {
+        "name": "8.2 Division of Fractions",
+        "content": "Dividing by a fraction is the same as multiplying by its reciprocal. This seemingly odd rule makes perfect sense when you understand what division really means.\n\n**Rule: a/b ÷ c/d = a/b × d/c**\n(Flip the second fraction and multiply)\n\n**Why Does This Work?**\n'How many 1/4's are in 3?' means 3 ÷ 1/4 = 3 × 4/1 = 12. Yes! There are 12 quarter-pieces in 3 wholes.\n\n**Examples:**\n• 3/4 ÷ 2/3 = 3/4 × 3/2 = 9/8 = 1⅛\n• 5 ÷ 1/3 = 5 × 3 = 15\n• 1/2 ÷ 3 = 1/2 × 1/3 = 1/6\n• 2½ ÷ 1¼ = 5/2 ÷ 5/4 = 5/2 × 4/5 = 20/10 = 2\n\n**Reciprocal (Multiplicative Inverse):**\n• Reciprocal of 3/4 is 4/3\n• Reciprocal of 5 is 1/5\n• Reciprocal of 1/7 is 7\n• A number × its reciprocal = 1\n• Zero has NO reciprocal (cannot divide by zero!)\n\n**Properties:**\n• Dividing by a fraction  1 makes the number SMALLER\n• Dividing any number by itself = 1\n\n**Practice Tip:** Remember KFC - Keep the first fraction, Flip the second, Change division to multiplication!"
+      },
+      {
+        "name": "8.3 Some Problems Involving Fractions",
+        "content": "Word problems with fractions require careful reading to identify whether you need to add, subtract, multiply, or divide.\n\n**Type 1: Finding a Fraction of a Quantity**\n'3/5 of 40 students like cricket' → 3/5 × 40 = 24 students\n'Raju spent 2/7 of Rs. 350' → 2/7 × 350 = Rs. 100\n\n**Type 2: Finding the Whole from a Part**\n'If 3/4 of a number is 27, find the number' → 27 ÷ 3/4 = 27 × 4/3 = 36\n'2/5 of the students = 16. Total students?' → 16 ÷ 2/5 = 16 × 5/2 = 40\n\n**Type 3: Successive Fractions**\n'Meera had Rs. 600. She spent 1/3 on books and 1/4 of the remainder on food.'\nBooks: 1/3 × 600 = Rs. 200. Remainder = Rs. 400.\nFood: 1/4 × 400 = Rs. 100. Final remainder = Rs. 300.\n\n**Type 4: Fraction of Area/Length**\n'A rope 8½ meters long is cut into pieces of 1¼ m each. How many pieces?'\n8½ ÷ 1¼ = 17/2 ÷ 5/4 = 17/2 × 4/5 = 68/10 = 6.8 → 6 complete pieces\n\n**Type 5: Comparing Fractions**\n'Who ate more: Ram (3/8 of pizza) or Shyam (2/5 of pizza)?'\n3/8 = 15/40, 2/5 = 16/40. Shyam ate more!\n\n**Practice Tip:** In word problems, 'of' usually means multiplication, 'shared equally' means division, and 'how much more/less' means subtraction."
+      }
+    ],
+    "questions": [
+      {
+        "q": "2/3 x 4/5 = ?",
+        "options": [
+          "6/8",
+          "8/15",
+          "6/15",
+          "8/8"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "The reciprocal of 3/7 is:",
+        "options": [
+          "3/7",
+          "7/3",
+          "-3/7",
+          "1"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "3/4 / 2/3 = ?",
+        "options": [
+          "6/12",
+          "9/8",
+          "1/2",
+          "6/7"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Half of 2/5 is:",
+        "options": [
+          "1/5",
+          "4/5",
+          "2/10",
+          "1/10"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "5 / (1/3) = ?",
+        "options": [
+          "5/3",
+          "15",
+          "3/5",
+          "1/15"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "2 1/2 x 1 1/3 = ?",
+        "options": [
+          "2 2/5",
+          "3 1/3",
+          "3 1/6",
+          "2 1/6"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "3/5 of 40 = ?",
+        "options": [
+          "8",
+          "24",
+          "30",
+          "15"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Reciprocal of 5 is:",
+        "options": [
+          "5",
+          "-5",
+          "1/5",
+          "0"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "1/2 / 3 = ?",
+        "options": [
+          "3/2",
+          "1/6",
+          "6",
+          "2/3"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "If 3/4 of a number is 27, the number is:",
+        "options": [
+          "20",
+          "36",
+          "81",
+          "9"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Multiplying by 1/2 is the same as:",
+        "options": [
+          "Doubling",
+          "Halving",
+          "Adding 1/2",
+          "Subtracting 1/2"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "4/7 x 7/4 = ?",
+        "options": [
+          "0",
+          "1",
+          "16/49",
+          "49/16"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "A rope 8 1/2 m cut into 1 1/4 m pieces gives:",
+        "options": [
+          "6 pieces",
+          "7 pieces",
+          "8 pieces",
+          "6 complete pieces"
+        ],
+        "answer": 3
+      },
+      {
+        "q": "Which is greater: 3/8 or 2/5?",
+        "options": [
+          "3/8",
+          "2/5",
+          "Equal",
+          "Cannot compare"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "2/3 x 9/4 simplified first gives:",
+        "options": [
+          "18/12",
+          "3/2",
+          "6/4",
+          "9/6"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Dividing by 1/4 is the same as:",
+        "options": [
+          "Multiplying by 4",
+          "Dividing by 4",
+          "Multiplying by 1/4",
+          "Subtracting 4"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "3/8 x 0 = ?",
+        "options": [
+          "3/8",
+          "0",
+          "8/3",
+          "Undefined"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "If 2/5 of students = 16, total students = ?",
+        "options": [
+          "32",
+          "8",
+          "40",
+          "80"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Mixed number 3 2/5 as improper fraction:",
+        "options": [
+          "32/5",
+          "17/5",
+          "15/2",
+          "6/5"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "1/3 x 1/3 = ?",
+        "options": [
+          "2/3",
+          "1/6",
+          "1/9",
+          "2/9"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Zero has a reciprocal:",
+        "options": [
+          "Yes, it's 0",
+          "Yes, it's infinity",
+          "No",
+          "Yes, it's 1"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "2/3 / 2/3 = ?",
+        "options": [
+          "0",
+          "1",
+          "4/9",
+          "2/3"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Raju spent 2/7 of Rs. 350. He spent:",
+        "options": [
+          "Rs. 50",
+          "Rs. 100",
+          "Rs. 150",
+          "Rs. 200"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "5/6 x 12 = ?",
+        "options": [
+          "10",
+          "60/6",
+          "17/6",
+          "Both A and B"
+        ],
+        "answer": 3
+      },
+      {
+        "q": "Multiplying a number by a fraction > 1:",
+        "options": [
+          "Decreases it",
+          "Increases it",
+          "Keeps it same",
+          "Makes it zero"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "3 1/4 / 1/2 = ?",
+        "options": [
+          "1 5/8",
+          "6 1/2",
+          "3/8",
+          "13/8"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "What fraction of 1 hour is 20 minutes?",
+        "options": [
+          "1/2",
+          "1/3",
+          "1/4",
+          "2/5"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "7/8 x 8/7 = ?",
+        "options": [
+          "56/56",
+          "1",
+          "15/15",
+          "All of these"
+        ],
+        "answer": 3
+      },
+      {
+        "q": "If she spent 1/3 of Rs. 600 on books, remainder = ?",
+        "options": [
+          "Rs. 200",
+          "Rs. 300",
+          "Rs. 400",
+          "Rs. 500"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "1/5 / 1/5 = ?",
+        "options": [
+          "1/25",
+          "25",
+          "1",
+          "0"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "3/4 of a pizza shared by 3 people. Each gets:",
+        "options": [
+          "1/4",
+          "3/12",
+          "9/4",
+          "Both A and B"
+        ],
+        "answer": 3
+      },
+      {
+        "q": "Which is larger: 5/6 or 7/8?",
+        "options": [
+          "5/6",
+          "7/8",
+          "Equal",
+          "Cannot tell"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "2 / (2/3) = ?",
+        "options": [
+          "4/3",
+          "3",
+          "1/3",
+          "6"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Product of a number and its reciprocal is always:",
+        "options": [
+          "0",
+          "1",
+          "The number itself",
+          "2"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "3/5 x 5/3 x 7 = ?",
+        "options": [
+          "7",
+          "105/15",
+          "1",
+          "Both A and B"
+        ],
+        "answer": 3
+      },
+      {
+        "q": "Half of three-quarters is:",
+        "options": [
+          "3/8",
+          "3/2",
+          "1/4",
+          "6/4"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "If 1/4 of a class failed and 30 passed, class size = ?",
+        "options": [
+          "35",
+          "40",
+          "120",
+          "34"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "2 1/2 / 1 1/4 = ?",
+        "options": [
+          "1",
+          "2",
+          "3",
+          "4"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "4/5 x 25 = ?",
+        "options": [
+          "20",
+          "100/5",
+          "5",
+          "Both A and B"
+        ],
+        "answer": 3
+      },
+      {
+        "q": "In word problems, 'of' usually means:",
+        "options": [
+          "Addition",
+          "Subtraction",
+          "Multiplication",
+          "Division"
+        ],
+        "answer": 2
+      }
+    ]
+  },
+  {
+    "id": 9,
+    "number": "9",
+    "title": "Geometric Twins",
+    "description": "Understanding symmetry, congruence, reflection, and rotation - how geometric shapes can be identical twins",
+    "topics": [
+      {
+        "name": "9.1 Line Symmetry",
+        "content": "A figure has line symmetry if it can be folded along a line so that one half matches exactly with the other half. This fold line is called the line of symmetry or axis of symmetry.\n\n**Definition:**\nA figure is symmetric about a line if, when folded along that line, the two halves overlap perfectly. The fold line is the line of symmetry.\n\n**Examples of Line Symmetry:**\n• A square has 4 lines of symmetry (2 diagonals + 2 midpoint lines)\n• A rectangle has 2 lines of symmetry (through midpoints of opposite sides)\n• An equilateral triangle has 3 lines of symmetry\n• A circle has infinite lines of symmetry (every diameter)\n• A regular pentagon has 5 lines of symmetry\n\n**Symmetry in English Alphabets:**\n• Vertical line symmetry: A, H, I, M, O, T, U, V, W, X, Y\n• Horizontal line symmetry: B, C, D, E, H, I, K, O, X\n• Both: H, I, O, X\n• No symmetry: F, G, J, L, N, P, Q, R, S, Z\n\n**Symmetry in Nature:**\n• Butterflies (bilateral symmetry)\n• Leaves (midrib is the line of symmetry)\n• Human face (approximately symmetric)\n• Snowflakes (6 lines of symmetry)\n\n**Mirror Test:** Place a mirror along the supposed line of symmetry. If the reflection plus the visible half recreates the full figure, it's a line of symmetry!\n\n**Practice Tip:** To check symmetry, trace the figure on paper, fold along the suspected line, and see if both halves match."
+      },
+      {
+        "name": "9.2 Congruent Figures",
+        "content": "Two figures are congruent if they have the same shape AND the same size. One can be placed on top of the other to match perfectly.\n\n**Definition:**\nCongruent figures are identical in shape and size. They can be superimposed (placed on top of each other) to match exactly. The symbol for congruence is ≅.\n\n**Congruence vs Similarity:**\n• **Congruent:** Same shape AND same size (exact copies)\n• **Similar:** Same shape but possibly different sizes (scaled copies)\nAll congruent figures are similar, but not all similar figures are congruent!\n\n**Congruence of Line Segments:**\nTwo line segments are congruent if they have the same length.\nAB ≅ CD means AB = CD (same length)\n\n**Congruence of Angles:**\nTwo angles are congruent if they have the same measure.\n∠A ≅ ∠B means ∠A = ∠B (same degrees)\n\n**Congruence of Triangles:**\nTwo triangles are congruent if all corresponding sides and angles match. Tests:\n• SSS: All 3 sides equal\n• SAS: 2 sides and included angle equal\n• ASA: 2 angles and included side equal\n• RHS: Right angle, Hypotenuse, one Side equal\n\n**Real-World Examples:**\n• Two coins of the same denomination are congruent\n• Tiles of the same type are congruent\n• Mass-produced objects (same mold) are congruent\n\n**Practice Tip:** To check if two figures are congruent, trace one on paper and try to place it on the other. You may need to flip or rotate it."
+      },
+      {
+        "name": "9.3 Flips and Turns",
+        "content": "Geometric transformations like reflections (flips), rotations (turns), and translations (slides) move figures while preserving their shape and size.\n\n**Reflection (Flip):**\n• A mirror image of the figure across a line (mirror line)\n• Every point moves to the other side, same distance from the mirror line\n• The figure appears 'flipped' or reversed\n• Left and right are swapped, but shape and size stay the same\n\n**Rotation (Turn):**\n• Turning a figure around a fixed point (center of rotation)\n• Measured by the angle of rotation (90°, 180°, 270°, etc.)\n• Clockwise or counter-clockwise direction\n• Shape and size remain unchanged\n\n**Translation (Slide):**\n• Moving a figure in a straight line without rotating or flipping\n• Every point moves the same distance in the same direction\n• Like sliding a chess piece straight across the board\n\n**Rotational Symmetry:**\nA figure has rotational symmetry if it looks the same after rotation by less than 360°:\n• Square: Order 4 (looks same at 90°, 180°, 270°, 360°)\n• Equilateral triangle: Order 3 (120°, 240°, 360°)\n• Rectangle: Order 2 (180°, 360°)\n• Circle: Infinite order\n\n**Key Insight:** Reflections, rotations, and translations all produce congruent figures. The original and the transformed figure are always congruent!\n\n**Practice Tip:** Use tracing paper to test transformations - trace the figure and physically flip, turn, or slide it to see the result."
+      }
+    ],
+    "questions": [
+      {
+        "q": "How many lines of symmetry does a square have?",
+        "options": [
+          "1",
+          "2",
+          "4",
+          "8"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Two figures with same shape and size are:",
+        "options": [
+          "Similar",
+          "Congruent",
+          "Symmetric",
+          "Equal"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "A circle has ___ lines of symmetry:",
+        "options": [
+          "1",
+          "4",
+          "8",
+          "Infinite"
+        ],
+        "answer": 3
+      },
+      {
+        "q": "The letter 'A' has:",
+        "options": [
+          "Vertical line symmetry",
+          "Horizontal line symmetry",
+          "Both",
+          "No symmetry"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "A reflection is also called a:",
+        "options": [
+          "Slide",
+          "Turn",
+          "Flip",
+          "Stretch"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "An equilateral triangle has ___ lines of symmetry:",
+        "options": [
+          "1",
+          "2",
+          "3",
+          "6"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "The symbol for congruence is:",
+        "options": [
+          "=",
+          "~",
+          "≅",
+          "≈"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "A rotation is also called a:",
+        "options": [
+          "Flip",
+          "Turn",
+          "Slide",
+          "Scale"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Rotational symmetry order of a square is:",
+        "options": [
+          "2",
+          "3",
+          "4",
+          "8"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Which letter has both horizontal and vertical symmetry?",
+        "options": [
+          "A",
+          "B",
+          "H",
+          "T"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Two congruent triangles have:",
+        "options": [
+          "Same shape only",
+          "Same size only",
+          "Same shape and size",
+          "Different shapes"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "A rectangle has ___ lines of symmetry:",
+        "options": [
+          "1",
+          "2",
+          "3",
+          "4"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "A translation is also called a:",
+        "options": [
+          "Flip",
+          "Turn",
+          "Slide",
+          "Rotation"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Which has NO line of symmetry?",
+        "options": [
+          "Circle",
+          "Square",
+          "Scalene triangle",
+          "Rectangle"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "A butterfly shows ___ symmetry:",
+        "options": [
+          "No",
+          "Bilateral (line)",
+          "Rotational",
+          "Point"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "SSS test for congruence means:",
+        "options": [
+          "Side-Side-Side",
+          "Same-Same-Same",
+          "Similar-Similar-Similar",
+          "Sum-Sum-Sum"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "After a reflection, the figure is:",
+        "options": [
+          "Bigger",
+          "Smaller",
+          "Congruent to original",
+          "Similar only"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "A regular hexagon has ___ lines of symmetry:",
+        "options": [
+          "3",
+          "4",
+          "6",
+          "12"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Which transformation changes left-right orientation?",
+        "options": [
+          "Translation",
+          "Rotation",
+          "Reflection",
+          "None"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "The letter 'O' has ___ lines of symmetry:",
+        "options": [
+          "1",
+          "2",
+          "4",
+          "Infinite"
+        ],
+        "answer": 3
+      },
+      {
+        "q": "All congruent figures are similar:",
+        "options": [
+          "True",
+          "False",
+          "Sometimes",
+          "Never"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "A snowflake typically has ___ lines of symmetry:",
+        "options": [
+          "2",
+          "4",
+          "6",
+          "8"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Rotational symmetry order of an equilateral triangle:",
+        "options": [
+          "1",
+          "2",
+          "3",
+          "6"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Which test is NOT for triangle congruence?",
+        "options": [
+          "SSS",
+          "SAS",
+          "AAA",
+          "ASA"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "A parallelogram has ___ lines of symmetry:",
+        "options": [
+          "0",
+          "1",
+          "2",
+          "4"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "After 180° rotation, a rectangle looks:",
+        "options": [
+          "Different",
+          "The same",
+          "Bigger",
+          "Flipped"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Two line segments are congruent if they have:",
+        "options": [
+          "Same direction",
+          "Same length",
+          "Same position",
+          "Same color"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "A regular pentagon has rotational symmetry of order:",
+        "options": [
+          "3",
+          "4",
+          "5",
+          "10"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Which shape has the most lines of symmetry?",
+        "options": [
+          "Square",
+          "Rectangle",
+          "Circle",
+          "Triangle"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "In a reflection, the distance from mirror line is:",
+        "options": [
+          "Doubled",
+          "Halved",
+          "Same on both sides",
+          "Zero"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "An isosceles triangle has ___ line(s) of symmetry:",
+        "options": [
+          "0",
+          "1",
+          "2",
+          "3"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Which transformation doesn't change orientation?",
+        "options": [
+          "Reflection",
+          "Translation",
+          "Glide reflection",
+          "None"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "A rhombus has ___ lines of symmetry:",
+        "options": [
+          "0",
+          "1",
+          "2",
+          "4"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Two circles with the same radius are:",
+        "options": [
+          "Similar only",
+          "Congruent",
+          "Neither",
+          "Cannot determine"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "The letter 'S' has:",
+        "options": [
+          "Line symmetry",
+          "Rotational symmetry",
+          "Both",
+          "Neither"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "After a 360° rotation, the figure:",
+        "options": [
+          "Disappears",
+          "Doubles",
+          "Returns to original position",
+          "Flips"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "RHS congruence test applies to:",
+        "options": [
+          "All triangles",
+          "Only right triangles",
+          "Only equilateral",
+          "Only isosceles"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "A scalene triangle has ___ lines of symmetry:",
+        "options": [
+          "0",
+          "1",
+          "2",
+          "3"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "Which has rotational symmetry but NO line symmetry?",
+        "options": [
+          "Square",
+          "Circle",
+          "Parallelogram (non-rectangle)",
+          "Equilateral triangle"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Two angles are congruent if they have:",
+        "options": [
+          "Same arms",
+          "Same measure",
+          "Same vertex",
+          "Same position"
+        ],
+        "answer": 1
+      }
+    ]
+  },
+  {
+    "id": 10,
+    "number": "10",
+    "title": "Operations with Integers",
+    "description": "Understanding positive and negative numbers, number line operations, addition, subtraction, and multiplication of integers",
+    "topics": [
+      {
+        "name": "10.1 Integers and the Number Line",
+        "content": "Integers extend our number system to include negative numbers. The number line stretches infinitely in both directions, with zero in the middle.\n\n**What are Integers?**\nIntegers = {..., -3, -2, -1, 0, 1, 2, 3, ...}\n• Positive integers: 1, 2, 3, 4, ... (right of zero)\n• Negative integers: -1, -2, -3, -4, ... (left of zero)\n• Zero is neither positive nor negative\n\n**The Number Line:**\n\n• Numbers increase from left to right\n• Numbers decrease from right to left\n• Every positive number has a negative counterpart\n\n**Comparing Integers:**\n• Any positive integer > 0 > any negative integer\n• Among negatives: -1 > -2 > -3 (closer to zero = larger)\n• -100 < -1 (further from zero = smaller for negatives)\n\n**Absolute Value:**\nThe distance of a number from zero (always positive):\n• |5| = 5, |-5| = 5\n• |0| = 0\n• |-100| = 100\n\n**Real-World Integers:**\n• Temperature: -5°C (5 degrees below zero)\n• Altitude: -200 m (200 meters below sea level, like the Dead Sea)\n• Bank balance: -Rs. 500 (overdrawn/debt of Rs. 500)\n• Floors: -2 (second basement level)\n• Timeline: -500 BCE (500 years before common era)\n\n**Practice Tip:** Think of the number line as a thermometer - above zero is positive (warm), below zero is negative (cold). The further below zero, the colder (smaller) it is."
+      },
+      {
+        "name": "10.2 Operations on Integers",
+        "content": "Adding, subtracting, and multiplying integers follows specific rules. Understanding these rules through the number line makes them intuitive.\n\n**Addition of Integers:**\n• Same signs: Add the absolute values, keep the sign\n  (+3) + (+5) = +8, (-3) + (-5) = -8\n• Different signs: Subtract smaller absolute value from larger, keep sign of larger\n  (+7) + (-3) = +4, (-7) + (+3) = -4\n  (+3) + (-7) = -4, (-3) + (+7) = +4\n\n**Subtraction of Integers:**\nSubtracting is the same as adding the opposite (additive inverse):\na - b = a + (-b)\n• 5 - 8 = 5 + (-8) = -3\n• -3 - 4 = -3 + (-4) = -7\n• -3 - (-4) = -3 + 4 = 1\n\n**Multiplication of Integers:**\n• Positive × Positive = Positive: 3 × 4 = 12\n• Negative × Negative = Positive: (-3) × (-4) = 12\n• Positive × Negative = Negative: 3 × (-4) = -12\n• Negative × Positive = Negative: (-3) × 4 = -12\n\n**Memory Aid:** Same signs → Positive product, Different signs → Negative product\n\n**Properties:**\n• a + 0 = a (zero is additive identity)\n• a + (-a) = 0 (additive inverse)\n• a × 1 = a (one is multiplicative identity)\n• a × 0 = 0\n• Addition and multiplication are commutative and associative\n• Subtraction and division are NOT commutative\n\n**Practice Tip:** For subtraction, always convert to addition first: a - b = a + (-b). This reduces mistakes with negative numbers."
+      }
+    ],
+    "questions": [
+      {
+        "q": "(-3) + (-5) = ?",
+        "options": [
+          "-8",
+          "8",
+          "-2",
+          "2"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "Which is greater: -3 or -7?",
+        "options": [
+          "-3",
+          "-7",
+          "Both equal",
+          "Cannot compare"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "The additive inverse of 5 is:",
+        "options": [
+          "5",
+          "-5",
+          "1/5",
+          "0"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "(-4) x (-3) = ?",
+        "options": [
+          "-12",
+          "12",
+          "-7",
+          "7"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "7 + (-10) = ?",
+        "options": [
+          "17",
+          "-17",
+          "-3",
+          "3"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "|−8| = ?",
+        "options": [
+          "-8",
+          "8",
+          "0",
+          "-1"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "(-5) - (-3) = ?",
+        "options": [
+          "-8",
+          "-2",
+          "2",
+          "8"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Zero is:",
+        "options": [
+          "Positive",
+          "Negative",
+          "Neither positive nor negative",
+          "Both"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "3 x (-7) = ?",
+        "options": [
+          "21",
+          "-21",
+          "10",
+          "-10"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "(-15) + 15 = ?",
+        "options": [
+          "30",
+          "-30",
+          "0",
+          "15"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Which is smallest: -1, -100, 0, 1?",
+        "options": [
+          "-1",
+          "-100",
+          "0",
+          "1"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "(-6) - 4 = ?",
+        "options": [
+          "-10",
+          "-2",
+          "2",
+          "10"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "(-2) x (-2) x (-2) = ?",
+        "options": [
+          "8",
+          "-8",
+          "6",
+          "-6"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "The integer between -3 and -1 is:",
+        "options": [
+          "-4",
+          "-2",
+          "0",
+          "2"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "8 - (-3) = ?",
+        "options": [
+          "5",
+          "11",
+          "-5",
+          "-11"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Negative x Negative = ?",
+        "options": [
+          "Negative",
+          "Positive",
+          "Zero",
+          "Cannot determine"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "(-20) / 4 = ?",
+        "options": [
+          "5",
+          "-5",
+          "24",
+          "-24"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Temperature drops from 5°C by 8°C. New temp:",
+        "options": [
+          "13°C",
+          "-3°C",
+          "3°C",
+          "-13°C"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "(-1) x (-1) x (-1) x (-1) = ?",
+        "options": [
+          "-1",
+          "1",
+          "-4",
+          "4"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Arrange in ascending order: -5, 3, -1, 0",
+        "options": [
+          "-5,-1,0,3",
+          "3,0,-1,-5",
+          "-1,-5,0,3",
+          "0,-1,-5,3"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "Is subtraction of integers commutative?",
+        "options": [
+          "Yes",
+          "No",
+          "Sometimes",
+          "Only for positives"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "(-9) + 4 = ?",
+        "options": [
+          "-13",
+          "13",
+          "-5",
+          "5"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "The absolute value of 0 is:",
+        "options": [
+          "0",
+          "1",
+          "Undefined",
+          "-1"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "(-6) x 5 = ?",
+        "options": [
+          "30",
+          "-30",
+          "11",
+          "-11"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "A submarine at -200m rises 50m. New depth:",
+        "options": [
+          "-250m",
+          "-150m",
+          "150m",
+          "250m"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "(-3) + (-3) + (-3) = ?",
+        "options": [
+          "-9",
+          "9",
+          "-6",
+          "6"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "Which operation gives positive: (-5) ? (-5)?",
+        "options": [
+          "Addition",
+          "Subtraction",
+          "Multiplication",
+          "None"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "0 - (-7) = ?",
+        "options": [
+          "-7",
+          "7",
+          "0",
+          "14"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "(-4)² = ?",
+        "options": [
+          "-16",
+          "16",
+          "-8",
+          "8"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Sum of all integers from -5 to 5 is:",
+        "options": [
+          "-5",
+          "5",
+          "0",
+          "10"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "(-12) / (-3) = ?",
+        "options": [
+          "-4",
+          "4",
+          "-36",
+          "36"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "a + (-a) always equals:",
+        "options": [
+          "2a",
+          "-2a",
+          "0",
+          "a²"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Which is true: -3 > -2 or -3 < -2?",
+        "options": [
+          "-3 > -2",
+          "-3 < -2",
+          "They are equal",
+          "Cannot compare"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "(-7) x 0 = ?",
+        "options": [
+          "-7",
+          "7",
+          "0",
+          "Undefined"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "15 + (-20) + 5 = ?",
+        "options": [
+          "40",
+          "-40",
+          "0",
+          "10"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "The successor of -1 is:",
+        "options": [
+          "-2",
+          "0",
+          "1",
+          "-1"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "(-8) - (-8) = ?",
+        "options": [
+          "-16",
+          "16",
+          "0",
+          "1"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Product of 5 negative numbers is:",
+        "options": [
+          "Positive",
+          "Negative",
+          "Zero",
+          "Cannot determine"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "The predecessor of 0 is:",
+        "options": [
+          "1",
+          "-1",
+          "0",
+          "None"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "(-2) x 3 x (-4) = ?",
+        "options": [
+          "-24",
+          "24",
+          "-9",
+          "9"
+        ],
+        "answer": 1
+      }
+    ]
+  },
+  {
+    "id": 11,
+    "number": "11",
+    "title": "Finding Common Ground",
+    "description": "Understanding factors, multiples, HCF (GCD), LCM, prime factorization, and their real-world applications",
+    "topics": [
+      {
+        "name": "11.1 Prime Numbers and Factorisation",
+        "content": "Every number greater than 1 is either prime or can be expressed as a product of prime numbers. This fundamental idea is the basis of all number theory.\n\n**Prime Numbers:**\nA number greater than 1 that has exactly two factors (1 and itself):\n2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47...\n\n**Important Facts about Primes:**\n• 2 is the only even prime number\n• 1 is NOT a prime (it has only one factor)\n• There are infinitely many primes\n• Every even number > 2 can be written as a sum of two primes (Goldbach's conjecture, unproven but verified up to very large numbers)\n\n**Composite Numbers:**\nNumbers with more than 2 factors: 4, 6, 8, 9, 10, 12, 14, 15...\n\n**Prime Factorisation:**\nWriting a number as a product of its prime factors:\n• 12 = 2 × 2 × 3 = 2² × 3\n• 60 = 2² × 3 × 5\n• 100 = 2² × 5²\n\n**Factor Tree Method:**\n60 → 2 × 30 → 2 × 2 × 15 → 2 × 2 × 3 × 5\n\n**Division Method:**\nDivide by smallest prime repeatedly: 60 ÷ 2 = 30, 30 ÷ 2 = 15, 15 ÷ 3 = 5, 5 ÷ 5 = 1\nSo 60 = 2 × 2 × 3 × 5\n\n**Fundamental Theorem of Arithmetic:**\nEvery number > 1 has a UNIQUE prime factorisation (up to order). This is one of the most important theorems in mathematics!\n\n**Practice Tip:** Always start dividing by the smallest prime (2), then try 3, 5, 7, etc. This systematic approach ensures you don't miss any factors."
+      },
+      {
+        "name": "11.2 HCF (Highest Common Factor)",
+        "content": "The HCF (also called GCD - Greatest Common Divisor) of two or more numbers is the largest number that divides all of them exactly.\n\n**Finding HCF - Method 1: Listing Factors**\nFactors of 12: 1, 2, 3, 4, 6, 12\nFactors of 18: 1, 2, 3, 6, 9, 18\nCommon factors: 1, 2, 3, 6\nHCF = 6 (the highest common factor)\n\n**Finding HCF - Method 2: Prime Factorisation**\n12 = 2² × 3\n18 = 2 × 3²\nHCF = Product of common prime factors with LOWEST powers\n= 2¹ × 3¹ = 6\n\n**Finding HCF - Method 3: Division Method (Euclid's Algorithm)**\nHCF(48, 18): 48 = 2 × 18 + 12, then 18 = 1 × 12 + 6, then 12 = 2 × 6 + 0\nHCF = 6 (the last non-zero remainder)\n\n**Properties of HCF:**\n• HCF(a, b) ≤ min(a, b)\n• If HCF(a, b) = 1, then a and b are coprime (no common factor except 1)\n• HCF(a, a) = a\n• HCF(a, 0) = a\n\n**Real-World Applications:**\n• Cutting rope into equal pieces: HCF tells the longest possible piece length\n• Arranging items in equal rows: HCF gives the maximum row size\n• Simplifying fractions: Divide both numerator and denominator by their HCF\n\n**Practice Tip:** The prime factorisation method is most reliable for HCF. Write out the factorisation, circle common primes, and multiply with lowest powers."
+      },
+      {
+        "name": "11.3 LCM (Least Common Multiple)",
+        "content": "The LCM of two or more numbers is the smallest number that is a multiple of all of them.\n\n**Finding LCM - Method 1: Listing Multiples**\nMultiples of 4: 4, 8, 12, 16, 20, 24, 28, 32, 36...\nMultiples of 6: 6, 12, 18, 24, 30, 36...\nCommon multiples: 12, 24, 36...\nLCM = 12 (the least common multiple)\n\n**Finding LCM - Method 2: Prime Factorisation**\n4 = 2²\n6 = 2 × 3\nLCM = Product of ALL prime factors with HIGHEST powers\n= 2² × 3 = 12\n\n**Finding LCM - Method 3: Division Method**\nWrite both numbers, divide by common primes:\n2 | 4, 6\n2 | 2, 3\n3 | 1, 3\n  | 1, 1\nLCM = 2 × 2 × 3 = 12\n\n**HCF-LCM Relationship:**\nFor any two numbers a and b:\nHCF(a,b) × LCM(a,b) = a × b\nExample: HCF(4,6)=2, LCM(4,6)=12, and 2×12 = 4×6 = 24 ✓\n\n**Real-World Applications:**\n• When will two events coincide? (LCM of their intervals)\n• Two lights blink every 4 and 6 seconds - when do they blink together? LCM(4,6) = 12 seconds\n• Buying items to get equal quantities: LCM of pack sizes\n\n**Practice Tip:** For LCM, use ALL prime factors with HIGHEST powers. For HCF, use only COMMON prime factors with LOWEST powers. Don't mix them up!"
+      }
+    ],
+    "questions": [
+      {
+        "q": "Is 1 a prime number?",
+        "options": [
+          "Yes",
+          "No",
+          "Sometimes",
+          "It's special"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "The only even prime number is:",
+        "options": [
+          "1",
+          "2",
+          "4",
+          "0"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Prime factorisation of 60 is:",
+        "options": [
+          "2x30",
+          "4x15",
+          "2²x3x5",
+          "6x10"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "HCF of 12 and 18 is:",
+        "options": [
+          "2",
+          "3",
+          "6",
+          "36"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "LCM of 4 and 6 is:",
+        "options": [
+          "2",
+          "12",
+          "24",
+          "10"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Two numbers with HCF = 1 are called:",
+        "options": [
+          "Prime",
+          "Composite",
+          "Coprime",
+          "Twin primes"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "HCF(a,b) x LCM(a,b) = ?",
+        "options": [
+          "a + b",
+          "a - b",
+          "a x b",
+          "a / b"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Prime factorisation of 100:",
+        "options": [
+          "2x50",
+          "4x25",
+          "10x10",
+          "2²x5²"
+        ],
+        "answer": 3
+      },
+      {
+        "q": "LCM of 3 and 7 is:",
+        "options": [
+          "3",
+          "7",
+          "10",
+          "21"
+        ],
+        "answer": 3
+      },
+      {
+        "q": "HCF of 15 and 25 is:",
+        "options": [
+          "5",
+          "15",
+          "25",
+          "75"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "Which is prime: 51, 53, 55, 57?",
+        "options": [
+          "51",
+          "53",
+          "55",
+          "57"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "LCM of 5 and 10 is:",
+        "options": [
+          "5",
+          "10",
+          "50",
+          "15"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "How many prime numbers between 1 and 10?",
+        "options": [
+          "3",
+          "4",
+          "5",
+          "6"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "HCF of 48 and 36 is:",
+        "options": [
+          "6",
+          "12",
+          "24",
+          "144"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "If HCF(a,b) = a, then:",
+        "options": [
+          "a = b",
+          "a divides b",
+          "b divides a",
+          "a and b are prime"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "LCM of 12 and 15 is:",
+        "options": [
+          "3",
+          "60",
+          "180",
+          "30"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "36 = 2² x 3². Number of factors of 36:",
+        "options": [
+          "6",
+          "7",
+          "8",
+          "9"
+        ],
+        "answer": 3
+      },
+      {
+        "q": "To simplify 24/36, divide by HCF:",
+        "options": [
+          "2",
+          "6",
+          "12",
+          "4"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "LCM(6,8,12) = ?",
+        "options": [
+          "24",
+          "48",
+          "96",
+          "12"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "Two lights blink every 4s and 6s. They blink together every:",
+        "options": [
+          "10s",
+          "12s",
+          "24s",
+          "2s"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Is 91 prime?",
+        "options": [
+          "Yes",
+          "No (7x13)",
+          "No (9x11)",
+          "Cannot determine"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "HCF of two prime numbers is always:",
+        "options": [
+          "0",
+          "1",
+          "Their product",
+          "Their sum"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "LCM of two prime numbers is:",
+        "options": [
+          "1",
+          "Their sum",
+          "Their product",
+          "Their HCF"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Prime factorisation of 72:",
+        "options": [
+          "8x9",
+          "2³x3²",
+          "2²x18",
+          "4x18"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "HCF(100, 75) = ?",
+        "options": [
+          "5",
+          "25",
+          "50",
+          "75"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "If LCM = 60 and HCF = 5 for two numbers, their product is:",
+        "options": [
+          "65",
+          "300",
+          "12",
+          "55"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Which pair is coprime?",
+        "options": [
+          "4 and 6",
+          "8 and 15",
+          "12 and 18",
+          "9 and 21"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "LCM is always:",
+        "options": [
+          "Less than both numbers",
+          "Equal to smaller number",
+          ">= the larger number",
+          "Equal to HCF"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Goldbach's conjecture states every even number > 2 is:",
+        "options": [
+          "Prime",
+          "Sum of two primes",
+          "Product of two primes",
+          "Power of 2"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "HCF(0, 5) = ?",
+        "options": [
+          "0",
+          "1",
+          "5",
+          "Undefined"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Number of primes between 10 and 20:",
+        "options": [
+          "2",
+          "3",
+          "4",
+          "5"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "LCM(1, any number n) = ?",
+        "options": [
+          "1",
+          "n",
+          "n+1",
+          "0"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "24/36 simplified = ?",
+        "options": [
+          "4/6",
+          "2/3",
+          "12/18",
+          "All of these simplify to 2/3"
+        ],
+        "answer": 3
+      },
+      {
+        "q": "Prime factorisation of 180:",
+        "options": [
+          "2²x3²x5",
+          "2x3x30",
+          "4x45",
+          "18x10"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "HCF(a, a) = ?",
+        "options": [
+          "0",
+          "1",
+          "a",
+          "2a"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "If HCF of two numbers is 12, both numbers are divisible by:",
+        "options": [
+          "6 only",
+          "12",
+          "24",
+          "Cannot determine"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Rope of 24m and 36m cut into longest equal pieces. Piece length:",
+        "options": [
+          "6m",
+          "12m",
+          "24m",
+          "4m"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "LCM of 15 and 20:",
+        "options": [
+          "5",
+          "30",
+          "60",
+          "300"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "A composite number has:",
+        "options": [
+          "Exactly 2 factors",
+          "More than 2 factors",
+          "Exactly 1 factor",
+          "No factors"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "The smallest composite number is:",
+        "options": [
+          "1",
+          "2",
+          "3",
+          "4"
+        ],
+        "answer": 3
+      }
+    ]
+  },
+  {
+    "id": 12,
+    "number": "12",
+    "title": "Another Peek Beyond the Point",
+    "description": "Advanced decimal operations - multiplication and division of decimals, decimal patterns, and real-world problem solving",
+    "topics": [
+      {
+        "name": "12.1 Multiplying Decimals",
+        "content": "Multiplying decimals extends the multiplication rules we know for whole numbers. The key is keeping track of decimal places in the answer.\n\n**Rule for Multiplying Decimals:**\n1. Ignore the decimal points and multiply as whole numbers\n2. Count the total decimal places in both numbers\n3. Place the decimal point in the answer with that many decimal places\n\n**Examples:**\n• 0.3 × 0.4 = 0.12 (1 + 1 = 2 decimal places)\n• 2.5 × 0.3 = 0.75 (1 + 1 = 2 decimal places: 25 × 3 = 75 → 0.75)\n• 1.2 × 3.5 = 4.20 = 4.2 (1 + 1 = 2 decimal places: 12 × 35 = 420 → 4.20)\n• 0.06 × 0.7 = 0.042 (2 + 1 = 3 decimal places: 6 × 7 = 42 → 0.042)\n\n**Multiplying by Powers of 10:**\n• 3.456 × 10 = 34.56 (move decimal 1 place right)\n• 3.456 × 100 = 345.6 (move decimal 2 places right)\n• 3.456 × 1000 = 3456 (move decimal 3 places right)\n\n**Multiplying Decimals by Whole Numbers:**\n• 2.5 × 4 = 10.0 = 10\n• 0.75 × 8 = 6.00 = 6\n\n**Real-World Applications:**\n• Cost: 2.5 kg of apples at Rs. 80 per kg = 2.5 × 80 = Rs. 200\n• Area: Room 4.5 m × 3.2 m = 14.4 m²\n• Speed-Time: Walking 4.5 km/hr for 2.5 hours = 11.25 km\n\n**Practice Tip:** When unsure about decimal placement, estimate first. 2.5 × 3.5 should be close to 3 × 4 = 12, so 8.75 makes sense, but 87.5 or 0.875 wouldn't!"
+      },
+      {
+        "name": "12.2 Dividing Decimals",
+        "content": "Dividing decimals requires converting the division into a simpler form by removing the decimal from the divisor.\n\n**Dividing a Decimal by a Whole Number:**\nJust divide normally and place the decimal point in the quotient directly above where it is in the dividend:\n• 4.8 ÷ 2 = 2.4\n• 15.6 ÷ 3 = 5.2\n• 0.45 ÷ 5 = 0.09\n\n**Dividing by a Decimal:**\nMake the divisor a whole number by multiplying both numbers by 10, 100, etc.:\n• 4.8 ÷ 0.2 = 48 ÷ 2 = 24 (multiply both by 10)\n• 3.6 ÷ 0.04 = 360 ÷ 4 = 90 (multiply both by 100)\n• 7.5 ÷ 2.5 = 75 ÷ 25 = 3 (multiply both by 10)\n\n**Dividing by Powers of 10:**\n• 345.6 ÷ 10 = 34.56 (move decimal 1 place left)\n• 345.6 ÷ 100 = 3.456 (move decimal 2 places left)\n• 345.6 ÷ 1000 = 0.3456 (move decimal 3 places left)\n\n**Converting Fractions to Decimals:**\nDivide the numerator by the denominator:\n• 3/8 = 3 ÷ 8 = 0.375\n• 5/6 = 5 ÷ 6 = 0.8333...\n\n**Real-World Applications:**\n• Sharing a bill: Rs. 457.50 among 3 people = 457.50 ÷ 3 = Rs. 152.50 each\n• Unit price: Rs. 67.50 for 2.5 kg = 67.50 ÷ 2.5 = Rs. 27 per kg\n\n**Practice Tip:** Always make the divisor a whole number first - it makes the division much easier and less error-prone."
+      },
+      {
+        "name": "12.3 Decimal Patterns and Problem Solving",
+        "content": "Decimals reveal beautiful patterns when we explore multiplication tables, recurring decimals, and systematic calculations.\n\n**Patterns in Decimal Products:**\n• 0.1 × 0.1 = 0.01\n• 0.1 × 0.01 = 0.001\n• 0.01 × 0.01 = 0.0001\nPattern: The number of decimal places ADDS up!\n\n**Repeating Decimal Patterns:**\n• 1/9 = 0.111...\n• 2/9 = 0.222...\n• 1/7 = 0.142857142857... (period of 6 digits!)\n• 1/11 = 0.090909...\n• 1/99 = 0.010101...\n\n**Interesting Pattern:**\n• 1/9 = 0.111..., so 9 × 0.111... = 0.999... = 1 (yes, 0.999... = 1!)\n\n**Problem-Solving with Decimals:**\nType 1: Multi-step problems\nA shopkeeper buys 12.5 kg of rice at Rs. 42.40/kg and sells at Rs. 48.60/kg.\nCost = 12.5 × 42.40 = Rs. 530\nSelling = 12.5 × 48.60 = Rs. 607.50\nProfit = 607.50 - 530 = Rs. 77.50\n\nType 2: Estimation and checking\nIs 3.7 × 2.8 closer to 10 or 11? Estimate: 4 × 3 = 12, so answer ≈ 10.36\n\n**Decimal Representations of Common Values:**\n• π ≈ 3.14159\n• √2 ≈ 1.414\n• √3 ≈ 1.732\n• e ≈ 2.718\n\n**Practice Tip:** Always estimate your answer before calculating with decimals. This helps catch errors in decimal point placement."
+      }
+    ],
+    "questions": [
+      {
+        "q": "0.3 x 0.4 = ?",
+        "options": [
+          "0.12",
+          "1.2",
+          "12",
+          "0.012"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "4.8 / 0.2 = ?",
+        "options": [
+          "2.4",
+          "24",
+          "0.24",
+          "240"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "3.456 x 100 = ?",
+        "options": [
+          "34.56",
+          "345.6",
+          "3456",
+          "0.03456"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "15.6 / 3 = ?",
+        "options": [
+          "5.2",
+          "52",
+          "0.52",
+          "5.02"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "0.06 x 0.7 = ?",
+        "options": [
+          "0.42",
+          "0.042",
+          "4.2",
+          "0.0042"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "345.6 / 100 = ?",
+        "options": [
+          "34.56",
+          "3.456",
+          "0.3456",
+          "3456"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "2.5 x 4 = ?",
+        "options": [
+          "10",
+          "1.0",
+          "100",
+          "6.5"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "7.5 / 2.5 = ?",
+        "options": [
+          "3",
+          "30",
+          "0.3",
+          "5"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "How many decimal places in 0.3 x 0.04?",
+        "options": [
+          "1",
+          "2",
+          "3",
+          "4"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "1.2 x 3.5 = ?",
+        "options": [
+          "42",
+          "4.2",
+          "0.42",
+          "4.20"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "0.45 / 5 = ?",
+        "options": [
+          "0.9",
+          "0.09",
+          "9",
+          "0.009"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Area of room 4.5m x 3.2m = ?",
+        "options": [
+          "7.7 m²",
+          "14.4 m²",
+          "144 m²",
+          "1.44 m²"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "3.6 / 0.04 = ?",
+        "options": [
+          "9",
+          "90",
+          "0.9",
+          "900"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "0.1 x 0.01 = ?",
+        "options": [
+          "0.01",
+          "0.001",
+          "0.1",
+          "0.0001"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "1/9 as a decimal is:",
+        "options": [
+          "0.1",
+          "0.111...",
+          "0.9",
+          "0.19"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "67.50 / 2.5 = ?",
+        "options": [
+          "2.7",
+          "27",
+          "270",
+          "0.27"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "0.75 x 8 = ?",
+        "options": [
+          "6",
+          "60",
+          "0.6",
+          "6.0"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "2.5 kg at Rs. 80/kg costs:",
+        "options": [
+          "Rs. 200",
+          "Rs. 82.50",
+          "Rs. 77.50",
+          "Rs. 32"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "0.999... (repeating) equals:",
+        "options": [
+          "Less than 1",
+          "Exactly 1",
+          "More than 1",
+          "Undefined"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "3/8 as decimal:",
+        "options": [
+          "0.38",
+          "0.375",
+          "0.3",
+          "0.83"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Estimate 3.7 x 2.8:",
+        "options": [
+          "About 6",
+          "About 10",
+          "About 12",
+          "About 8"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "12.5 x 0.8 = ?",
+        "options": [
+          "100",
+          "10",
+          "1.0",
+          "10.0"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "0.01 x 0.01 = ?",
+        "options": [
+          "0.01",
+          "0.001",
+          "0.0001",
+          "0.1"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Rs. 457.50 / 3 = ?",
+        "options": [
+          "Rs. 150",
+          "Rs. 152.50",
+          "Rs. 155",
+          "Rs. 145.50"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "1/7 has a repeating period of:",
+        "options": [
+          "1 digit",
+          "3 digits",
+          "6 digits",
+          "7 digits"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "5.6 x 10 = ?",
+        "options": [
+          "0.56",
+          "56",
+          "560",
+          "5.60"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "8.4 / 0.7 = ?",
+        "options": [
+          "1.2",
+          "12",
+          "120",
+          "0.12"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "0.5 x 0.5 = ?",
+        "options": [
+          "0.25",
+          "2.5",
+          "0.025",
+          "1.0"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "1/11 as decimal:",
+        "options": [
+          "0.11",
+          "0.0909...",
+          "0.111...",
+          "0.99"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Profit = selling - cost. If cost = Rs. 530 and selling = Rs. 607.50:",
+        "options": [
+          "Rs. 77.50",
+          "Rs. 137.50",
+          "Rs. 1137.50",
+          "Rs. 77"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "6.3 / 0.9 = ?",
+        "options": [
+          "7",
+          "70",
+          "0.7",
+          "63"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "0.2 x 0.2 x 0.2 = ?",
+        "options": [
+          "0.6",
+          "0.06",
+          "0.008",
+          "0.8"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "4.56 x 1000 = ?",
+        "options": [
+          "45.6",
+          "456",
+          "4560",
+          "45600"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Which is larger: 0.5 x 0.5 or 0.5 + 0.5?",
+        "options": [
+          "0.5 x 0.5",
+          "0.5 + 0.5",
+          "They are equal",
+          "Cannot compare"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "9.9 / 0.3 = ?",
+        "options": [
+          "3.3",
+          "33",
+          "330",
+          "0.33"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "√2 as decimal (approx):",
+        "options": [
+          "1.414",
+          "1.732",
+          "2.236",
+          "1.000"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "0.125 x 8 = ?",
+        "options": [
+          "1",
+          "10",
+          "0.1",
+          "100"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "The decimal places in a product = sum of decimal places in:",
+        "options": [
+          "Only first number",
+          "Only second number",
+          "Both numbers",
+          "Neither"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "4.5 km/hr for 2.5 hours = ? km",
+        "options": [
+          "7.0",
+          "11.25",
+          "2.0",
+          "18"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "0.04 x 25 = ?",
+        "options": [
+          "1",
+          "10",
+          "100",
+          "0.1"
+        ],
+        "answer": 0
+      }
+    ]
+  },
+  {
+    "id": 13,
+    "number": "13",
+    "title": "Connecting the Dots",
+    "description": "Understanding data handling through pictographs, bar graphs, tally marks, and interpreting real-world data",
+    "topics": [
+      {
+        "name": "13.1 Collecting and Organising Data",
+        "content": "Data is raw information collected from observations, surveys, or experiments. Organising data makes it easier to understand and draw conclusions.\n\n**What is Data?**\nData is a collection of facts, numbers, or information gathered for a purpose. Examples:\n• Heights of students in a class\n• Marks scored in a test\n• Favourite fruits of 30 children\n• Temperature recorded over a week\n\n**Types of Data:**\n• **Qualitative (Categorical):** Describes qualities - colours, names, types (e.g., favourite sport)\n• **Quantitative (Numerical):** Describes quantities using numbers (e.g., height, weight, marks)\n\n**Collecting Data:**\n• **Survey:** Asking people questions (How many siblings do you have?)\n• **Observation:** Recording what you see (counting vehicles on a road)\n• **Experiment:** Performing tests and recording results (tossing a coin 50 times)\n\n**Organising Data - Tally Marks:**\nTally marks help count data efficiently:\n• | = 1, || = 2, ||| = 3, |||| = 4, ⃠ = 5 (cross the four with a diagonal)\n\n**Frequency Table:**\nA table showing how often each value appears:\nFruit | Tally | Frequency\nApple | |||| ||| | 8\nBanana | |||| | 5\nOrange | |||| || | 7\n\n**Practice Tip:** When collecting data, always be clear about what you're measuring and keep your records organized from the start."
+      },
+      {
+        "name": "13.2 Pictographs and Bar Graphs",
+        "content": "Visual representations of data make patterns and comparisons much easier to understand than raw numbers. Pictographs and bar graphs are two fundamental types.\n\n**Pictographs:**\nUse pictures or symbols to represent data. Each picture represents a fixed number of items.\n• Key: 🍎 = 10 apples\n• Monday: 🍎🍎🍎 = 30 apples sold\n• Half symbol means half the value: 🍎🍎½ = 25 apples\n\n**Creating a Pictograph:**\n1. Choose an appropriate symbol\n2. Decide the scale (each symbol = how many?)\n3. Draw the correct number of symbols for each category\n4. Include a key/legend\n\n**Bar Graphs:**\nUse rectangular bars to represent data. The height (or length) of each bar shows the frequency/value.\n\n**Rules for Bar Graphs:**\n• All bars should have equal width\n• Equal gaps between bars\n• The scale on the y-axis should be uniform\n• Label both axes clearly\n• Give the graph a title\n\n**Reading Bar Graphs:**\n• Compare bar heights to compare values\n• The tallest bar shows the maximum value\n• The shortest bar shows the minimum value\n• The difference in heights shows the difference in values\n\n**Pictograph vs Bar Graph:**\n• Pictographs are visually appealing but less precise\n• Bar graphs are more precise and can handle larger data ranges\n• Both are good for comparing categories\n\n**Practice Tip:** When drawing bar graphs, always start the y-axis from 0 to avoid misleading representations. A break symbol (//) can be used if values are very large."
+      },
+      {
+        "name": "13.3 Drawing Conclusions from Data",
+        "content": "The real power of data handling lies in interpreting graphs and drawing meaningful conclusions that help in decision-making.\n\n**Types of Questions to Ask:**\n• What is the most common/popular item? (Mode)\n• What is the total? (Sum of all values)\n• What is the average? (Sum ÷ number of items)\n• What is the range? (Maximum - Minimum)\n• Are there any trends or patterns?\n\n**Mean (Average):**\nSum of all values ÷ Number of values\nExample: Marks 45, 67, 89, 56, 78\nMean = (45+67+89+56+78) ÷ 5 = 335 ÷ 5 = 67\n\n**Mode:**\nThe value that appears most frequently\nData: 3, 5, 7, 5, 8, 5, 9 → Mode = 5 (appears 3 times)\n\n**Range:**\nMaximum value - Minimum value\nData: 12, 45, 23, 67, 34 → Range = 67 - 12 = 55\n\n**Making Predictions:**\nIf ice cream sales increase every summer, we can predict high sales next summer too.\nIf a student's marks show an upward trend, they are likely improving.\n\n**Misleading Graphs:**\nWatch out for:\n• Y-axis not starting from 0 (makes differences look bigger)\n• Unequal bar widths\n• Inappropriate scale\n• Missing labels\n\n**Real-World Applications:**\n• Election results displayed as bar graphs\n• Weather forecasts use data analysis\n• Sports statistics help teams strategize\n• Business decisions based on sales data\n\n**Practice Tip:** Always check the scale and labels before interpreting any graph. A graph without proper labels can be misleading!"
+      }
+    ],
+    "questions": [
+      {
+        "q": "In a pictograph, if one symbol = 5, three symbols mean:",
+        "options": [
+          "3",
+          "5",
+          "15",
+          "8"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "In a bar graph, the height of a bar represents:",
+        "options": [
+          "The category",
+          "The frequency/value",
+          "The width",
+          "The colour"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Tally marks for 7: |||| ||",
+        "options": [
+          "True",
+          "False",
+          "Incomplete",
+          "Wrong format"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "Mean of 10, 20, 30 is:",
+        "options": [
+          "10",
+          "20",
+          "30",
+          "60"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Mode of 3, 5, 5, 7, 5, 8 is:",
+        "options": [
+          "3",
+          "5",
+          "7",
+          "8"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Range of 12, 45, 23, 67, 34 is:",
+        "options": [
+          "33",
+          "45",
+          "55",
+          "67"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "In a bar graph, bars should have:",
+        "options": [
+          "Different widths",
+          "Equal widths",
+          "No gaps",
+          "Random widths"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Qualitative data is:",
+        "options": [
+          "Numbers",
+          "Categories/qualities",
+          "Always large",
+          "Always small"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "If pictograph shows 2.5 symbols and 1 symbol = 10, the value is:",
+        "options": [
+          "2.5",
+          "10",
+          "25",
+          "12.5"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "A frequency table shows:",
+        "options": [
+          "How often each value appears",
+          "The total of data",
+          "Only the average",
+          "Only the maximum"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "The y-axis in a bar graph should start from:",
+        "options": [
+          "1",
+          "10",
+          "0",
+          "Any number"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Mean of 5 numbers that sum to 100:",
+        "options": [
+          "5",
+          "10",
+          "20",
+          "50"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Which is NOT a way to collect data?",
+        "options": [
+          "Survey",
+          "Observation",
+          "Guessing",
+          "Experiment"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "In a pictograph, the key tells us:",
+        "options": [
+          "The title",
+          "What each symbol represents",
+          "The total",
+          "The date"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Tally marks for 13:",
+        "options": [
+          "|||| |||| |||",
+          "|||| |||| ||",
+          "13 lines",
+          "|||| ||||||| |"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "A misleading graph might have:",
+        "options": [
+          "Y-axis not from 0",
+          "Equal bars",
+          "Proper labels",
+          "Correct scale"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "Data: 4, 7, 4, 8, 4, 9. Mode = ?",
+        "options": [
+          "4",
+          "7",
+          "8",
+          "9"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "Pictographs are best for:",
+        "options": [
+          "Exact values",
+          "Visual comparison of categories",
+          "Showing trends",
+          "Complex data"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Mean = ?",
+        "options": [
+          "Most frequent",
+          "Middle value",
+          "Sum/Count",
+          "Max - Min"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Which graph uses rectangular bars?",
+        "options": [
+          "Pie chart",
+          "Pictograph",
+          "Bar graph",
+          "Line graph"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Range tells us:",
+        "options": [
+          "The average",
+          "The spread of data",
+          "The most common value",
+          "The total"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "If tallies show |||| |||| |||| |, the count is:",
+        "options": [
+          "14",
+          "15",
+          "16",
+          "17"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Bar graphs are more precise than pictographs because:",
+        "options": [
+          "They use colours",
+          "Exact values can be read from scale",
+          "They are bigger",
+          "They use pictures"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Average marks of 3 students: 80, 90, 70 = ?",
+        "options": [
+          "70",
+          "80",
+          "90",
+          "240"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "A survey is:",
+        "options": [
+          "Asking people questions",
+          "A type of graph",
+          "A mathematical formula",
+          "A tally mark"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "Temperature data over a week is best shown using:",
+        "options": [
+          "Pictograph",
+          "Bar graph",
+          "Both work",
+          "Neither"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "If mode = 5 and data is 3, 5, 5, 7, x, the value of x could be:",
+        "options": [
+          "Only 5",
+          "Any number except 3 or 7",
+          "3 or 7 or any other number",
+          "Both A and C work"
+        ],
+        "answer": 3
+      },
+      {
+        "q": "Total students if mean = 25 and count = 4:",
+        "options": [
+          "25",
+          "50",
+          "100",
+          "6.25"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "What does a half-symbol in a pictograph represent?",
+        "options": [
+          "Nothing",
+          "Half the key value",
+          "Double the key value",
+          "Error"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Mean of 0, 10, 0, 10, 0 is:",
+        "options": [
+          "0",
+          "4",
+          "5",
+          "10"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Which is categorical data?",
+        "options": [
+          "Heights of students",
+          "Favourite colours",
+          "Test scores",
+          "Weight of bags"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Bars in a bar graph must have:",
+        "options": [
+          "Equal gaps between them",
+          "No gaps",
+          "Overlapping bars",
+          "Random gaps"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "If 50 coins are tossed and 23 show heads, frequency of heads:",
+        "options": [
+          "23",
+          "27",
+          "50",
+          "0.46"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "Data: 10, 20, 30, 40, 50. Range = ?",
+        "options": [
+          "10",
+          "30",
+          "40",
+          "50"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "A graph title should describe:",
+        "options": [
+          "The colours used",
+          "What the graph is about",
+          "Who made it",
+          "When it was made"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Mean of 6, 6, 6, 6 is:",
+        "options": [
+          "4",
+          "6",
+          "24",
+          "12"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Which can show exact values: pictograph or bar graph?",
+        "options": [
+          "Pictograph",
+          "Bar graph",
+          "Both equally",
+          "Neither"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Data: 1, 2, 3, 4, 5. Mean = Median = ?",
+        "options": [
+          "1",
+          "2",
+          "3",
+          "5"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "An upward trend in marks means:",
+        "options": [
+          "Marks are decreasing",
+          "Marks are improving",
+          "Marks are constant",
+          "Data is wrong"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "How many tally groups in 23? (groups of 5)",
+        "options": [
+          "4 groups + 3",
+          "5 groups",
+          "3 groups + 8",
+          "23 groups"
+        ],
+        "answer": 0
+      }
+    ]
+  },
+  {
+    "id": 14,
+    "number": "14",
+    "title": "Constructions and Tilings",
+    "description": "Geometric constructions with ruler and compass, tessellations, tiling patterns, and understanding which shapes can tile a plane",
+    "topics": [
+      {
+        "name": "14.1 Geometric Constructions",
+        "content": "Geometric constructions use only a ruler (straightedge) and compass - no measuring of lengths or angles. These ancient techniques reveal deep mathematical truths.\n\n**Why Ruler and Compass Only?**\nAncient Greek mathematicians believed that the purest geometric constructions should use only these two tools. This limitation actually leads to deeper understanding of geometry!\n\n**Basic Constructions:**\n\n**1. Perpendicular Bisector of a Line Segment:**\nGiven AB:\na) Open compass more than half of AB\nb) With centre A, draw arcs above and below AB\nc) With centre B, same radius, draw arcs intersecting the first ones\nd) Connect the two intersection points - this line is the perpendicular bisector\nProperties: Every point on it is equidistant from A and B\n\n**2. Angle Bisector:**\nGiven angle PQR:\na) With centre Q, draw an arc cutting both rays at points A and B\nb) With centres A and B (equal radius), draw arcs intersecting at point C\nc) QC is the angle bisector\n\n**3. Constructing 60° Angle:**\nDraw a ray, open compass to any radius, draw arc from endpoint, then from where arc meets ray draw another arc with same radius. Connect = 60°\n\n**4. Constructing 90° Angle:**\nFirst construct 60°, then bisect 60° to get 30°, and construct 60° + 30° = 90°.\nOr: Use the perpendicular bisector method at the endpoint of a ray.\n\n**Practice Tip:** Never change the compass width in the middle of a construction unless the step specifically requires it. Many construction errors come from accidental compass width changes."
+      },
+      {
+        "name": "14.2 Tessellations and Tiling Patterns",
+        "content": "A tessellation (or tiling) is a pattern of shapes that covers a flat surface completely with no gaps and no overlaps. Understanding which shapes tessellate reveals important geometric properties.\n\n**What is a Tessellation?**\nA tessellation covers a plane completely using one or more shapes, with:\n• No gaps between shapes\n• No overlapping of shapes\n• The pattern can continue infinitely\n\n**Regular Tessellations:**\nUsing only ONE type of regular polygon:\n• **Equilateral triangles:** Yes! (6 meet at each vertex, 6×60° = 360°)\n• **Squares:** Yes! (4 meet at each vertex, 4×90° = 360°)\n• **Regular hexagons:** Yes! (3 meet at each vertex, 3×120° = 360°)\n• Regular pentagons, heptagons, etc.: NO! (their angles don't add to 360°)\n\n**The Key Rule:**\nShapes tessellate if the angles meeting at each vertex add up to exactly 360°.\n\n**Semi-Regular Tessellations:**\nUsing TWO or more types of regular polygons:\n• Squares + equilateral triangles\n• Hexagons + equilateral triangles\n• There are exactly 8 semi-regular tessellations\n\n**Tessellations in Real Life:**\n• Floor tiles (squares, hexagons)\n• Honeycomb (hexagons)\n• Brick walls (rectangles offset)\n• Islamic art patterns\n• M.C. Escher's famous artwork\n\n**Non-Regular Tessellations:**\n• Any triangle can tessellate! (rotate and flip to fill gaps)\n• Any quadrilateral can tessellate!\n• Most pentagons CANNOT tessellate (only 15 known types can)\n\n**Practice Tip:** To test if a shape tessellates, check if copies of it can surround a single point with angles adding to 360°."
+      }
+    ],
+    "questions": [
+      {
+        "q": "A perpendicular bisector of AB passes through:",
+        "options": [
+          "Point A",
+          "Point B",
+          "Midpoint of AB",
+          "None of these"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Geometric constructions use only:",
+        "options": [
+          "Ruler and protractor",
+          "Ruler and compass",
+          "Protractor and compass",
+          "Set square and ruler"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Which regular polygon can tessellate?",
+        "options": [
+          "Pentagon",
+          "Hexagon",
+          "Octagon",
+          "Heptagon"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Angles at a vertex in a tessellation must add to:",
+        "options": [
+          "180°",
+          "270°",
+          "360°",
+          "90°"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "To construct 60°, we use:",
+        "options": [
+          "Protractor",
+          "Equilateral triangle construction",
+          "Set square",
+          "Ruler only"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "How many regular tessellations exist?",
+        "options": [
+          "1",
+          "2",
+          "3",
+          "Infinite"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "An angle bisector divides an angle into:",
+        "options": [
+          "Unequal parts",
+          "Two equal parts",
+          "Three equal parts",
+          "Random parts"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Can any triangle tessellate?",
+        "options": [
+          "Yes",
+          "Only equilateral",
+          "Only right triangles",
+          "No"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "Every point on perpendicular bisector of AB is:",
+        "options": [
+          "Closer to A",
+          "Closer to B",
+          "Equidistant from A and B",
+          "On segment AB"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "4 squares meet at a vertex: 4 x 90° = ?",
+        "options": [
+          "270°",
+          "360°",
+          "450°",
+          "180°"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Regular pentagons cannot tessellate because:",
+        "options": [
+          "They are too small",
+          "Interior angle (108°) doesn't divide 360° evenly",
+          "They have 5 sides",
+          "They are curved"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "A tessellation has:",
+        "options": [
+          "Gaps between shapes",
+          "Overlapping shapes",
+          "No gaps and no overlaps",
+          "Only triangles"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "To bisect an angle, we need:",
+        "options": [
+          "Only a ruler",
+          "Only a compass",
+          "Ruler and compass",
+          "A protractor"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Honeycomb cells are shaped like:",
+        "options": [
+          "Squares",
+          "Triangles",
+          "Hexagons",
+          "Pentagons"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "How many equilateral triangles meet at a vertex in tessellation?",
+        "options": [
+          "3",
+          "4",
+          "5",
+          "6"
+        ],
+        "answer": 3
+      },
+      {
+        "q": "Can any quadrilateral tessellate?",
+        "options": [
+          "Yes",
+          "Only rectangles",
+          "Only squares",
+          "No"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "The interior angle of a regular hexagon is:",
+        "options": [
+          "90°",
+          "100°",
+          "108°",
+          "120°"
+        ],
+        "answer": 3
+      },
+      {
+        "q": "Semi-regular tessellations use:",
+        "options": [
+          "One type of polygon",
+          "Two or more types",
+          "Only triangles",
+          "Only curved shapes"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Constructing a perpendicular bisector: compass opening should be:",
+        "options": [
+          "Equal to AB",
+          "Less than half AB",
+          "More than half AB",
+          "Exactly half AB"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "M.C. Escher is famous for:",
+        "options": [
+          "Algebra",
+          "Tessellation art",
+          "Statistics",
+          "Calculus"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "How many semi-regular tessellations exist?",
+        "options": [
+          "3",
+          "5",
+          "8",
+          "Infinite"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Which shapes tile a bathroom floor?",
+        "options": [
+          "Squares",
+          "Regular pentagons",
+          "Regular heptagons",
+          "Regular octagons alone"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "To construct 30°, first construct:",
+        "options": [
+          "90° and bisect",
+          "60° and bisect",
+          "45° and bisect",
+          "120° and bisect"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "3 regular hexagons at a vertex: 3 x 120° = ?",
+        "options": [
+          "240°",
+          "300°",
+          "360°",
+          "480°"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "A straightedge differs from ruler because it has:",
+        "options": [
+          "Markings",
+          "No markings",
+          "A compass",
+          "A protractor"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Brick walls are an example of:",
+        "options": [
+          "Regular tessellation",
+          "Semi-regular tessellation",
+          "Non-regular tessellation",
+          "Not a tessellation"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Interior angle of equilateral triangle:",
+        "options": [
+          "45°",
+          "60°",
+          "90°",
+          "120°"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Can regular octagons alone tessellate?",
+        "options": [
+          "Yes",
+          "No (135° doesn't divide 360°)",
+          "Only with squares",
+          "Sometimes"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "The 3 regular tessellating shapes are:",
+        "options": [
+          "Triangle, square, pentagon",
+          "Triangle, square, hexagon",
+          "Square, pentagon, hexagon",
+          "Triangle, pentagon, hexagon"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Constructing 90° can be done by:",
+        "options": [
+          "Constructing perpendicular",
+          "Bisecting 180°",
+          "Both A and B",
+          "Neither"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Islamic art commonly features:",
+        "options": [
+          "Random patterns",
+          "Geometric tessellations",
+          "Only circles",
+          "No patterns"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "To construct 45°:",
+        "options": [
+          "Construct 90° and bisect",
+          "Construct 60° and subtract 15°",
+          "Draw a diagonal",
+          "Use protractor only"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "A tessellation can extend:",
+        "options": [
+          "Only to the edge of paper",
+          "Infinitely",
+          "Only 10 times",
+          "Only in one direction"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Interior angle of a square:",
+        "options": [
+          "60°",
+          "90°",
+          "120°",
+          "150°"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "In a construction, compass is used to:",
+        "options": [
+          "Measure angles",
+          "Draw straight lines",
+          "Draw arcs and circles",
+          "Erase lines"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "How many known pentagon types can tessellate?",
+        "options": [
+          "0",
+          "5",
+          "15",
+          "All of them"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Perpendicular bisector is also the ___ of symmetry:",
+        "options": [
+          "Line",
+          "Point",
+          "Angle",
+          "Curve"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "Octagons + squares can tessellate together:",
+        "options": [
+          "True",
+          "False",
+          "Only if equal sizes",
+          "Only special octagons"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "The angle bisector of 120° creates two angles of:",
+        "options": [
+          "30° each",
+          "45° each",
+          "60° each",
+          "90° each"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Floor tiles are a real-world example of:",
+        "options": [
+          "Fractals",
+          "Tessellations",
+          "Symmetry only",
+          "Congruence only"
+        ],
+        "answer": 1
+      }
+    ]
+  },
+  {
+    "id": 15,
+    "number": "15",
+    "title": "Finding the Unknown",
+    "description": "Introduction to equations - forming equations, solving simple equations, balancing method, and word problems using equations",
+    "topics": [
+      {
+        "name": "15.1 What is an Equation?",
+        "content": "An equation is a mathematical statement that says two things are equal. It always has an equals sign (=) and often has an unknown value we need to find.\n\n**Expression vs Equation:**\n• Expression: 3x + 5 (no equals sign, represents a value)\n• Equation: 3x + 5 = 20 (has equals sign, can be solved)\n\n**Parts of an Equation:**\n• Left Hand Side (LHS): The expression on the left of =\n• Right Hand Side (RHS): The expression on the right of =\n• In 3x + 5 = 20: LHS = 3x + 5, RHS = 20\n\n**Solution of an Equation:**\nThe value of the variable that makes LHS = RHS\n• In x + 3 = 7: x = 4 (because 4 + 3 = 7 ✓)\n• In 2y = 10: y = 5 (because 2 × 5 = 10 ✓)\n\n**Forming Equations from Word Problems:**\n• 'A number plus 5 equals 12' → x + 5 = 12\n• 'Twice a number is 18' → 2x = 18\n• 'Three more than double a number is 17' → 2x + 3 = 17\n• 'Ravi's age after 5 years will be 20' → x + 5 = 20\n\n**The Balance Model:**\nThink of an equation as a balance scale. Both sides must be equal (balanced). Whatever you do to one side, you must do to the other to keep it balanced.\n\n**Practice Tip:** To verify your solution, always substitute it back into the original equation and check if LHS = RHS."
+      },
+      {
+        "name": "15.2 Solving Simple Equations",
+        "content": "Solving an equation means finding the value of the unknown variable that makes the equation true. We use inverse operations to isolate the variable.\n\n**The Balancing Method:**\nWhatever operation you perform on one side, you must perform on the other:\n• Add the same number to both sides\n• Subtract the same number from both sides\n• Multiply both sides by the same number\n• Divide both sides by the same number\n\n**Solving One-Step Equations:**\n• x + 5 = 12 → x + 5 - 5 = 12 - 5 → x = 7\n• x - 3 = 8 → x - 3 + 3 = 8 + 3 → x = 11\n• 3x = 15 → 3x/3 = 15/3 → x = 5\n• x/4 = 6 → x/4 × 4 = 6 × 4 → x = 24\n\n**Solving Two-Step Equations:**\n• 2x + 3 = 11\n  Step 1: Subtract 3: 2x = 8\n  Step 2: Divide by 2: x = 4\n  Check: 2(4) + 3 = 8 + 3 = 11 ✓\n\n• 3x - 7 = 14\n  Step 1: Add 7: 3x = 21\n  Step 2: Divide by 3: x = 7\n  Check: 3(7) - 7 = 21 - 7 = 14 ✓\n\n**Inverse Operations:**\n• Addition ↔ Subtraction (they undo each other)\n• Multiplication ↔ Division (they undo each other)\n\n**Common Mistakes:**\n• Performing operation on only one side\n• Using the wrong inverse operation\n• Not checking the answer\n\n**Practice Tip:** Always work systematically - first remove any constant added/subtracted, then handle the multiplication/division."
+      },
+      {
+        "name": "15.3 Applications of Equations",
+        "content": "Equations are one of the most powerful tools in mathematics. They let us solve real-world problems by converting words into mathematical statements.\n\n**Age Problems:**\n• Ravi is 5 years older than Sita. Their ages add to 25. Find their ages.\n  Let Sita's age = x. Then Ravi's age = x + 5.\n  x + (x + 5) = 25 → 2x + 5 = 25 → 2x = 20 → x = 10\n  Sita = 10, Ravi = 15\n\n**Number Problems:**\n• Three consecutive numbers add to 36. Find them.\n  Let numbers be n, n+1, n+2\n  n + (n+1) + (n+2) = 36 → 3n + 3 = 36 → 3n = 33 → n = 11\n  Numbers: 11, 12, 13\n\n**Geometry Problems:**\n• Perimeter of rectangle is 40 cm. Length is 3 times the breadth. Find dimensions.\n  Let breadth = x. Length = 3x.\n  2(x + 3x) = 40 → 2(4x) = 40 → 8x = 40 → x = 5\n  Breadth = 5 cm, Length = 15 cm\n\n**Money Problems:**\n• A pen costs Rs. 5 more than a pencil. 3 pens and 2 pencils cost Rs. 55. Find the cost of each.\n  Let pencil cost = x. Pen cost = x + 5.\n  3(x+5) + 2x = 55 → 3x + 15 + 2x = 55 → 5x = 40 → x = 8\n  Pencil = Rs. 8, Pen = Rs. 13\n\n**Steps for Word Problems:**\n1. Read carefully. What is unknown?\n2. Let the unknown = x\n3. Write other quantities in terms of x\n4. Form the equation from the given condition\n5. Solve the equation\n6. Check: Does the answer make sense?\n\n**Practice Tip:** The hardest part is forming the equation, not solving it. Practice translating English sentences into mathematical equations every day!"
+      }
+    ],
+    "questions": [
+      {
+        "q": "In x + 5 = 12, x = ?",
+        "options": [
+          "5",
+          "7",
+          "12",
+          "17"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "An equation has:",
+        "options": [
+          "No equals sign",
+          "An equals sign",
+          "Only numbers",
+          "Only letters"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "If 2x = 18, then x = ?",
+        "options": [
+          "9",
+          "16",
+          "20",
+          "36"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "The LHS of 3x + 5 = 20 is:",
+        "options": [
+          "3x",
+          "5",
+          "3x + 5",
+          "20"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "'A number plus 5 equals 12' as equation:",
+        "options": [
+          "x - 5 = 12",
+          "x + 5 = 12",
+          "5x = 12",
+          "x/5 = 12"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "If x - 3 = 8, then x = ?",
+        "options": [
+          "5",
+          "8",
+          "11",
+          "24"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Solve: 2x + 3 = 11",
+        "options": [
+          "x = 3",
+          "x = 4",
+          "x = 7",
+          "x = 14"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "The inverse of addition is:",
+        "options": [
+          "Multiplication",
+          "Division",
+          "Subtraction",
+          "Addition"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "If x/4 = 6, then x = ?",
+        "options": [
+          "2",
+          "10",
+          "24",
+          "1.5"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Solve: 3x - 7 = 14",
+        "options": [
+          "x = 3",
+          "x = 7",
+          "x = 21",
+          "x = 63"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "'Twice a number is 18' means:",
+        "options": [
+          "x + 2 = 18",
+          "x - 2 = 18",
+          "2x = 18",
+          "x/2 = 18"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "If 5x = 0, then x = ?",
+        "options": [
+          "5",
+          "-5",
+          "0",
+          "Undefined"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "3 consecutive numbers add to 36. Smallest is:",
+        "options": [
+          "10",
+          "11",
+          "12",
+          "13"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "In the balance model, to keep balance we must:",
+        "options": [
+          "Do same thing to both sides",
+          "Only change LHS",
+          "Only change RHS",
+          "Do nothing"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "Solve: x/3 + 2 = 7",
+        "options": [
+          "x = 3",
+          "x = 15",
+          "x = 27",
+          "x = 5"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Perimeter of square = 4x. If perimeter = 24, side = ?",
+        "options": [
+          "4",
+          "6",
+          "8",
+          "24"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "If 4x + 5 = 25, then x = ?",
+        "options": [
+          "5",
+          "7.5",
+          "20",
+          "30"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "Ravi is x years old. In 5 years he'll be:",
+        "options": [
+          "x - 5",
+          "x + 5",
+          "5x",
+          "x/5"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Solve: 7x = 49",
+        "options": [
+          "x = 6",
+          "x = 7",
+          "x = 42",
+          "x = 56"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "If x + x + x = 27, then x = ?",
+        "options": [
+          "3",
+          "9",
+          "27",
+          "81"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Pen costs Rs. 5 more than pencil (x). Pen cost:",
+        "options": [
+          "5x",
+          "x - 5",
+          "x + 5",
+          "x/5"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Solve: 2(x + 3) = 16",
+        "options": [
+          "x = 5",
+          "x = 6.5",
+          "x = 8",
+          "x = 10"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "If the sum of two numbers is 20 and one is 8, the other is:",
+        "options": [
+          "8",
+          "12",
+          "20",
+          "28"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Solve: 5x - 10 = 30",
+        "options": [
+          "x = 4",
+          "x = 6",
+          "x = 8",
+          "x = 40"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Length = 3 x breadth. If breadth = x, perimeter = ?",
+        "options": [
+          "4x",
+          "6x",
+          "8x",
+          "12x"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "If 3(x + 5) = 24, then x = ?",
+        "options": [
+          "3",
+          "8",
+          "13",
+          "19"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "Check: Is x = 3 a solution of 2x + 1 = 7?",
+        "options": [
+          "Yes (7 = 7)",
+          "No (5 ≠ 7)",
+          "No (6 ≠ 7)",
+          "Cannot determine"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "A number doubled and increased by 3 gives 15. The number:",
+        "options": [
+          "6",
+          "7.5",
+          "9",
+          "12"
+        ],
+        "answer": 0
+      },
+      {
+        "q": "Solve: x/2 - 3 = 7",
+        "options": [
+          "x = 8",
+          "x = 14",
+          "x = 20",
+          "x = 2"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Ages: Sister is x, brother is x+4. Sum = 24. x = ?",
+        "options": [
+          "8",
+          "10",
+          "12",
+          "14"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "If 6x + 12 = 6, then x = ?",
+        "options": [
+          "0",
+          "-1",
+          "1",
+          "3"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Which is an equation?",
+        "options": [
+          "3x + 5",
+          "3x + 5 = 20",
+          "3 + 5 + x",
+          "3x"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Solve: 4(x - 2) = 20",
+        "options": [
+          "x = 3",
+          "x = 5",
+          "x = 7",
+          "x = 22"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Cost of 5 pens = Rs. 75. Cost of 1 pen:",
+        "options": [
+          "Rs. 10",
+          "Rs. 15",
+          "Rs. 70",
+          "Rs. 375"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "If x = 2 satisfies 3x + a = 10, then a = ?",
+        "options": [
+          "2",
+          "3",
+          "4",
+          "5"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Solve: 10 - 2x = 4",
+        "options": [
+          "x = 2",
+          "x = 3",
+          "x = 7",
+          "x = 14"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "Sum of two consecutive even numbers is 34. They are:",
+        "options": [
+          "15, 19",
+          "16, 18",
+          "14, 20",
+          "12, 22"
+        ],
+        "answer": 1
+      },
+      {
+        "q": "If 3x + 2x = 25, then x = ?",
+        "options": [
+          "3",
+          "4",
+          "5",
+          "25"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "Rectangle: length = 2x+1, breadth = x. Perimeter = 32. x = ?",
+        "options": [
+          "3",
+          "4",
+          "5",
+          "6"
+        ],
+        "answer": 2
+      },
+      {
+        "q": "The first step to solve 2x + 6 = 20 is to:",
+        "options": [
+          "Divide by 2",
+          "Subtract 6 from both sides",
+          "Add 6 to both sides",
+          "Multiply by 2"
+        ],
+        "answer": 1
+      }
+    ]
+  }
 ];
 
 const finalExamMCQ = [
@@ -5608,6 +11918,10 @@ export default function App() {
   const [showCallWebView, setShowCallWebView] = useState(false);
   const [callWebViewUrl, setCallWebViewUrl] = useState('');
   const [callWebViewTitle, setCallWebViewTitle] = useState('');
+  // Local-content WebView modal for in-app whiteboard / fundamentals (no network).
+  const [showLocalWebView, setShowLocalWebView] = useState(false);
+  const [localWebViewHtml, setLocalWebViewHtml] = useState('');
+  const [localWebViewTitle, setLocalWebViewTitle] = useState('');
   
   // Screen sharing during exam state
   const [isScreenSharing, setIsScreenSharing] = useState(false);
@@ -6647,10 +12961,22 @@ export default function App() {
     }
   };
 
-  // Open the web-app in an in-app browser tab with auto-login + deep-link to a specific section.
-  // Used by Fundamentals, Whiteboard, Formula Videos cards on the home screen.
+  // Open Whiteboard / Fundamentals fully in-app (local HTML, no network, no
+  // website redirect). Other sections still fall back to the in-app browser tab.
   const openInAppWeb = async (section, title) => {
     try {
+      if (section === 'whiteboard') {
+        setLocalWebViewHtml(WHITEBOARD_HTML);
+        setLocalWebViewTitle(title || 'Whiteboard');
+        setShowLocalWebView(true);
+        return;
+      }
+      if (section === 'fundamentals') {
+        setLocalWebViewHtml(buildFundamentalsHtml(selectedClass));
+        setLocalWebViewTitle(title || 'Fundamentals');
+        setShowLocalWebView(true);
+        return;
+      }
       var base = 'https://ganitaprakash-math.web.app';
       var url = base + '?mode=section&section=' + encodeURIComponent(section || '');
       if (authToken) url += '&token=' + encodeURIComponent(authToken);
@@ -9100,6 +15426,53 @@ export default function App() {
                   }}
                 />
               ) : null}
+            </SafeAreaView>
+          </Modal>
+
+          {/* In-App Local Content WebView Modal (Whiteboard / Fundamentals) */}
+          <Modal visible={showLocalWebView} transparent={false} animationType="slide" onRequestClose={() => setShowLocalWebView(false)}>
+            <SafeAreaView style={{flex: 1, backgroundColor: '#0a0e27'}}>
+              <View style={{flexDirection: 'row', alignItems: 'center', padding: 12, backgroundColor: '#1A1A2E', borderBottomWidth: 1, borderBottomColor: '#16213E'}}>
+                <TouchableOpacity onPress={() => { setShowLocalWebView(false); setLocalWebViewHtml(''); }} style={{padding: 8}}>
+                  <Text style={{color: '#00d4ff', fontSize: 22}}>‹</Text>
+                </TouchableOpacity>
+                <Text style={{color: '#fff', fontSize: 16, fontWeight: 'bold', marginLeft: 10, flex: 1}}>{localWebViewTitle || 'In-App'}</Text>
+                <TouchableOpacity onPress={() => { setShowLocalWebView(false); setLocalWebViewHtml(''); }} style={{padding: 8}}>
+                  <Text style={{color: '#fff', fontSize: 18}}>✕</Text>
+                </TouchableOpacity>
+              </View>
+              {localWebViewHtml ? (
+                <WebView
+                  originWhitelist={['*']}
+                  source={{ html: localWebViewHtml, baseUrl: 'about:blank' }}
+                  style={{flex: 1, backgroundColor: '#0a0e27'}}
+                  javaScriptEnabled={true}
+                  domStorageEnabled={true}
+                  allowFileAccess={true}
+                  allowsInlineMediaPlayback={true}
+                  setSupportMultipleWindows={false}
+                  onMessage={(event) => {
+                    try {
+                      var data = JSON.parse(event.nativeEvent.data || '{}');
+                      if (data && data.type === 'save_png' && data.data) {
+                        // Save base64 PNG to device gallery via expo-file-system + share.
+                        (async () => {
+                          try {
+                            var b64 = String(data.data).split(',')[1] || '';
+                            var fileUri = (FileSystem.cacheDirectory || FileSystem.documentDirectory) + 'whiteboard-' + Date.now() + '.png';
+                            await FileSystem.writeAsStringAsync(fileUri, b64, { encoding: FileSystem.EncodingType.Base64 });
+                            try { await Sharing.shareAsync(fileUri); } catch (_) { Alert.alert('Saved', 'Whiteboard saved to: ' + fileUri); }
+                          } catch (e) { Alert.alert('Save failed', String(e && e.message || e)); }
+                        })();
+                      }
+                    } catch (_) {}
+                  }}
+                />
+              ) : (
+                <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+                  <ActivityIndicator size="large" color="#00d4ff" />
+                </View>
+              )}
             </SafeAreaView>
           </Modal>
 

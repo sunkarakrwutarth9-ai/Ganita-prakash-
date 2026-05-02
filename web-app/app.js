@@ -9583,7 +9583,7 @@ async function initiateUserCallWithWebRTC(callType) {
         if (peerConnection) { try { peerConnection.close(); } catch(e) {} peerConnection = null; }
         
         // Create peer connection
-        peerConnection = new RTCPeerConnection(webrtcConfig);
+        peerConnection = new RTCPeerConnection({ iceServers: sharedIceServers, iceCandidatePoolSize: 10 });
         
         // Add local tracks to peer connection
         localStream.getTracks().forEach(function(track) {
@@ -9668,7 +9668,7 @@ async function initiateCallFromMobile(targetUserId, callType, existingCallId) {
         if (peerConnection) { try { peerConnection.close(); } catch(e) {} peerConnection = null; }
         
         // Create peer connection
-        peerConnection = new RTCPeerConnection(webrtcConfig);
+        peerConnection = new RTCPeerConnection({ iceServers: sharedIceServers, iceCandidatePoolSize: 10 });
         
         // Add local tracks to peer connection
         localStream.getTracks().forEach(function(track) {
@@ -9750,7 +9750,7 @@ async function answerCallFromMobile(callerId, callType, callId) {
         localStream = await navigator.mediaDevices.getUserMedia(constraints);
         // Cleanup any existing peer connection
         if (peerConnection) { try { peerConnection.close(); } catch(e) {} peerConnection = null; }
-        peerConnection = new RTCPeerConnection(webrtcConfig);
+        peerConnection = new RTCPeerConnection({ iceServers: sharedIceServers, iceCandidatePoolSize: 10 });
         localStream.getTracks().forEach(function(track) {
             peerConnection.addTrack(track, localStream);
         });
@@ -10897,7 +10897,7 @@ async function acceptIncomingCall() {
         localStream = await navigator.mediaDevices.getUserMedia(constraints);
         // Cleanup any existing peer connection
         if (peerConnection) { try { peerConnection.close(); } catch(e) {} peerConnection = null; }
-        peerConnection = new RTCPeerConnection(webrtcConfig);
+        peerConnection = new RTCPeerConnection({ iceServers: sharedIceServers, iceCandidatePoolSize: 10 });
         localStream.getTracks().forEach(function(track) { peerConnection.addTrack(track, localStream); });
         peerConnection.ontrack = function(event) {
             console.log('Student: remote track', event.track.kind);
@@ -10981,7 +10981,7 @@ async function initWebRTCCall(userId, callType) {
         localStream = await navigator.mediaDevices.getUserMedia(constraints);
         // Cleanup any existing peer connection
         if (peerConnection) { try { peerConnection.close(); } catch(e) {} peerConnection = null; }
-        peerConnection = new RTCPeerConnection(webrtcConfig);
+        peerConnection = new RTCPeerConnection({ iceServers: sharedIceServers, iceCandidatePoolSize: 10 });
         localStream.getTracks().forEach(function(track) { peerConnection.addTrack(track, localStream); });
         peerConnection.ontrack = function(event) {
             console.log('Admin: remote track', event.track.kind);

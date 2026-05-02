@@ -92,8 +92,8 @@ android {
         applicationId 'com.cbseai.ganitaprakash'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 11
-        versionName "1.9.2"
+        versionCode 12
+        versionName "1.9.3"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
     }

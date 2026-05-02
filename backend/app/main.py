@@ -134,12 +134,15 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
+OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "openrouter/auto")
 # Fallback: load keys from untracked local file if env not set
-if not GROQ_API_KEY or not GEMINI_API_KEY:
+if not GROQ_API_KEY or not GEMINI_API_KEY or not OPENROUTER_API_KEY:
     try:
         from app import secrets_local
         GROQ_API_KEY = GROQ_API_KEY or getattr(secrets_local, "GROQ_API_KEY", "")
         GEMINI_API_KEY = GEMINI_API_KEY or getattr(secrets_local, "GEMINI_API_KEY", "")
+        OPENROUTER_API_KEY = OPENROUTER_API_KEY or getattr(secrets_local, "OPENROUTER_API_KEY", "")
     except Exception:
         pass
 DB_PATH = "/data/app.db" if os.path.exists("/data") else "app.db"
@@ -639,8 +642,38 @@ async def ai_chat(chat_data: AIChat, user: dict = Depends(get_optional_user)):
         
         ai_response = None
 
-        # Try Groq API first (preferred)
-        if GROQ_API_KEY:
+        # Try OpenRouter first (preferred when configured)
+        if not ai_response and OPENROUTER_API_KEY:
+            try:
+                async with httpx.AsyncClient() as client:
+                    or_resp = await client.post(
+                        "https://openrouter.ai/api/v1/chat/completions",
+                        headers={
+                            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                            "Content-Type": "application/json",
+                            "HTTP-Referer": "https://ganitaprakash-math.web.app",
+                            "X-Title": "Ganita Prakash"
+                        },
+                        json={
+                            "model": OPENROUTER_MODEL,
+                            "messages": [
+                                {"role": "system", "content": system_prompt},
+                                {"role": "user", "content": chat_data.message}
+                            ],
+                            "max_tokens": 1024,
+                            "temperature": 0.7
+                        },
+                        timeout=30.0
+                    )
+                    if or_resp.status_code == 200:
+                        ai_response = or_resp.json()["choices"][0]["message"]["content"]
+                    else:
+                        print(f"OpenRouter status {or_resp.status_code}: {or_resp.text[:200]}")
+            except Exception as or_error:
+                print(f"OpenRouter API error: {or_error}")
+
+        # Try Groq API
+        if not ai_response and GROQ_API_KEY:
             try:
                 async with httpx.AsyncClient() as client:
                     groq_response = await client.post(
@@ -849,8 +882,24 @@ async def ai_chat_with_language(chat_data: GeminiChatWithLanguage, user: dict = 
             system_prompt += f"\nCurrent chapter: {chapter_topics.get(chat_data.chapter_id, '')}"
 
         ai_response = None
-        # Prefer Groq
-        if GROQ_API_KEY:
+        # Prefer OpenRouter, then Groq
+        if OPENROUTER_API_KEY:
+            try:
+                async with httpx.AsyncClient() as client:
+                    orr = await client.post(
+                        "https://openrouter.ai/api/v1/chat/completions",
+                        headers={"Authorization": f"Bearer {OPENROUTER_API_KEY}", "Content-Type": "application/json",
+                                 "HTTP-Referer": "https://ganitaprakash-math.web.app", "X-Title": "Ganita Prakash"},
+                        json={"model": OPENROUTER_MODEL,
+                              "messages": [{"role": "system", "content": system_prompt},
+                                           {"role": "user", "content": chat_data.message}],
+                              "max_tokens": 1024, "temperature": 0.7},
+                        timeout=30.0)
+                    if orr.status_code == 200:
+                        ai_response = orr.json()["choices"][0]["message"]["content"]
+            except Exception as oe:
+                print(f"OpenRouter (lang) error: {oe}")
+        if not ai_response and GROQ_API_KEY:
             try:
                 async with httpx.AsyncClient() as client:
                     gr = await client.post(
