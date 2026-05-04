@@ -6311,7 +6311,20 @@ var wbOffscreenCtx = null;
 function renderWhiteboard() {
     var container = document.getElementById('whiteboard-container');
     if (!container) return;
-    
+
+    // Tata Class Edge-style whiteboard (matches APK v1.9.6 image): blue header,
+    // left page panel, dark bottom toolbar with all tools, color/eraser popup, math pad.
+    // Loaded from a self-contained HTML file so it's identical between APK and web.
+    container.innerHTML =
+        '<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">' +
+            '<span style="font-size:0.85em;color:#888;">Same whiteboard as the mobile app — pen, highlighter, shapes, math pad, multi-page, save PNG.</span>' +
+        '</div>' +
+        '<div style="position:relative;width:100%;height:80vh;min-height:560px;border:1px solid #2a2a4e;border-radius:8px;overflow:hidden;background:#fff;">' +
+            '<iframe src="whiteboard.html?v=20260504-v196" style="width:100%;height:100%;border:0;display:block;" title="Whiteboard" allow="fullscreen"></iframe>' +
+        '</div>';
+    return;
+
+    // (legacy renderer kept below for reference; no longer reached)
     var savedNotes = JSON.parse(localStorage.getItem('whiteboard_notes') || '[]');
     
     container.innerHTML = 
