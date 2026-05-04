@@ -122,6 +122,7 @@ html,body{height:100%;width:100%;margin:0;padding:0;background:#e9ecef;color:#22
     <button id="t-redo" title="Redo"><div class="ic">⟳</div><div class="lb">Redo</div></button>
     <button id="t-reset" title="Reset"><div class="ic">↻</div><div class="lb">Reset</div></button>
     <button id="t-mirror" title="Fit"><div class="ic">⛶</div><div class="lb">Fit</div></button>
+    <button id="t-fullscreen" title="Fullscreen"><div class="ic" id="fs-ic">⛶</div><div class="lb" id="fs-lb">Full</div></button>
     <button id="t-save" title="Save PNG"><div class="ic">💾</div><div class="lb">Save</div></button>
     <button id="t-clear" title="Clear page"><div class="ic">🗑</div><div class="lb">Clear</div></button>
   </div>
@@ -480,6 +481,28 @@ html,body{height:100%;width:100%;margin:0;padding:0;background:#e9ecef;color:#22
   };
   document.getElementById('t-mirror').onclick=function(){
     panZoom={x:0,y:0,scale:1}; drawBg(); redraw(); updateMeta();
+  };
+  function isFs(){return !!(document.fullscreenElement||document.webkitFullscreenElement||document.mozFullScreenElement);}
+  function syncFsLabel(){
+    const ic=document.getElementById('fs-ic'); const lb=document.getElementById('fs-lb');
+    if(isFs()){ ic.textContent='✕'; lb.textContent='Exit'; } else { ic.textContent='⛶'; lb.textContent='Full'; }
+    setTimeout(fitCanvas,80);
+  }
+  ['fullscreenchange','webkitfullscreenchange','mozfullscreenchange'].forEach(ev=>document.addEventListener(ev,syncFsLabel));
+  document.getElementById('t-fullscreen').onclick=function(){
+    try{
+      if(isFs()){
+        (document.exitFullscreen||document.webkitExitFullscreen||document.mozCancelFullScreen).call(document);
+      } else {
+        const el=document.documentElement;
+        const req=el.requestFullscreen||el.webkitRequestFullscreen||el.mozRequestFullScreen;
+        if(req) req.call(el);
+        else if(window.parent && window.parent!==window){
+          // iframe context: ask parent to fullscreen the iframe
+          window.parent.postMessage({type:'wb-fullscreen'},'*');
+        } else { showToast('Fullscreen not supported here'); }
+      }
+    }catch(err){ showToast('Fullscreen blocked: '+(err.message||err)); }
   };
   document.getElementById('t-save').onclick=function(){
     // Render to a single offscreen canvas: bg + drawings

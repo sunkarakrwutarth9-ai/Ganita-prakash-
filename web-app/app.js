@@ -6317,11 +6317,27 @@ function renderWhiteboard() {
     // Loaded from a self-contained HTML file so it's identical between APK and web.
     container.innerHTML =
         '<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">' +
-            '<span style="font-size:0.85em;color:#888;">Same whiteboard as the mobile app — pen, highlighter, shapes, math pad, multi-page, save PNG.</span>' +
+            '<span style="font-size:0.85em;color:#888;">Same whiteboard as the mobile app — pen, highlighter, shapes, math pad, multi-page, save PNG. Tap Full to go fullscreen.</span>' +
         '</div>' +
-        '<div style="position:relative;width:100%;height:80vh;min-height:560px;border:1px solid #2a2a4e;border-radius:8px;overflow:hidden;background:#fff;">' +
-            '<iframe src="whiteboard.html?v=20260504-v196" style="width:100%;height:100%;border:0;display:block;" title="Whiteboard" allow="fullscreen"></iframe>' +
+        '<div id="wb-frame-wrap" style="position:relative;width:100%;height:80vh;min-height:560px;border:1px solid #2a2a4e;border-radius:8px;overflow:hidden;background:#fff;">' +
+            '<iframe id="wb-frame" src="whiteboard.html?v=20260504-v197" style="width:100%;height:100%;border:0;display:block;" title="Whiteboard" allow="fullscreen" allowfullscreen></iframe>' +
         '</div>';
+    // Listen for fullscreen requests from inside the iframe and apply to the wrapper.
+    if (!window._wbFsHandlerInstalled) {
+        window._wbFsHandlerInstalled = true;
+        window.addEventListener('message', function(ev){
+            if (ev && ev.data && ev.data.type === 'wb-fullscreen') {
+                var wrap = document.getElementById('wb-frame-wrap');
+                if (!wrap) return;
+                var req = wrap.requestFullscreen || wrap.webkitRequestFullscreen || wrap.mozRequestFullScreen;
+                var exit = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen;
+                var inFs = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement;
+                try {
+                    if (inFs) { exit.call(document); } else if (req) { req.call(wrap); }
+                } catch(e){}
+            }
+        });
+    }
     return;
 
     // (legacy renderer kept below for reference; no longer reached)
