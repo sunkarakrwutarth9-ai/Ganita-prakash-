@@ -1,7 +1,7 @@
-// Tata Class Edge-style infinite whiteboard. Self-contained, offline, no network.
-// Loaded into a WebView via source={{html: WHITEBOARD_HTML}}.
-// Features: infinite pan/zoom, pen/eraser/highlighter, geometric shapes (line/arrow/rect/circle/triangle),
-// math symbol pad, text tool, grids (square/dot/lined), 16 colors, multi-page, undo/redo (50), save PNG.
+// Tata Class Edge / SMART Notebook-style whiteboard.
+// Self-contained, offline, no network. Loaded into a WebView via {{html: WHITEBOARD_HTML}}.
+// Layout matches the user's reference image: blue top header, dark bottom toolbar with all
+// drawing tools, left page panel with +, right scrollbar + page arrows, color/eraser popup.
 const WHITEBOARD_HTML = `<!DOCTYPE html>
 <html><head>
 <meta charset="utf-8" />
@@ -9,538 +9,539 @@ const WHITEBOARD_HTML = `<!DOCTYPE html>
 <title>Whiteboard</title>
 <style>
 *,*:before,*:after{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-html,body{height:100%;width:100%;margin:0;padding:0;background:#0a0e27;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;overflow:hidden;overscroll-behavior:none;touch-action:none;user-select:none;-webkit-user-select:none;}
-.bar{display:flex;flex-wrap:wrap;gap:4px;padding:6px;background:#1A1A2E;border-bottom:1px solid #2a2a4e;align-items:center;}
-.bar button,.bar .swatch,.bar select{height:32px;min-width:32px;padding:0 8px;border-radius:8px;border:1px solid #2a2a4e;background:#16213E;color:#fff;font-weight:600;font-size:12px;cursor:pointer;outline:none;}
-.bar button.primary{background:linear-gradient(135deg,#00d4ff,#0099ff);border:none;}
-.bar button.danger{background:linear-gradient(135deg,#ff4444,#cc0000);border:none;}
-.bar button.ok{background:linear-gradient(135deg,#00ff88,#00cc66);border:none;color:#000;}
-.bar button.active{outline:2px solid #00d4ff;background:#0a3a5e;}
-.swatch{width:26px;min-width:26px;padding:0;border:2px solid #2a2a4e;border-radius:50%;}
-.swatch.active{border-color:#fff;transform:scale(1.15);}
-.size-row{display:flex;align-items:center;gap:4px;color:#aaa;font-size:11px;}
-.size-row input{accent-color:#00d4ff;width:80px;}
-.wrap{position:relative;width:100%;height:calc(100% - 130px);overflow:hidden;background:#fff;}
-canvas{display:block;touch-action:none;position:absolute;top:0;left:0;}
-#hud{position:absolute;top:6px;left:8px;background:rgba(0,0,0,0.55);color:#fff;font-size:10px;padding:3px 6px;border-radius:4px;pointer-events:none;}
-#pgctl{position:absolute;bottom:8px;right:8px;display:flex;gap:4px;background:rgba(26,26,46,0.92);padding:4px;border-radius:8px;}
-#pgctl button{height:30px;min-width:30px;border-radius:6px;border:1px solid #2a2a4e;background:#16213E;color:#fff;font-weight:600;cursor:pointer;}
-#pgctl span{align-self:center;color:#fff;font-size:11px;padding:0 6px;}
-#mathpad{position:absolute;bottom:8px;left:8px;display:none;flex-wrap:wrap;gap:3px;background:rgba(26,26,46,0.95);padding:6px;border-radius:8px;max-width:60%;}
+html,body{height:100%;width:100%;margin:0;padding:0;background:#e9ecef;color:#222;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;overflow:hidden;overscroll-behavior:none;touch-action:none;user-select:none;-webkit-user-select:none;}
+#header{position:absolute;top:0;left:0;right:0;height:42px;background:#1976D2;color:#fff;display:flex;align-items:center;justify-content:flex-start;padding:0 16px;font-weight:700;font-size:14px;letter-spacing:0.5px;box-shadow:0 1px 3px rgba(0,0,0,0.2);z-index:10;}
+#header .title{flex:1;}
+#header .meta{font-size:11px;font-weight:500;opacity:0.9;}
+#stage{position:absolute;top:42px;bottom:120px;left:60px;right:0;background:#fff;border:1px solid #d0d0d0;overflow:hidden;}
+#bg-cv,#cv,#ov{position:absolute;top:0;left:0;width:100%;height:100%;touch-action:none;}
+#bg-cv{z-index:1;}
+#cv{z-index:2;}
+#ov{z-index:3;pointer-events:none;}
+#scrollbar{position:absolute;top:42px;bottom:120px;right:0;width:14px;background:#f0f0f0;border-left:1px solid #d0d0d0;z-index:4;}
+#scrollbar .thumb{position:absolute;top:6px;right:2px;width:10px;height:60px;background:#bbb;border-radius:5px;}
+#pagepanel{position:absolute;left:0;top:42px;bottom:120px;width:60px;background:#f5f5f5;border-right:1px solid #d0d0d0;display:flex;flex-direction:column-reverse;align-items:center;padding:8px 0;gap:6px;overflow-y:auto;z-index:5;}
+#pagepanel::-webkit-scrollbar{width:0;}
+#pagepanel .pg{width:42px;height:50px;background:#fff;border:1px solid #c0c0c0;border-radius:3px;color:#333;font-size:14px;font-weight:600;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+#pagepanel .pg.active{border:2px solid #1976D2;background:#fff;}
+#pagepanel .add{width:42px;height:42px;background:#fff;border:1px dashed #aaa;border-radius:3px;color:#777;font-size:24px;font-weight:300;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+#pgnav{position:absolute;bottom:122px;right:18px;display:flex;flex-direction:column;gap:1px;z-index:6;}
+#pgnav button{width:22px;height:22px;background:#fff;border:1px solid #c0c0c0;color:#333;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;padding:0;}
+#pgnav button:active{background:#e0e0e0;}
+#toolbar{position:absolute;left:0;right:0;bottom:0;height:120px;background:#3a3a3a;display:flex;flex-direction:column;align-items:stretch;z-index:7;}
+#popup{height:50px;background:#3a3a3a;display:none;align-items:center;justify-content:center;gap:12px;padding:0 16px;}
+#popup.show{display:flex;}
+#popup .swatch{width:34px;height:34px;border-radius:3px;border:2px solid #555;cursor:pointer;}
+#popup .swatch.active{border:3px solid #fff;}
+#popup .size{width:34px;height:34px;background:#4a4a4a;border:2px solid #555;border-radius:3px;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+#popup .size.active{border-color:#fff;}
+#popup .size .dot{background:#fff;border-radius:50%;}
+#mathpad{height:50px;background:#3a3a3a;display:none;align-items:center;gap:4px;padding:0 12px;overflow-x:auto;}
 #mathpad.show{display:flex;}
-#mathpad button{height:30px;min-width:30px;padding:0 6px;border-radius:6px;border:1px solid #2a2a4e;background:#16213E;color:#fff;font-size:13px;cursor:pointer;font-family:'Cambria Math','Latin Modern Math',serif;}
-#textInput{position:absolute;display:none;border:1px dashed #0a84ff;padding:4px;background:rgba(255,255,255,0.95);color:#000;font-size:18px;font-family:inherit;outline:none;min-width:80px;}
-.label{color:#aaa;font-size:11px;padding:0 4px;}
-</style>
-</head>
+#mathpad button{min-width:38px;height:36px;background:#4a4a4a;border:1px solid #5a5a5a;color:#fff;font-size:18px;border-radius:3px;cursor:pointer;flex-shrink:0;}
+#mathpad button:active{background:#1976D2;}
+#tools{height:60px;background:#2a2a2a;display:flex;align-items:center;justify-content:flex-start;padding:0 6px;gap:2px;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+#tools::-webkit-scrollbar{height:4px;}
+#tools::-webkit-scrollbar-thumb{background:#555;border-radius:2px;}
+#tools button{flex-shrink:0;min-width:42px;height:48px;background:transparent;border:none;color:#fff;font-size:11px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border-radius:4px;padding:4px;}
+#tools button:active{background:#1976D2;}
+#tools button.active{background:#1976D2;}
+#tools button .ic{font-size:20px;line-height:1;}
+#tools button .lb{font-size:9px;line-height:1;opacity:0.85;}
+#tools .sep{width:1px;height:36px;background:#555;margin:0 3px;flex-shrink:0;}
+#textInput{position:absolute;display:none;background:transparent;border:1px dashed #1976D2;outline:none;font-family:inherit;color:inherit;padding:2px 4px;min-width:60px;z-index:9;}
+#shapeMenu{position:absolute;display:none;flex-direction:column;background:#3a3a3a;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,0.4);padding:4px;z-index:8;}
+#shapeMenu button{padding:8px 14px;background:transparent;border:none;color:#fff;font-size:12px;text-align:left;cursor:pointer;border-radius:3px;display:flex;align-items:center;gap:8px;}
+#shapeMenu button:active{background:#1976D2;}
+#bgMenu{position:absolute;display:none;flex-direction:column;background:#3a3a3a;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,0.4);padding:4px;z-index:8;min-width:130px;}
+#bgMenu button{padding:8px 14px;background:transparent;border:none;color:#fff;font-size:12px;text-align:left;cursor:pointer;border-radius:3px;}
+#bgMenu button:active{background:#1976D2;}
+.toast{position:absolute;left:50%;top:60px;transform:translateX(-50%);background:rgba(0,0,0,0.85);color:#fff;padding:8px 16px;border-radius:6px;font-size:13px;z-index:20;display:none;}
+.toast.show{display:block;animation:fade 1.5s forwards;}
+@keyframes fade{0%{opacity:0;}10%{opacity:1;}80%{opacity:1;}100%{opacity:0;}}
+</style></head>
 <body>
-<div class="bar" id="topbar">
-  <button class="primary" onclick="newPage()">+ Page</button>
-  <button onclick="prevPage()">&#9664;</button>
-  <span class="label" id="pgInfo">1/1</span>
-  <button onclick="nextPage()">&#9654;</button>
-  <button onclick="undo()" id="undoBtn">&#8617; Undo</button>
-  <button onclick="redo()" id="redoBtn">&#8618; Redo</button>
-  <button onclick="resetView()">&#8634; Fit</button>
-  <button onclick="zoom(1.25)">+</button>
-  <button onclick="zoom(0.8)">&#8722;</button>
-  <button class="danger" onclick="clearPage()">Clear</button>
-  <button class="ok" onclick="savePNG()">Save</button>
+<div id="header"><div class="title">WHITEBOARD &nbsp;//&nbsp; Untitled</div><div class="meta" id="meta">Pen · 100% · Page 1</div></div>
+
+<div id="pagepanel">
+  <button class="add" id="btn-addpage" title="Add page">+</button>
 </div>
-<div class="bar" id="toolbar">
-  <button id="t-pen" class="active" onclick="setTool('pen')">&#9999; Pen</button>
-  <button id="t-eraser" onclick="setTool('eraser')">Eraser</button>
-  <button id="t-highlight" onclick="setTool('highlight')">Hilite</button>
-  <button id="t-line" onclick="setTool('line')">Line</button>
-  <button id="t-arrow" onclick="setTool('arrow')">&rarr;</button>
-  <button id="t-rect" onclick="setTool('rect')">&#9645;</button>
-  <button id="t-circle" onclick="setTool('circle')">&#9711;</button>
-  <button id="t-triangle" onclick="setTool('triangle')">&#9651;</button>
-  <button id="t-text" onclick="setTool('text')">T</button>
-  <button id="t-pan" onclick="setTool('pan')">&#9995; Pan</button>
-  <button id="t-math" onclick="toggleMath()">&radic;Math</button>
-  <span class="label">Bg:</span>
-  <select id="bgSel" onchange="setBg(this.value)">
-    <option value="white">White</option>
-    <option value="grid">Grid</option>
-    <option value="dot">Dot</option>
-    <option value="line">Lined</option>
-    <option value="dark">Dark</option>
-  </select>
-</div>
-<div class="bar" id="colorbar">
-  <span class="swatch active" data-c="#000000" style="background:#000000"></span>
-  <span class="swatch" data-c="#ffffff" style="background:#ffffff"></span>
-  <span class="swatch" data-c="#ff3b30" style="background:#ff3b30"></span>
-  <span class="swatch" data-c="#ff9500" style="background:#ff9500"></span>
-  <span class="swatch" data-c="#ffcc00" style="background:#ffcc00"></span>
-  <span class="swatch" data-c="#34c759" style="background:#34c759"></span>
-  <span class="swatch" data-c="#00c7be" style="background:#00c7be"></span>
-  <span class="swatch" data-c="#0a84ff" style="background:#0a84ff"></span>
-  <span class="swatch" data-c="#5856d6" style="background:#5856d6"></span>
-  <span class="swatch" data-c="#af52de" style="background:#af52de"></span>
-  <span class="swatch" data-c="#ff2d55" style="background:#ff2d55"></span>
-  <span class="swatch" data-c="#a2845e" style="background:#a2845e"></span>
-  <span class="size-row">Size <input id="size" type="range" min="1" max="40" value="3" /><span id="sizeVal">3</span></span>
-</div>
-<div class="wrap" id="wrap">
-  <canvas id="bg"></canvas>
+
+<div id="stage">
+  <canvas id="bg-cv"></canvas>
   <canvas id="cv"></canvas>
-  <canvas id="overlay"></canvas>
-  <input id="textInput" />
-  <div id="hud">Pen | 100% | Page 1</div>
+  <canvas id="ov"></canvas>
+  <input type="text" id="textInput" />
+</div>
+<div id="scrollbar"><div class="thumb"></div></div>
+<div id="pgnav">
+  <button id="pg-up">▲</button>
+  <button id="pg-down">▼</button>
+  <button id="pg-menu">⌄</button>
+</div>
+
+<div id="toolbar">
   <div id="mathpad">
-    <button onclick="insertMath('+')">+</button>
-    <button onclick="insertMath('&#8722;')">&minus;</button>
-    <button onclick="insertMath('&times;')">&times;</button>
-    <button onclick="insertMath('&divide;')">&divide;</button>
-    <button onclick="insertMath('=')">=</button>
-    <button onclick="insertMath('&ne;')">&ne;</button>
-    <button onclick="insertMath('&lt;')">&lt;</button>
-    <button onclick="insertMath('&gt;')">&gt;</button>
-    <button onclick="insertMath('&le;')">&le;</button>
-    <button onclick="insertMath('&ge;')">&ge;</button>
-    <button onclick="insertMath('&radic;')">&radic;</button>
-    <button onclick="insertMath('&pi;')">&pi;</button>
-    <button onclick="insertMath('&infin;')">&infin;</button>
-    <button onclick="insertMath('&sum;')">&sum;</button>
-    <button onclick="insertMath('&int;')">&int;</button>
-    <button onclick="insertMath('&theta;')">&theta;</button>
-    <button onclick="insertMath('&alpha;')">&alpha;</button>
-    <button onclick="insertMath('&beta;')">&beta;</button>
-    <button onclick="insertMath('&deg;')">&deg;</button>
-    <button onclick="insertMath('&plusmn;')">&plusmn;</button>
-    <button onclick="insertMath('&sup2;')">x&sup2;</button>
-    <button onclick="insertMath('&sup3;')">x&sup3;</button>
-    <button onclick="insertMath('&frac12;')">&frac12;</button>
-    <button onclick="insertMath('&frac14;')">&frac14;</button>
-    <button onclick="insertMath('&frac34;')">&frac34;</button>
+    <button data-m="+">+</button><button data-m="−">−</button><button data-m="×">×</button>
+    <button data-m="÷">÷</button><button data-m="=">=</button><button data-m="≠">≠</button>
+    <button data-m="≤">≤</button><button data-m="≥">≥</button><button data-m="√">√</button>
+    <button data-m="π">π</button><button data-m="∞">∞</button><button data-m="∑">∑</button>
+    <button data-m="∫">∫</button><button data-m="θ">θ</button><button data-m="α">α</button>
+    <button data-m="β">β</button><button data-m="°">°</button><button data-m="±">±</button>
+    <button data-m="²">²</button><button data-m="³">³</button><button data-m="½">½</button>
+    <button data-m="¼">¼</button><button data-m="¾">¾</button><button data-m="(">(</button>
+    <button data-m=")">)</button>
+  </div>
+
+  <div id="popup">
+    <div class="swatch" data-color="#000000" style="background:#000000"></div>
+    <div class="swatch" data-color="#e53935" style="background:#e53935"></div>
+    <div class="swatch" data-color="#43a047" style="background:#43a047"></div>
+    <div class="swatch active" data-color="#1e88e5" style="background:#1e88e5"></div>
+    <div class="swatch" data-color="#fb8c00" style="background:#fb8c00"></div>
+    <div class="size" data-size="2"><div class="dot" style="width:6px;height:6px"></div></div>
+    <div class="size active" data-size="6"><div class="dot" style="width:10px;height:10px"></div></div>
+    <div class="size" data-size="14"><div class="dot" style="width:16px;height:16px"></div></div>
+    <div class="size" data-size="28"><div class="dot" style="width:24px;height:24px"></div></div>
+  </div>
+
+  <div id="tools">
+    <button id="t-grid" title="Background"><div class="ic">▦</div><div class="lb">Bg</div></button>
+    <button id="t-open" title="Open"><div class="ic">📁</div><div class="lb">Open</div></button>
+    <button id="t-newpage" title="New page"><div class="ic">▤</div><div class="lb">Page</div></button>
+    <div class="sep"></div>
+    <button id="t-select" title="Select"><div class="ic">↖</div><div class="lb">Sel</div></button>
+    <button id="t-pen" class="active" title="Pen"><div class="ic">✎</div><div class="lb">Pen</div></button>
+    <button id="t-marker" title="Highlighter"><div class="ic">🖍</div><div class="lb">Mark</div></button>
+    <button id="t-eraser" title="Eraser"><div class="ic">🧽</div><div class="lb">Eraser</div></button>
+    <button id="t-shapes" title="Shapes"><div class="ic">◯</div><div class="lb">Shape</div></button>
+    <button id="t-ruler" title="Ruler"><div class="ic">📐</div><div class="lb">Ruler</div></button>
+    <button id="t-line" title="Line"><div class="ic">／</div><div class="lb">Line</div></button>
+    <button id="t-text" title="Text"><div class="ic">T¹</div><div class="lb">Text</div></button>
+    <button id="t-math" title="Math"><div class="ic">∑</div><div class="lb">Math</div></button>
+    <button id="t-crop" title="Crop"><div class="ic">⌗</div><div class="lb">Crop</div></button>
+    <button id="t-image" title="Image"><div class="ic">🖼</div><div class="lb">Image</div></button>
+    <div class="sep"></div>
+    <button id="t-undo" title="Undo"><div class="ic">⟲</div><div class="lb">Undo</div></button>
+    <button id="t-redo" title="Redo"><div class="ic">⟳</div><div class="lb">Redo</div></button>
+    <button id="t-reset" title="Reset"><div class="ic">↻</div><div class="lb">Reset</div></button>
+    <button id="t-mirror" title="Fit"><div class="ic">⛶</div><div class="lb">Fit</div></button>
+    <button id="t-save" title="Save PNG"><div class="ic">💾</div><div class="lb">Save</div></button>
+    <button id="t-clear" title="Clear page"><div class="ic">🗑</div><div class="lb">Clear</div></button>
   </div>
 </div>
+
+<div id="shapeMenu"></div>
+<div id="bgMenu"></div>
+<div class="toast" id="toast"></div>
+
 <script>
 (function(){
-  const wrap=document.getElementById('wrap');
-  const bg=document.getElementById('bg'),cv=document.getElementById('cv'),ov=document.getElementById('overlay');
-  const bgCtx=bg.getContext('2d'),ctx=cv.getContext('2d',{willReadFrequently:true}),ovCtx=ov.getContext('2d');
+  const stage=document.getElementById('stage');
+  const bgCv=document.getElementById('bg-cv'); const bgCtx=bgCv.getContext('2d');
+  const cv=document.getElementById('cv'); const ctx=cv.getContext('2d',{willReadFrequently:true});
+  const ov=document.getElementById('ov'); const ovCtx=ov.getContext('2d');
+  const meta=document.getElementById('meta');
+  const popup=document.getElementById('popup');
+  const mathpad=document.getElementById('mathpad');
   const ti=document.getElementById('textInput');
-  const hud=document.getElementById('hud');
-  const sizeInput=document.getElementById('size'),sizeVal=document.getElementById('sizeVal');
+  const shapeMenu=document.getElementById('shapeMenu');
+  const bgMenu=document.getElementById('bgMenu');
+  const toastEl=document.getElementById('toast');
 
-  // Each "page" stores its own image data (the drawing layer)
-  const pages=[]; // array of {data: ImageData (or null), strokes: array}
-  let currentPage=0;
-  let bgType='white';
-  let tool='pen',color='#000000',size=3;
-  let drawing=false,startPt=null,lastPt=null;
+  function showToast(t){toastEl.textContent=t;toastEl.classList.remove('show');void toastEl.offsetWidth;toastEl.classList.add('show');}
+
+  let dpr=window.devicePixelRatio||1;
+  let tool='pen', color='#1e88e5', size=6, bgType='white';
   let panZoom={x:0,y:0,scale:1};
-  let isPanning=false, panStart=null, panZoomStart=null;
-  let pinchInitialDist=0, pinchInitialScale=1, pinchCenter=null;
-  const undoStack=[],redoStack=[];
+  let drawing=false, lastPt=null, startPt=null, currentStroke=null;
+  let pages=[]; let pageIdx=0;
+  // Each page: {strokes:[], undo:[], redo:[], bgType:'white'}
 
-  function dpr(){return window.devicePixelRatio||1;}
+  function newPage(){return {strokes:[], undo:[], redo:[], bgType:'white'};}
+  pages.push(newPage());
 
-  function resize(){
-    const r=wrap.getBoundingClientRect();
-    const w=Math.max(1,Math.floor(r.width)),h=Math.max(1,Math.floor(r.height));
-    [bg,cv,ov].forEach(c=>{
-      c.width=w*dpr();c.height=h*dpr();
-      c.style.width=w+'px';c.style.height=h+'px';
-      c.getContext('2d').setTransform(dpr(),0,0,dpr(),0,0);
+  function fitCanvas(){
+    const r=stage.getBoundingClientRect();
+    [bgCv,cv,ov].forEach(c=>{
+      c.width=Math.floor(r.width*dpr); c.height=Math.floor(r.height*dpr);
+      c.style.width=r.width+'px'; c.style.height=r.height+'px';
     });
-    if(!pages.length){pages.push({data:null});}
-    redrawAll();
+    redraw(); drawBg();
   }
+  window.addEventListener('resize',fitCanvas);
 
   function drawBg(){
-    const w=cv.clientWidth,h=cv.clientHeight;
-    bgCtx.clearRect(0,0,w,h);
-    if(bgType==='dark'){bgCtx.fillStyle='#0a1424';bgCtx.fillRect(0,0,w,h);}
-    else{bgCtx.fillStyle='#ffffff';bgCtx.fillRect(0,0,w,h);}
-    if(bgType==='grid'){
-      bgCtx.strokeStyle='#d8e0ec';bgCtx.lineWidth=0.5;
-      const step=24*panZoom.scale;
-      const offX=panZoom.x%step,offY=panZoom.y%step;
-      for(let x=offX;x<=w;x+=step){bgCtx.beginPath();bgCtx.moveTo(x,0);bgCtx.lineTo(x,h);bgCtx.stroke();}
-      for(let y=offY;y<=h;y+=step){bgCtx.beginPath();bgCtx.moveTo(0,y);bgCtx.lineTo(w,y);bgCtx.stroke();}
-    }else if(bgType==='dot'){
-      bgCtx.fillStyle='#b8c0d0';
-      const step=20*panZoom.scale;
-      const offX=panZoom.x%step,offY=panZoom.y%step;
-      for(let x=offX;x<=w;x+=step){for(let y=offY;y<=h;y+=step){bgCtx.beginPath();bgCtx.arc(x,y,1.2,0,7);bgCtx.fill();}}
-    }else if(bgType==='line'){
-      bgCtx.strokeStyle='#cdd8e8';bgCtx.lineWidth=0.7;
-      const step=28*panZoom.scale;
-      const offY=panZoom.y%step;
-      for(let y=offY;y<=h;y+=step){bgCtx.beginPath();bgCtx.moveTo(0,y);bgCtx.lineTo(w,y);bgCtx.stroke();}
+    const w=bgCv.width, h=bgCv.height;
+    bgCtx.setTransform(1,0,0,1,0,0); bgCtx.clearRect(0,0,w,h);
+    const t=pages[pageIdx].bgType||'white';
+    if(t==='dark'){ bgCtx.fillStyle='#1a1f2e'; bgCtx.fillRect(0,0,w,h); }
+    else { bgCtx.fillStyle='#ffffff'; bgCtx.fillRect(0,0,w,h); }
+    if(t==='grid'||t==='dot'||t==='lined'){
+      bgCtx.strokeStyle=t==='dark'?'#2a3144':'#e0e6ee';
+      bgCtx.lineWidth=1*dpr;
+      const step=24*dpr*panZoom.scale;
+      const offX=(panZoom.x*dpr)%step, offY=(panZoom.y*dpr)%step;
+      bgCtx.beginPath();
+      if(t==='grid'){
+        for(let x=offX;x<w;x+=step){bgCtx.moveTo(x,0);bgCtx.lineTo(x,h);}
+        for(let y=offY;y<h;y+=step){bgCtx.moveTo(0,y);bgCtx.lineTo(w,y);}
+        bgCtx.stroke();
+      } else if(t==='lined'){
+        for(let y=offY;y<h;y+=step){bgCtx.moveTo(0,y);bgCtx.lineTo(w,y);}
+        bgCtx.stroke();
+      } else { // dot
+        bgCtx.fillStyle='#bbc6d4';
+        for(let x=offX;x<w;x+=step) for(let y=offY;y<h;y+=step){bgCtx.beginPath();bgCtx.arc(x,y,1.2*dpr,0,Math.PI*2);bgCtx.fill();}
+      }
     }
   }
 
-  function applyTransform(c){
-    c.setTransform(dpr()*panZoom.scale,0,0,dpr()*panZoom.scale,dpr()*panZoom.x,dpr()*panZoom.y);
-  }
+  function applyTransform(c){c.setTransform(panZoom.scale*dpr,0,0,panZoom.scale*dpr,panZoom.x*dpr,panZoom.y*dpr);}
 
-  function redrawAll(){
-    ctx.setTransform(dpr(),0,0,dpr(),0,0);
-    ctx.clearRect(0,0,cv.clientWidth,cv.clientHeight);
-    drawBg();
-    const pg=pages[currentPage];
-    if(pg&&pg.data){
-      // pg.data is a HTMLImageElement-like ImageBitmap
-      ctx.setTransform(dpr()*panZoom.scale,0,0,dpr()*panZoom.scale,dpr()*panZoom.x,dpr()*panZoom.y);
-      ctx.drawImage(pg.data,0,0);
-      ctx.setTransform(dpr(),0,0,dpr(),0,0);
+  function strokePath(c,s){
+    c.lineCap='round'; c.lineJoin='round';
+    c.strokeStyle=s.color; c.lineWidth=s.size;
+    c.globalAlpha=s.alpha||1;
+    if(s.type==='erase'){ c.globalCompositeOperation='destination-out'; c.strokeStyle='#000'; }
+    else c.globalCompositeOperation='source-over';
+    if(s.type==='free'||s.type==='erase'||s.type==='hi'){
+      const p=s.points; if(!p||p.length<2)return;
+      c.beginPath(); c.moveTo(p[0].x,p[0].y);
+      for(let i=1;i<p.length;i++)c.lineTo(p[i].x,p[i].y);
+      c.stroke();
+    } else if(s.type==='line'){
+      c.beginPath(); c.moveTo(s.a.x,s.a.y); c.lineTo(s.b.x,s.b.y); c.stroke();
+    } else if(s.type==='arrow'){
+      c.beginPath(); c.moveTo(s.a.x,s.a.y); c.lineTo(s.b.x,s.b.y); c.stroke();
+      const ang=Math.atan2(s.b.y-s.a.y,s.b.x-s.a.x), head=10+s.size;
+      c.beginPath();
+      c.moveTo(s.b.x,s.b.y);
+      c.lineTo(s.b.x-head*Math.cos(ang-Math.PI/6),s.b.y-head*Math.sin(ang-Math.PI/6));
+      c.moveTo(s.b.x,s.b.y);
+      c.lineTo(s.b.x-head*Math.cos(ang+Math.PI/6),s.b.y-head*Math.sin(ang+Math.PI/6));
+      c.stroke();
+    } else if(s.type==='rect'){
+      c.beginPath(); c.rect(s.a.x,s.a.y,s.b.x-s.a.x,s.b.y-s.a.y); c.stroke();
+    } else if(s.type==='circle'){
+      const cx=(s.a.x+s.b.x)/2, cy=(s.a.y+s.b.y)/2, rx=Math.abs(s.b.x-s.a.x)/2, ry=Math.abs(s.b.y-s.a.y)/2;
+      c.beginPath(); c.ellipse(cx,cy,rx,ry,0,0,Math.PI*2); c.stroke();
+    } else if(s.type==='triangle'){
+      c.beginPath(); c.moveTo((s.a.x+s.b.x)/2,s.a.y);
+      c.lineTo(s.a.x,s.b.y); c.lineTo(s.b.x,s.b.y); c.closePath(); c.stroke();
+    } else if(s.type==='text'){
+      c.fillStyle=s.color; c.globalCompositeOperation='source-over';
+      c.font=s.font; c.textBaseline='top'; c.fillText(s.text,s.a.x,s.a.y);
     }
-    updateHUD();
+    c.globalAlpha=1; c.globalCompositeOperation='source-over';
   }
 
-  function snapshotPage(){
-    // Capture current strokes layer (without bg/overlay) into an offscreen canvas in world coords.
-    // We render strokes directly to cv in world coords, so just take cv pixels and store de-transformed.
-    // Simpler: store cv as ImageBitmap (in screen px), and re-render through transform when redrawing.
-    // To support pan/zoom undo, store a high-res world-space canvas instead. We'll keep a separate worldCanvas.
+  function redraw(){
+    ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,cv.width,cv.height);
+    applyTransform(ctx);
+    for(const s of pages[pageIdx].strokes) strokePath(ctx,s);
   }
 
-  // We'll maintain a single offscreen "world canvas" per page in world coordinates.
-  function ensurePageCanvas(idx){
-    if(!pages[idx])pages[idx]={data:null};
-    if(!pages[idx].world){
-      const wc=document.createElement('canvas');
-      wc.width=4096;wc.height=4096;
-      const wcx=wc.getContext('2d');
-      wcx.fillStyle='rgba(0,0,0,0)';
-      pages[idx].world=wc;
-      pages[idx].wcx=wcx;
-    }
+  function clearOv(){ovCtx.setTransform(1,0,0,1,0,0); ovCtx.clearRect(0,0,ov.width,ov.height);}
+
+  function getPt(e){
+    const r=stage.getBoundingClientRect();
+    const t=e.touches?e.touches[0]:e;
+    const sx=t.clientX-r.left, sy=t.clientY-r.top;
+    return {sx,sy,x:(sx-panZoom.x)/panZoom.scale,y:(sy-panZoom.y)/panZoom.scale};
   }
 
-  function pushUndo(){
-    ensurePageCanvas(currentPage);
-    try{
-      const w=pages[currentPage].world;
-      const snap=document.createElement('canvas');
-      snap.width=w.width;snap.height=w.height;
-      snap.getContext('2d').drawImage(w,0,0);
-      undoStack.push({page:currentPage,canvas:snap});
-      if(undoStack.length>50)undoStack.shift();
-      redoStack.length=0;
-    }catch(e){console.warn('undo snap fail',e);}
-  }
-
-  function applySnap(snap){
-    if(!snap)return;
-    ensurePageCanvas(snap.page);
-    currentPage=snap.page;
-    const w=pages[currentPage].world;
-    pages[currentPage].wcx.clearRect(0,0,w.width,w.height);
-    pages[currentPage].wcx.drawImage(snap.canvas,0,0);
-    renderPageToView();
-  }
-
-  function undo(){
-    if(undoStack.length<=1)return;
-    redoStack.push(undoStack.pop());
-    applySnap(undoStack[undoStack.length-1]);
-  }
-  function redo(){
-    if(!redoStack.length)return;
-    const s=redoStack.pop();
-    undoStack.push(s);
-    applySnap(s);
-  }
-
-  function renderPageToView(){
-    ctx.setTransform(dpr(),0,0,dpr(),0,0);
-    ctx.clearRect(0,0,cv.clientWidth,cv.clientHeight);
-    drawBg();
-    ensurePageCanvas(currentPage);
-    const w=pages[currentPage].world;
-    ctx.save();
-    ctx.setTransform(dpr()*panZoom.scale,0,0,dpr()*panZoom.scale,dpr()*panZoom.x*dpr()/dpr(),dpr()*panZoom.y*dpr()/dpr());
-    // Above line simplified — but we want screen px = world px*scale + offset
-    ctx.setTransform(dpr()*panZoom.scale,0,0,dpr()*panZoom.scale,dpr()*panZoom.x,dpr()*panZoom.y);
-    ctx.drawImage(w,0,0);
-    ctx.restore();
-    ctx.setTransform(dpr(),0,0,dpr(),0,0);
-    updateHUD();
-  }
-
-  function screenToWorld(x,y){
-    return {x:(x-panZoom.x)/panZoom.scale, y:(y-panZoom.y)/panZoom.scale};
-  }
-
-  function getPos(e){
-    const r=wrap.getBoundingClientRect();
-    const t=(e.touches&&e.touches[0])?e.touches[0]:e;
-    return {x:t.clientX-r.left,y:t.clientY-r.top};
-  }
-
-  function start(e){
+  let pinchDist=0, pinchCenter=null, twoFinger=false;
+  cv.addEventListener('touchstart',onStart,{passive:false});
+  cv.addEventListener('touchmove',onMove,{passive:false});
+  cv.addEventListener('touchend',onEnd,{passive:false});
+  cv.addEventListener('mousedown',onStart);
+  cv.addEventListener('mousemove',onMove);
+  cv.addEventListener('mouseup',onEnd);
+  cv.addEventListener('mouseleave',onEnd);
+  cv.addEventListener('wheel',(e)=>{
     e.preventDefault();
-    if(e.touches&&e.touches.length===2){
-      // Pinch
-      isPanning=true;
-      pinchInitialDist=touchDist(e.touches);
-      pinchInitialScale=panZoom.scale;
-      panStart={x:(e.touches[0].clientX+e.touches[1].clientX)/2,y:(e.touches[0].clientY+e.touches[1].clientY)/2};
-      panZoomStart={x:panZoom.x,y:panZoom.y};
-      pinchCenter=panStart;
+    const factor=e.deltaY<0?1.1:0.9;
+    const r=stage.getBoundingClientRect();
+    const mx=e.clientX-r.left, my=e.clientY-r.top;
+    const wx=(mx-panZoom.x)/panZoom.scale, wy=(my-panZoom.y)/panZoom.scale;
+    panZoom.scale=Math.max(0.2,Math.min(8,panZoom.scale*factor));
+    panZoom.x=mx-wx*panZoom.scale; panZoom.y=my-wy*panZoom.scale;
+    drawBg(); redraw(); updateMeta();
+  },{passive:false});
+
+  function onStart(e){
+    e.preventDefault();
+    if(e.touches && e.touches.length===2){
+      twoFinger=true; drawing=false;
+      const a=e.touches[0], b=e.touches[1];
+      pinchDist=Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY);
+      pinchCenter={x:(a.clientX+b.clientX)/2,y:(a.clientY+b.clientY)/2};
       return;
     }
-    const sp=getPos(e);
-    if(tool==='pan'){
-      isPanning=true;
-      panStart=sp;
-      panZoomStart={x:panZoom.x,y:panZoom.y};
+    twoFinger=false;
+    const p=getPt(e);
+    if(tool==='select'||tool==='pan'){
+      drawing=true; lastPt={sx:p.sx,sy:p.sy};
       return;
     }
     if(tool==='text'){
-      const wp=screenToWorld(sp.x,sp.y);
-      openTextInput(sp.x,sp.y,wp);
+      openTextInput(p);
       return;
     }
-    drawing=true;
-    startPt=screenToWorld(sp.x,sp.y);
-    lastPt=startPt;
-    pushUndo();
-    ensurePageCanvas(currentPage);
-    if(tool==='pen'||tool==='highlight'||tool==='eraser'){
-      const wcx=pages[currentPage].wcx;
-      wcx.beginPath();
-      wcx.moveTo(startPt.x,startPt.y);
-      strokeStart(wcx);
+    drawing=true; startPt=p; lastPt=p;
+    if(tool==='pen'){
+      currentStroke={type:'free',color,size,points:[{x:p.x,y:p.y}]};
+    } else if(tool==='marker'){
+      currentStroke={type:'hi',color,size:size*3,alpha:0.35,points:[{x:p.x,y:p.y}]};
+    } else if(tool==='eraser'){
+      currentStroke={type:'erase',color:'#000',size:size*3,points:[{x:p.x,y:p.y}]};
+    } else if(['line','arrow','rect','circle','triangle'].indexOf(tool)>=0){
+      currentStroke={type:tool,color,size,a:{x:p.x,y:p.y},b:{x:p.x,y:p.y}};
     }
   }
 
-  function strokeStart(wcx){
-    if(tool==='eraser'){
-      wcx.globalCompositeOperation='destination-out';
-      wcx.strokeStyle='rgba(0,0,0,1)';
-      wcx.lineWidth=size*3;
-    }else if(tool==='highlight'){
-      wcx.globalCompositeOperation='multiply';
-      wcx.strokeStyle=color;
-      wcx.globalAlpha=0.35;
-      wcx.lineWidth=size*4;
-    }else{
-      wcx.globalCompositeOperation='source-over';
-      wcx.strokeStyle=color;
-      wcx.globalAlpha=1;
-      wcx.lineWidth=size;
-    }
-    wcx.lineCap='round';wcx.lineJoin='round';
-  }
-
-  function move(e){
+  function onMove(e){
     e.preventDefault();
-    if(e.touches&&e.touches.length===2&&isPanning){
-      const d=touchDist(e.touches);
-      const cx=(e.touches[0].clientX+e.touches[1].clientX)/2;
-      const cy=(e.touches[0].clientY+e.touches[1].clientY)/2;
-      const newScale=Math.min(8,Math.max(0.2,pinchInitialScale*(d/pinchInitialDist)));
-      const r=wrap.getBoundingClientRect();
-      const px=cx-r.left, py=cy-r.top;
-      // Keep pinch center stationary in world: world_before = (p-x0)/s0 ; world_after = (p-x1)/s1 ; same -> x1 = p - world*s1
-      const worldX=(px-panZoom.x)/panZoom.scale;
-      const worldY=(py-panZoom.y)/panZoom.scale;
-      panZoom.scale=newScale;
-      panZoom.x=px-worldX*newScale;
-      panZoom.y=py-worldY*newScale;
-      renderPageToView();
+    if(twoFinger && e.touches && e.touches.length===2){
+      const a=e.touches[0], b=e.touches[1];
+      const d=Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY);
+      const c={x:(a.clientX+b.clientX)/2,y:(a.clientY+b.clientY)/2};
+      const r=stage.getBoundingClientRect();
+      const mx=c.x-r.left, my=c.y-r.top;
+      const wx=(mx-panZoom.x)/panZoom.scale, wy=(my-panZoom.y)/panZoom.scale;
+      panZoom.scale=Math.max(0.2,Math.min(8,panZoom.scale*(d/pinchDist)));
+      panZoom.x=mx-wx*panZoom.scale + (c.x-pinchCenter.x);
+      panZoom.y=my-wy*panZoom.scale + (c.y-pinchCenter.y);
+      pinchDist=d; pinchCenter=c;
+      drawBg(); redraw(); updateMeta();
       return;
     }
-    const sp=getPos(e);
-    if(isPanning){
-      panZoom.x=panZoomStart.x+(sp.x-panStart.x);
-      panZoom.y=panZoomStart.y+(sp.y-panStart.y);
-      renderPageToView();
-      return;
+    if(!drawing) return;
+    const p=getPt(e);
+    if(tool==='select'||tool==='pan'){
+      panZoom.x+=p.sx-lastPt.sx; panZoom.y+=p.sy-lastPt.sy;
+      lastPt={sx:p.sx,sy:p.sy};
+      drawBg(); redraw(); return;
     }
-    if(!drawing)return;
-    const wp=screenToWorld(sp.x,sp.y);
-    ensurePageCanvas(currentPage);
-    const wcx=pages[currentPage].wcx;
-    if(tool==='pen'||tool==='highlight'||tool==='eraser'){
-      wcx.lineTo(wp.x,wp.y);
-      wcx.stroke();
-      // begin a new path so style updates take effect immediately
-      wcx.beginPath();wcx.moveTo(wp.x,wp.y);
-      lastPt=wp;
-      renderPageToView();
-    }else{
-      // Shape tools: render preview on overlay
-      ovCtx.setTransform(dpr(),0,0,dpr(),0,0);
-      ovCtx.clearRect(0,0,ov.clientWidth,ov.clientHeight);
-      ovCtx.setTransform(dpr()*panZoom.scale,0,0,dpr()*panZoom.scale,dpr()*panZoom.x,dpr()*panZoom.y);
-      ovCtx.strokeStyle=color;ovCtx.lineWidth=size;ovCtx.lineCap='round';ovCtx.fillStyle='rgba(0,0,0,0)';
-      const a=startPt,b=wp;
-      ovCtx.beginPath();
-      if(tool==='line'){ovCtx.moveTo(a.x,a.y);ovCtx.lineTo(b.x,b.y);ovCtx.stroke();}
-      else if(tool==='arrow'){drawArrow(ovCtx,a,b);}
-      else if(tool==='rect'){ovCtx.rect(a.x,a.y,b.x-a.x,b.y-a.y);ovCtx.stroke();}
-      else if(tool==='circle'){const cxp=(a.x+b.x)/2,cyp=(a.y+b.y)/2,rx=Math.abs(b.x-a.x)/2,ry=Math.abs(b.y-a.y)/2;ovCtx.ellipse(cxp,cyp,rx,ry,0,0,7);ovCtx.stroke();}
-      else if(tool==='triangle'){ovCtx.moveTo((a.x+b.x)/2,a.y);ovCtx.lineTo(a.x,b.y);ovCtx.lineTo(b.x,b.y);ovCtx.closePath();ovCtx.stroke();}
-      ovCtx.setTransform(dpr(),0,0,dpr(),0,0);
+    if(currentStroke){
+      if(['free','hi','erase'].indexOf(currentStroke.type)>=0){
+        currentStroke.points.push({x:p.x,y:p.y});
+      } else {
+        currentStroke.b={x:p.x,y:p.y};
+      }
+      // Live preview on overlay, transformed
+      clearOv();
+      applyTransform(ovCtx);
+      strokePath(ovCtx,currentStroke);
+      ovCtx.setTransform(1,0,0,1,0,0);
     }
   }
 
-  function drawArrow(c,a,b){
-    c.moveTo(a.x,a.y);c.lineTo(b.x,b.y);c.stroke();
-    const ang=Math.atan2(b.y-a.y,b.x-a.x);
-    const head=12+size;
-    c.beginPath();
-    c.moveTo(b.x,b.y);
-    c.lineTo(b.x-head*Math.cos(ang-Math.PI/6),b.y-head*Math.sin(ang-Math.PI/6));
-    c.moveTo(b.x,b.y);
-    c.lineTo(b.x-head*Math.cos(ang+Math.PI/6),b.y-head*Math.sin(ang+Math.PI/6));
-    c.stroke();
-  }
-
-  function end(e){
-    e.preventDefault();
-    if(isPanning){isPanning=false;return;}
-    if(!drawing)return;
+  function onEnd(e){
+    if(twoFinger){ if(!e.touches || e.touches.length<2) twoFinger=false; return; }
+    if(!drawing) return;
     drawing=false;
-    const sp=getPos(e.changedTouches?{touches:[e.changedTouches[0]]}:e);
-    const wp=screenToWorld(sp.x,sp.y);
-    ensurePageCanvas(currentPage);
-    const wcx=pages[currentPage].wcx;
-    if(tool==='pen'||tool==='highlight'||tool==='eraser'){
-      wcx.lineTo(wp.x,wp.y);wcx.stroke();
-      wcx.globalCompositeOperation='source-over';wcx.globalAlpha=1;
-    }else{
-      // Commit shape
-      wcx.save();
-      wcx.strokeStyle=color;wcx.lineWidth=size;wcx.lineCap='round';wcx.fillStyle='rgba(0,0,0,0)';
-      const a=startPt,b=wp;
-      wcx.beginPath();
-      if(tool==='line'){wcx.moveTo(a.x,a.y);wcx.lineTo(b.x,b.y);wcx.stroke();}
-      else if(tool==='arrow'){drawArrow(wcx,a,b);}
-      else if(tool==='rect'){wcx.rect(a.x,a.y,b.x-a.x,b.y-a.y);wcx.stroke();}
-      else if(tool==='circle'){const cxp=(a.x+b.x)/2,cyp=(a.y+b.y)/2,rx=Math.abs(b.x-a.x)/2,ry=Math.abs(b.y-a.y)/2;wcx.ellipse(cxp,cyp,rx,ry,0,0,7);wcx.stroke();}
-      else if(tool==='triangle'){wcx.moveTo((a.x+b.x)/2,a.y);wcx.lineTo(a.x,b.y);wcx.lineTo(b.x,b.y);wcx.closePath();wcx.stroke();}
-      wcx.restore();
-      ovCtx.clearRect(0,0,ov.clientWidth*dpr(),ov.clientHeight*dpr());
+    if(currentStroke){
+      pages[pageIdx].undo.push({op:'add'});
+      pages[pageIdx].strokes.push(currentStroke);
+      pages[pageIdx].redo.length=0;
+      currentStroke=null;
+      clearOv(); redraw();
     }
-    renderPageToView();
   }
 
-  function touchDist(touches){
-    const dx=touches[0].clientX-touches[1].clientX;
-    const dy=touches[0].clientY-touches[1].clientY;
-    return Math.sqrt(dx*dx+dy*dy);
-  }
-
-  function setTool(t){
-    tool=t;
-    document.querySelectorAll('#toolbar button').forEach(b=>b.classList.remove('active'));
-    const el=document.getElementById('t-'+t);if(el)el.classList.add('active');
-    updateHUD();
-  }
-  function setBg(b){bgType=b;renderPageToView();}
-  function clearPage(){
-    if(!confirm('Clear this page?'))return;
-    pushUndo();
-    ensurePageCanvas(currentPage);
-    pages[currentPage].wcx.clearRect(0,0,4096,4096);
-    renderPageToView();
-  }
-  function newPage(){
-    pages.push({data:null});
-    currentPage=pages.length-1;
-    undoStack.length=0;redoStack.length=0;pushUndo();
-    panZoom={x:0,y:0,scale:1};
-    renderPageToView();
-  }
-  function nextPage(){if(currentPage<pages.length-1){currentPage++;panZoom={x:0,y:0,scale:1};renderPageToView();}}
-  function prevPage(){if(currentPage>0){currentPage--;panZoom={x:0,y:0,scale:1};renderPageToView();}}
-  function resetView(){panZoom={x:0,y:0,scale:1};renderPageToView();}
-  function zoom(f){
-    const r=wrap.getBoundingClientRect();
-    const cx=r.width/2,cy=r.height/2;
-    const wx=(cx-panZoom.x)/panZoom.scale, wy=(cy-panZoom.y)/panZoom.scale;
-    panZoom.scale=Math.min(8,Math.max(0.2,panZoom.scale*f));
-    panZoom.x=cx-wx*panZoom.scale; panZoom.y=cy-wy*panZoom.scale;
-    renderPageToView();
-  }
-  function savePNG(){
-    ensurePageCanvas(currentPage);
-    const out=document.createElement('canvas');
-    out.width=2048;out.height=1536;
-    const oc=out.getContext('2d');
-    oc.fillStyle='#fff';oc.fillRect(0,0,out.width,out.height);
-    oc.drawImage(pages[currentPage].world,0,0,out.width,out.height);
-    const u=out.toDataURL('image/png');
-    const a=document.createElement('a');
-    a.href=u;a.download='whiteboard-page-'+(currentPage+1)+'-'+Date.now()+'.png';
-    document.body.appendChild(a);a.click();a.remove();
-  }
-  function toggleMath(){document.getElementById('mathpad').classList.toggle('show');}
-  function insertMath(s){
-    if(ti.style.display==='block'){ti.value+=s;ti.focus();return;}
-    setTool('text');
-    const r=wrap.getBoundingClientRect();
-    openTextInput(r.width/2,r.height/2,screenToWorld(r.width/2,r.height/2),s);
-  }
-  function openTextInput(sx,sy,worldPt,initial){
-    ti.value=initial||'';
-    ti.style.display='block';
-    ti.style.left=sx+'px';ti.style.top=sy+'px';
-    ti.style.fontSize=Math.max(14,size*5)+'px';
+  // Text input
+  function openTextInput(p){
+    ti.value=''; ti.style.display='block';
+    ti.style.left=(60+p.sx)+'px';
+    ti.style.top=(42+p.sy)+'px';
+    ti.style.fontSize=Math.max(14,size*3)+'px';
     ti.style.color=color;
+    ti._wp={x:p.x,y:p.y,fontPx:Math.max(14,size*3)};
     setTimeout(()=>ti.focus(),20);
-    ti._world=worldPt;
-    ti.onblur=()=>commitText();
-    ti.onkeydown=(ev)=>{if(ev.key==='Enter'&&!ev.shiftKey){ev.preventDefault();commitText();}};
   }
-  function commitText(){
-    const t=ti.value;
-    const wp=ti._world;
-    ti.style.display='none';ti.value='';
-    if(!t||!wp)return;
-    pushUndo();
-    ensurePageCanvas(currentPage);
-    const wcx=pages[currentPage].wcx;
-    wcx.save();
-    wcx.fillStyle=color;
-    wcx.font=Math.max(14,size*5)+'px -apple-system,Segoe UI,Roboto,sans-serif';
-    wcx.textBaseline='top';
-    t.split('\\n').forEach((line,i)=>{wcx.fillText(line,wp.x,wp.y+i*Math.max(16,size*5+2));});
-    wcx.restore();
-    renderPageToView();
-  }
-
-  function updateHUD(){
-    hud.textContent=tool.charAt(0).toUpperCase()+tool.slice(1)+' | '+Math.round(panZoom.scale*100)+'% | Page '+(currentPage+1)+'/'+pages.length;
-    document.getElementById('pgInfo').textContent=(currentPage+1)+'/'+pages.length;
-  }
-
-  // Wire up
-  ov.addEventListener('mousedown',start);
-  ov.addEventListener('mousemove',move);
-  ov.addEventListener('mouseup',end);
-  ov.addEventListener('mouseleave',end);
-  ov.addEventListener('touchstart',start,{passive:false});
-  ov.addEventListener('touchmove',move,{passive:false});
-  ov.addEventListener('touchend',end,{passive:false});
-  ov.addEventListener('touchcancel',end,{passive:false});
-
-  document.querySelectorAll('.swatch').forEach(s=>{
-    s.addEventListener('click',()=>{
-      color=s.dataset.c;
-      document.querySelectorAll('.swatch').forEach(x=>x.classList.remove('active'));
-      s.classList.add('active');
-    });
+  ti.addEventListener('blur',commitText);
+  ti.addEventListener('keydown',(e)=>{
+    if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); commitText(); }
+    if(e.key==='Escape'){ ti.value=''; ti.style.display='none'; }
   });
-  sizeInput.addEventListener('input',()=>{size=parseInt(sizeInput.value,10);sizeVal.textContent=size;});
+  function commitText(){
+    if(ti.style.display==='none') return;
+    const txt=ti.value.trim();
+    ti.style.display='none';
+    if(!txt||!ti._wp) return;
+    const stroke={type:'text',text:txt,color,a:{x:ti._wp.x,y:ti._wp.y},
+      font:ti._wp.fontPx+'px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',size};
+    pages[pageIdx].undo.push({op:'add'});
+    pages[pageIdx].strokes.push(stroke);
+    pages[pageIdx].redo.length=0;
+    redraw();
+  }
 
-  window.addEventListener('resize',resize);
-  window.setTool=setTool;window.setBg=setBg;window.undo=undo;window.redo=redo;
-  window.clearPage=clearPage;window.newPage=newPage;window.nextPage=nextPage;window.prevPage=prevPage;
-  window.savePNG=savePNG;window.zoom=zoom;window.resetView=resetView;
-  window.toggleMath=toggleMath;window.insertMath=insertMath;
+  // Tools
+  function setTool(t,btn){
+    tool=t;
+    ['t-select','t-pen','t-marker','t-eraser','t-shapes','t-line','t-text','t-math','t-image','t-ruler','t-crop'].forEach(id=>{
+      const b=document.getElementById(id); if(b) b.classList.remove('active');
+    });
+    if(btn) btn.classList.add('active');
+    const wantPopup=['pen','marker','eraser','line','arrow','rect','circle','triangle'].indexOf(t)>=0;
+    popup.classList.toggle('show',wantPopup);
+    mathpad.classList.toggle('show',t==='math'||t==='text');
+    updateMeta();
+  }
+  document.getElementById('t-select').onclick=function(){setTool('select',this);};
+  document.getElementById('t-pen').onclick=function(){setTool('pen',this);};
+  document.getElementById('t-marker').onclick=function(){setTool('marker',this);};
+  document.getElementById('t-eraser').onclick=function(){setTool('eraser',this);};
+  document.getElementById('t-line').onclick=function(){setTool('line',this);};
+  document.getElementById('t-text').onclick=function(){setTool('text',this);};
+  document.getElementById('t-math').onclick=function(){setTool('math',document.getElementById('t-math'));};
+  document.getElementById('t-ruler').onclick=function(){showToast('Ruler — drag to draw straight lines');setTool('line',document.getElementById('t-line'));};
+  document.getElementById('t-crop').onclick=function(){showToast('Crop coming soon');};
+  document.getElementById('t-image').onclick=function(){
+    const inp=document.createElement('input');inp.type='file';inp.accept='image/*';
+    inp.onchange=ev=>{
+      const f=ev.target.files[0]; if(!f) return;
+      const fr=new FileReader();
+      fr.onload=function(r){
+        const img=new Image();
+        img.onload=function(){
+          const cx=(stage.clientWidth/2-panZoom.x)/panZoom.scale;
+          const cy=(stage.clientHeight/2-panZoom.y)/panZoom.scale;
+          const w=Math.min(img.width,300), h=img.height*(w/img.width);
+          const stk={type:'image',img,a:{x:cx-w/2,y:cy-h/2},w,h};
+          // simple image renderer
+          stk._draw=function(c){c.drawImage(img,this.a.x,this.a.y,this.w,this.h);};
+          // Embed as data URL into a text-like stroke we can re-draw (here, draw immediately + push a "free" no-op):
+          pages[pageIdx].undo.push({op:'add'});
+          pages[pageIdx].strokes.push({type:'image',src:r.target.result,x:stk.a.x,y:stk.a.y,w,h});
+          pages[pageIdx].redo.length=0;
+          redraw();
+        };
+        img.src=r.target.result;
+      };
+      fr.readAsDataURL(f);
+    };
+    inp.click();
+  };
 
-  resize();
-  pushUndo();
+  // Override strokePath to also handle image
+  const origStrokePath=strokePath;
+  strokePath=function(c,s){
+    if(s.type==='image'){
+      if(!s._cached){ s._cached=new Image(); s._cached.src=s.src; }
+      try{ c.drawImage(s._cached,s.x,s.y,s.w,s.h); }catch(e){}
+      return;
+    }
+    origStrokePath(c,s);
+  };
+
+  // Shapes menu
+  const shapesList=[['line','／  Line'],['arrow','➜  Arrow'],['rect','▭  Rectangle'],['circle','○  Circle'],['triangle','△  Triangle']];
+  shapeMenu.innerHTML=shapesList.map(([k,l])=>'<button data-shape="'+k+'">'+l+'</button>').join('');
+  document.getElementById('t-shapes').onclick=function(e){
+    const r=this.getBoundingClientRect();
+    shapeMenu.style.display=shapeMenu.style.display==='flex'?'none':'flex';
+    shapeMenu.style.left=r.left+'px';
+    shapeMenu.style.bottom=(window.innerHeight-r.top+4)+'px';
+  };
+  shapeMenu.addEventListener('click',e=>{
+    const b=e.target.closest('button'); if(!b) return;
+    setTool(b.dataset.shape,document.getElementById('t-shapes'));
+    shapeMenu.style.display='none';
+  });
+
+  // Background menu
+  const bgList=[['white','White'],['grid','Grid'],['dot','Dot'],['lined','Lined'],['dark','Dark']];
+  bgMenu.innerHTML=bgList.map(([k,l])=>'<button data-bg="'+k+'">'+l+'</button>').join('');
+  document.getElementById('t-grid').onclick=function(){
+    const r=this.getBoundingClientRect();
+    bgMenu.style.display=bgMenu.style.display==='flex'?'none':'flex';
+    bgMenu.style.left=r.left+'px';
+    bgMenu.style.bottom=(window.innerHeight-r.top+4)+'px';
+  };
+  bgMenu.addEventListener('click',e=>{
+    const b=e.target.closest('button'); if(!b) return;
+    pages[pageIdx].bgType=b.dataset.bg; bgMenu.style.display='none'; drawBg();
+  });
+
+  // Undo / redo / clear / reset / save
+  document.getElementById('t-undo').onclick=function(){
+    const pg=pages[pageIdx]; if(pg.strokes.length===0) return;
+    const last=pg.strokes.pop(); pg.redo.push(last); redraw();
+  };
+  document.getElementById('t-redo').onclick=function(){
+    const pg=pages[pageIdx]; if(pg.redo.length===0) return;
+    pg.strokes.push(pg.redo.pop()); redraw();
+  };
+  document.getElementById('t-clear').onclick=function(){
+    pages[pageIdx].strokes.length=0; pages[pageIdx].redo.length=0; redraw();
+  };
+  document.getElementById('t-reset').onclick=function(){
+    panZoom={x:0,y:0,scale:1}; drawBg(); redraw(); updateMeta();
+  };
+  document.getElementById('t-mirror').onclick=function(){
+    panZoom={x:0,y:0,scale:1}; drawBg(); redraw(); updateMeta();
+  };
+  document.getElementById('t-save').onclick=function(){
+    // Render to a single offscreen canvas: bg + drawings
+    const off=document.createElement('canvas');
+    off.width=cv.width; off.height=cv.height;
+    const oc=off.getContext('2d');
+    oc.drawImage(bgCv,0,0); oc.drawImage(cv,0,0);
+    const url=off.toDataURL('image/png');
+    const a=document.createElement('a'); a.href=url; a.download='whiteboard-page'+(pageIdx+1)+'.png'; a.click();
+    showToast('Saved page as PNG');
+  };
+  document.getElementById('t-open').onclick=function(){showToast('Open file coming soon');};
+  document.getElementById('t-newpage').onclick=function(){addPage();};
+
+  // Math pad
+  mathpad.addEventListener('click',e=>{
+    const b=e.target.closest('button'); if(!b) return;
+    const sym=b.dataset.m;
+    if(ti.style.display==='block'){ ti.value+=sym; ti.focus(); return; }
+    // place as text at center of stage
+    const p={x:(stage.clientWidth/2-panZoom.x)/panZoom.scale,y:(stage.clientHeight/2-panZoom.y)/panZoom.scale,sx:stage.clientWidth/2,sy:stage.clientHeight/2};
+    openTextInput(p); setTimeout(()=>{ti.value=sym;},30);
+  });
+
+  // Color/size popup
+  popup.addEventListener('click',e=>{
+    const sw=e.target.closest('.swatch');
+    if(sw){ color=sw.dataset.color; popup.querySelectorAll('.swatch').forEach(x=>x.classList.remove('active')); sw.classList.add('active'); updateMeta(); return; }
+    const sz=e.target.closest('.size');
+    if(sz){ size=parseInt(sz.dataset.size,10); popup.querySelectorAll('.size').forEach(x=>x.classList.remove('active')); sz.classList.add('active'); updateMeta(); }
+  });
+
+  // Pages
+  function renderPagePanel(){
+    const panel=document.getElementById('pagepanel');
+    [...panel.querySelectorAll('.pg')].forEach(n=>n.remove());
+    pages.forEach((_,i)=>{
+      const b=document.createElement('button');
+      b.className='pg'+(i===pageIdx?' active':'');
+      b.textContent=(i+1);
+      b.onclick=()=>{pageIdx=i; renderPagePanel(); drawBg(); redraw(); updateMeta();};
+      panel.appendChild(b);
+    });
+  }
+  function addPage(){ pages.push(newPage()); pageIdx=pages.length-1; renderPagePanel(); drawBg(); redraw(); updateMeta(); }
+  document.getElementById('btn-addpage').onclick=addPage;
+  document.getElementById('pg-up').onclick=function(){if(pageIdx>0){pageIdx--;renderPagePanel();drawBg();redraw();updateMeta();}};
+  document.getElementById('pg-down').onclick=function(){if(pageIdx<pages.length-1){pageIdx++;renderPagePanel();drawBg();redraw();updateMeta();}else addPage();};
+  document.getElementById('pg-menu').onclick=function(){showToast('Page '+(pageIdx+1)+' of '+pages.length);};
+
+  function updateMeta(){
+    const labels={pen:'Pen',marker:'Highlighter',eraser:'Eraser',line:'Line',arrow:'Arrow',rect:'Rectangle',circle:'Circle',triangle:'Triangle',text:'Text',select:'Select',math:'Math',pan:'Pan'};
+    meta.textContent=(labels[tool]||tool)+' · '+Math.round(panZoom.scale*100)+'% · Page '+(pageIdx+1)+'/'+pages.length;
+  }
+
+  // init
+  fitCanvas(); renderPagePanel(); updateMeta();
+  setTimeout(fitCanvas,100);
 })();
 </script>
 </body></html>`;
