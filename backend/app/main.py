@@ -643,6 +643,7 @@ async def ai_chat(chat_data: AIChat, user: dict = Depends(get_optional_user)):
         ai_response = None
 
         # Try OpenRouter first (preferred when configured)
+        print(f"[AI] route check: openrouter_key={'set' if OPENROUTER_API_KEY else 'missing'} groq_key={'set' if GROQ_API_KEY else 'missing'}")
         if not ai_response and OPENROUTER_API_KEY:
             try:
                 async with httpx.AsyncClient() as client:
@@ -667,10 +668,11 @@ async def ai_chat(chat_data: AIChat, user: dict = Depends(get_optional_user)):
                     )
                     if or_resp.status_code == 200:
                         ai_response = or_resp.json()["choices"][0]["message"]["content"]
+                        print(f"[AI] OpenRouter OK model={OPENROUTER_MODEL}")
                     else:
-                        print(f"OpenRouter status {or_resp.status_code}: {or_resp.text[:200]}")
+                        print(f"[AI] OpenRouter status {or_resp.status_code}: {or_resp.text[:200]}")
             except Exception as or_error:
-                print(f"OpenRouter API error: {or_error}")
+                print(f"[AI] OpenRouter API error: {or_error}")
 
         # Try Groq API
         if not ai_response and GROQ_API_KEY:

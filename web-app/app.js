@@ -9915,7 +9915,7 @@ function renderAIMessages() {
     if (!container) return;
     if (!appState.aiMessages || appState.aiMessages.length === 0) {
         var clsName = getClassName() || 'Class 6';
-        container.innerHTML = '<div class="ai-message assistant"><div class="ai-role">Llama 3 AI Assistant</div><div class="chat-text">Hello! I am your AI assistant. Ask me any questions about NCERT ' + clsName + ' Mathematics!</div><button class="speaker-btn" id="speaker-welcome" onclick="speakText(\'Hello! I am your AI assistant. Ask me any questions about NCERT ' + clsName + ' Mathematics!\', \'speaker-welcome\')" title="Listen">🔊</button></div>';
+        container.innerHTML = '<div class="ai-message assistant"><div class="ai-role">Ganita Prakash AI Tutor</div><div class="chat-text">Hello! I am your AI assistant. Ask me any questions about NCERT ' + clsName + ' Mathematics!</div><button class="speaker-btn" id="speaker-welcome" onclick="speakText(\'Hello! I am your AI assistant. Ask me any questions about NCERT ' + clsName + ' Mathematics!\', \'speaker-welcome\')" title="Listen">🔊</button></div>';
         return;
     }
     container.innerHTML = appState.aiMessages.map(function(msg, index) {
@@ -9923,7 +9923,7 @@ function renderAIMessages() {
         if (msg.role === 'assistant' && msg.content !== 'Thinking...') {
             speakerBtn = '<button class="speaker-btn" id="speaker-' + index + '" onclick="speakText(\'' + msg.content.replace(/'/g, "\\'").replace(/\n/g, ' ') + '\', \'speaker-' + index + '\')" title="Listen">🔊</button>';
         }
-        return '<div class="ai-message ' + msg.role + '"><div class="ai-role">' + (msg.role === 'user' ? 'You' : 'Llama 3 AI Assistant') + '</div><div class="chat-text">' + msg.content + '</div>' + speakerBtn + '</div>';
+        return '<div class="ai-message ' + msg.role + '"><div class="ai-role">' + (msg.role === 'user' ? 'You' : 'Ganita Prakash AI Tutor') + '</div><div class="chat-text">' + msg.content + '</div>' + speakerBtn + '</div>';
     }).join('');
     container.scrollTop = container.scrollHeight;
 }
@@ -9943,35 +9943,17 @@ async function askAI() {
     renderAIMessages();
     
     try {
-        // Build conversation history for Groq API
-        var clsName = getClassName() || 'Class 6';
-        var systemPrompt = 'You are a helpful NCERT ' + clsName + ' Mathematics tutor called "Llama 3 AI Assistant" for the Ganita Prakash app. ' +
-            'Help students understand math concepts, solve problems step by step, and explain topics from their NCERT textbook. ' +
-            'Be encouraging, patient, and use simple language. If asked non-math questions, gently redirect to math topics. ' +
-            'Format your responses with clear steps and use mathematical notation when helpful.';
+        // Use the user's just-submitted message; backend handles system prompt and OpenRouter/Claude routing
         
-        var messages = [{ role: 'system', content: systemPrompt }];
-        // Add conversation history (last 10 messages for context)
-        var historyStart = Math.max(0, appState.aiMessages.length - 11); // -11 because last one is 'Thinking...'
-        for (var mi = historyStart; mi < appState.aiMessages.length - 1; mi++) {
-            var m = appState.aiMessages[mi];
-            if (m.content !== 'Thinking...') {
-                messages.push({ role: m.role, content: m.content });
-            }
-        }
-        
-        // Call Groq API directly
-        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        // Call backend AI endpoint (uses OpenRouter Claude → Groq → Gemini fallback chain)
+        const response = await fetch(API_URL + '/api/ai/chat', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + GROQ_API_KEY
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                model: 'llama-3.3-70b-versatile',
-                messages: messages,
-                temperature: 0.7,
-                max_tokens: 1024
+                message: content,
+                chapter_id: null
             })
         });
         
@@ -9980,12 +9962,12 @@ async function askAI() {
         
         if (response.ok) {
             const data = await response.json();
-            var aiReply = data.choices[0].message.content;
+            var aiReply = data.response || data.message || 'No response.';
             appState.aiMessages.push({ role: 'assistant', content: aiReply });
         } else {
-            console.error('Groq API error:', response.status);
+            console.error('AI backend error:', response.status);
             var errText = await response.text();
-            console.error('Groq error details:', errText);
+            console.error('AI error details:', errText);
             appState.aiMessages.push({ role: 'assistant', content: 'Sorry, I could not process your request. Please try again later.' });
         }
     } catch (e) {
