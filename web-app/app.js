@@ -11052,17 +11052,28 @@ async function sendICECandidateHTTP(userId, candidate) {
 }
 
 async function handleCallAnswer(answerSdp) {
-    if (peerConnection) {
-        try {
-            await peerConnection.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: answerSdp }));
-            console.log('Remote description set, draining ICE queue:', iceCandidateQueue.length);
-            for (var i = 0; i < iceCandidateQueue.length; i++) {
-                try { await peerConnection.addIceCandidate(new RTCIceCandidate(iceCandidateQueue[i])); } catch(e) { console.error('Drain ICE error:', e); }
-            }
-            iceCandidateQueue = [];
-        }
-        catch(e) { console.error('Set remote desc error:', e); }
+    if (!peerConnection) return;
+    // Defensive: legacy / placeholder SDPs from old APK builds that just
+    // signalled "I picked up" without doing real WebRTC. Ignore them and
+    // wait for the real answer SDP that the in-app WebView will send.
+    if (!answerSdp || typeof answerSdp !== 'string' || answerSdp.indexOf('v=0') !== 0) {
+        console.log('handleCallAnswer: ignoring non-SDP placeholder answer');
+        return;
     }
+    // Already applied an answer? Don't overwrite an established connection.
+    if (peerConnection.signalingState !== 'have-local-offer') {
+        console.log('handleCallAnswer: ignoring answer in signalingState=', peerConnection.signalingState);
+        return;
+    }
+    try {
+        await peerConnection.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: answerSdp }));
+        console.log('Remote description set, draining ICE queue:', iceCandidateQueue.length);
+        for (var i = 0; i < iceCandidateQueue.length; i++) {
+            try { await peerConnection.addIceCandidate(new RTCIceCandidate(iceCandidateQueue[i])); } catch(e) { console.error('Drain ICE error:', e); }
+        }
+        iceCandidateQueue = [];
+    }
+    catch(e) { console.error('Set remote desc error:', e); }
 }
 
 async function handleICECandidate(candidateData) {

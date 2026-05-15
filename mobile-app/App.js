@@ -12151,55 +12151,57 @@ export default function App() {
   const [callDuration, setCallDuration] = useState(0);
   const callTimerRef = useRef(null);
 
-  // Answer incoming call - shows native in-app call UI
+  // Answer incoming call - opens the in-app WebRTC WebView so real audio/video
+  // actually flows (the previous fake-timer UI never created a peer connection,
+  // which is why calls would ring but never connect).
   const answerCall = async () => {
-    if (incomingCall) {
-      Vibration.cancel();
-      
-      // Send answer notification back to caller
-      try {
-        await fetch(`${API_URL}/api/webrtc/answer`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-          body: JSON.stringify({
-            caller_user_id: incomingCall.callerId,
-            sdp: 'mobile_app_answer'
-          })
-        });
-      } catch (e) {
-        console.log('Error sending answer:', e);
+    if (!incomingCall) return;
+    Vibration.cancel();
+
+    const callerId = incomingCall.callerId;
+    const callerName = incomingCall.callerName || 'Admin';
+    const callType = incomingCall.callType || 'audio';
+    const callId = incomingCall.callId || '';
+
+    // Pre-request OS-level mic / camera permissions so the in-WebView WebRTC
+    // getUserMedia() call can actually succeed. Without this, Android denies
+    // the WebView access to mic/camera and no media flows.
+    try {
+      const micPerm = await Audio.requestPermissionsAsync();
+      if (!micPerm || micPerm.status !== 'granted') {
+        Alert.alert('Microphone permission required', 'Grant microphone access so the caller can hear you.');
+        return;
       }
-      
-      // Show native in-app call UI instead of WebView
-      setNativeCallData({
-        callerId: incomingCall.callerId,
-        callerName: incomingCall.callerName,
-        callType: incomingCall.callType,
-        callId: incomingCall.callId
-      });
-      setCallDuration(0);
-      setShowNativeCall(true);
-      setIncomingCall(null);
-      
-      // Start call duration timer
-      callTimerRef.current = setInterval(() => {
-        setCallDuration(prev => prev + 1);
-      }, 1000);
-    }
+      if (callType === 'video') {
+        const camPerm = await ImagePicker.requestCameraPermissionsAsync();
+        if (!camPerm || camPerm.status !== 'granted') {
+          Alert.alert('Camera permission required', 'Grant camera access so the caller can see you.');
+          return;
+        }
+      }
+    } catch (_) { /* old Android perm APIs may fail; WebView will prompt */ }
+
+    // Open the same web app in answer mode. It will run getUserMedia +
+    // RTCPeerConnection, accept the stored offer SDP, and POST a real answer
+    // SDP back to /api/webrtc/answer so the caller's peer can connect.
+    const callUrl = `https://ganitaprakash-math.web.app?autoLogin=true&token=${authToken}&mode=answer&targetUserId=${callerId}&callType=${callType}&callId=${encodeURIComponent(callId)}`;
+    setCallWebViewUrl(callUrl);
+    setCallWebViewTitle(callType === 'video' ? 'Video Call with ' + callerName : 'Voice Call with ' + callerName);
+    setShowCallWebView(true);
+    setIncomingCall(null);
   };
 
-  // End native call
+  // End native call (legacy fake-UI path; kept so any stale state can still be cleared)
   const endNativeCall = async () => {
     if (callTimerRef.current) {
       clearInterval(callTimerRef.current);
       callTimerRef.current = null;
     }
-    if (nativeCallData) {
+    if (nativeCallData && nativeCallData.callerId) {
       try {
-        await fetch(`${API_URL}/api/webrtc/end-call`, {
+        await fetch(`${API_URL}/api/webrtc/end-call?target_user_id=${nativeCallData.callerId}`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-          body: JSON.stringify({ call_id: nativeCallData.callId })
+          headers: { 'Authorization': `Bearer ${authToken}` }
         });
       } catch (e) {
         console.log('Error ending call:', e);
