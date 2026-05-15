@@ -40,6 +40,7 @@ import * as ImagePicker from 'expo-image-picker';
 const WHITEBOARD_HTML = require('./whiteboardHtml');
 const { buildFundamentalsHtml } = require('./fundamentalsHtml');
 const { buildFormulaVideosHtml } = require('./formulaVideosHtml');
+const { buildCallHtml } = require('./callHtml');
 
 // Configure notifications
 Notifications.setNotificationHandler({
@@ -11919,6 +11920,7 @@ export default function App() {
   // In-app WebRTC calling state (using WebView)
   const [showCallWebView, setShowCallWebView] = useState(false);
   const [callWebViewUrl, setCallWebViewUrl] = useState('');
+  const [callWebViewHtml, setCallWebViewHtml] = useState('');
   const [callWebViewTitle, setCallWebViewTitle] = useState('');
   // Local-content WebView modal for in-app whiteboard / fundamentals (no network).
   const [showLocalWebView, setShowLocalWebView] = useState(false);
@@ -12183,11 +12185,21 @@ export default function App() {
       }
     } catch (_) { /* old Android perm APIs may fail; WebView will prompt */ }
 
-    // Open the same web app in answer mode. It will run getUserMedia +
-    // RTCPeerConnection, accept the stored offer SDP, and POST a real answer
-    // SDP back to /api/webrtc/answer so the caller's peer can connect.
-    const callUrl = `https://ganitaprakash-math.web.app?autoLogin=true&token=${authToken}&mode=answer&targetUserId=${callerId}&callType=${callType}&callId=${encodeURIComponent(callId)}`;
-    setCallWebViewUrl(callUrl);
+    // Use the bundled, self-contained call HTML (no website redirect, no app
+    // shell). It runs real getUserMedia + RTCPeerConnection inside the WebView,
+    // pulls the offer SDP from /api/webrtc/pending-calls, and POSTs a real
+    // answer SDP back so the caller's peer can connect.
+    const html = buildCallHtml({
+      apiUrl: API_URL,
+      token: authToken,
+      mode: 'answer',
+      peerUserId: callerId,
+      callType: callType,
+      callerName: callerName,
+      callId: callId,
+    });
+    setCallWebViewHtml(html);
+    setCallWebViewUrl('');
     setCallWebViewTitle(callType === 'video' ? 'Video Call with ' + callerName : 'Voice Call with ' + callerName);
     setShowCallWebView(true);
     setIncomingCall(null);
@@ -14784,29 +14796,24 @@ export default function App() {
       }
     } catch (_) { /* permission APIs may fail on very old Android; ignore and let WebView ask */ }
     try {
-      const response = await fetch(`${API_URL}/api/webrtc/offer`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-        body: JSON.stringify({ 
-          target_user_id: user.id, 
-          sdp: 'mobile_call_request',
-          call_type: type 
-        })
+      // Open the bundled, native-looking call HTML which itself runs the real
+      // getUserMedia + createOffer + POST /api/webrtc/offer pipeline. The
+      // backend still tracks the call_id; we don't need to pre-create it here.
+      setActiveCall('outgoing');
+      setCallStatus('Calling ' + user.name + '...');
+      const html = buildCallHtml({
+        apiUrl: API_URL,
+        token: authToken,
+        mode: 'call',
+        peerUserId: user.id,
+        callType: type,
+        callerName: user.name || 'User',
+        callId: '',
       });
-      if (response.ok) {
-        const data = await response.json();
-        setActiveCall(data.call_id);
-        setCallStatus('Calling ' + user.name + '...');
-        
-        // Open in-app WebView for WebRTC call instead of external browser
-        const callUrl = `https://ganitaprakash-math.web.app?autoLogin=true&token=${authToken}&callId=${data.call_id}&callType=${type}&targetUserId=${user.id}&mode=call`;
-        setCallWebViewUrl(callUrl);
-        setCallWebViewTitle(type === 'video' ? 'Video Call with ' + user.name : 'Voice Call with ' + user.name);
-        setShowCallWebView(true);
-      } else {
-        setCallStatus('Call failed');
-        Alert.alert('Error', 'Failed to initiate call. Please try again.');
-      }
+      setCallWebViewHtml(html);
+      setCallWebViewUrl('');
+      setCallWebViewTitle(type === 'video' ? 'Video Call with ' + user.name : 'Voice Call with ' + user.name);
+      setShowCallWebView(true);
     } catch (error) {
       setCallStatus('Call failed');
       Alert.alert('Error', 'Network error. Please check your connection.');
@@ -15451,20 +15458,21 @@ export default function App() {
           </Modal>
 
           {/* In-App WebRTC Call WebView Modal */}
-          <Modal visible={showCallWebView} transparent={false} animationType="slide" onRequestClose={() => setShowCallWebView(false)}>
-            <SafeAreaView style={{flex: 1, backgroundColor: '#1A1A2E'}}>
-              <View style={{flexDirection: 'row', alignItems: 'center', padding: 15, backgroundColor: '#16213E', borderBottomWidth: 1, borderBottomColor: '#0F3460'}}>
-                <TouchableOpacity onPress={() => { setShowCallWebView(false); setCallWebViewUrl(''); }} style={{padding: 10}}>
-                  <Text style={{color: '#fff', fontSize: 18}}>✕</Text>
-                </TouchableOpacity>
-                <Text style={{color: '#fff', fontSize: 16, fontWeight: 'bold', marginLeft: 15, flex: 1}}>{callWebViewTitle || 'Call'}</Text>
-                <TouchableOpacity onPress={() => { setShowCallWebView(false); setCallWebViewUrl(''); Alert.alert('Call Ended', 'The call has been ended.'); }} style={{backgroundColor: '#EF4444', paddingHorizontal: 15, paddingVertical: 8, borderRadius: 20}}>
-                  <Text style={{color: '#fff', fontWeight: 'bold'}}>End Call</Text>
-                </TouchableOpacity>
-              </View>
-              {callWebViewUrl ? (
+          <Modal visible={showCallWebView} transparent={false} animationType="slide" onRequestClose={() => { setShowCallWebView(false); setCallWebViewHtml(''); setCallWebViewUrl(''); }}>
+            <SafeAreaView style={{flex: 1, backgroundColor: '#000'}}>
+              {(callWebViewHtml || callWebViewUrl) ? (
                 <WebView
-                  source={{ uri: callWebViewUrl }}
+                  source={callWebViewHtml ? { html: callWebViewHtml, baseUrl: API_URL } : { uri: callWebViewUrl }}
+                  onMessage={(e) => {
+                    try {
+                      const msg = JSON.parse(e.nativeEvent.data || '{}');
+                      if (msg && msg.type === 'call_ended') {
+                        setShowCallWebView(false);
+                        setCallWebViewHtml('');
+                        setCallWebViewUrl('');
+                      }
+                    } catch (_) {}
+                  }}
                   style={{flex: 1}}
                   javaScriptEnabled={true}
                   domStorageEnabled={true}

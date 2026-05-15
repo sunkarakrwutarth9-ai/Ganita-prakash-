@@ -10624,10 +10624,20 @@ var adminChatRefreshInterval = null;
 // Start auto-refresh for admin chat
 function startAdminChatRefresh() {
     if (adminChatRefreshInterval) clearInterval(adminChatRefreshInterval);
-    // Refresh admin chat every 3 seconds if a user is selected
+    // Every 3s: refresh the currently-selected conversation (so admin replies
+    // and new student messages show up live).
+    // Every 5s: refresh the full admin dashboard (so the chat user list and
+    // recent_messages pick up brand-new students / messages from APK users
+    // even when no specific user is selected).
+    var dashboardTick = 0;
     adminChatRefreshInterval = setInterval(function() {
         if (selectedChatUserId) {
-            loadChatHistory(selectedChatUserId);
+            try { loadChatHistory(selectedChatUserId); } catch (_) {}
+        }
+        dashboardTick++;
+        // Roughly every 6 seconds (2 ticks × 3s) refresh full dashboard.
+        if (dashboardTick % 2 === 0) {
+            try { if (typeof loadAdminDashboard === 'function') loadAdminDashboard(); } catch (_) {}
         }
     }, 3000);
 }
