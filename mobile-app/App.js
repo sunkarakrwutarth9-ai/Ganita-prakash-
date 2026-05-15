@@ -39,6 +39,7 @@ import auth from '@react-native-firebase/auth';
 import * as ImagePicker from 'expo-image-picker';
 const WHITEBOARD_HTML = require('./whiteboardHtml');
 const { buildFundamentalsHtml } = require('./fundamentalsHtml');
+const { buildFormulaVideosHtml } = require('./formulaVideosHtml');
 
 // Configure notifications
 Notifications.setNotificationHandler({
@@ -11838,7 +11839,8 @@ export default function App() {
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
-  
+  const chatListRef = useRef(null);
+
   // Voice message recording state
   const [isRecording, setIsRecording] = useState(false);
   const [recording, setRecording] = useState(null);
@@ -12401,16 +12403,25 @@ export default function App() {
   // Chat functions
   const loadChatMessages = async () => {
     try {
-      // Admin sees all messages, users see only their own messages + admin replies
+      // Admin sees all messages; users see only their own + admin replies.
+      // Backend's two endpoints return opposite orderings (admin = DESC,
+      // user = ASC), so we always normalize to oldest-first (chat reads
+      // top → bottom, newest at the bottom).
       const endpoint = isAdmin ? `${API_URL}/api/messages` : `${API_URL}/api/user/messages`;
       const response = await fetch(endpoint, {
         headers: { 'Authorization': `Bearer ${authToken}` },
       });
       if (response.ok) {
         const data = await response.json();
-        // Handle different response formats
         const messages = isAdmin ? data : (data.messages || data);
-        setChatMessages(Array.isArray(messages) ? messages.reverse() : []);
+        const arr = Array.isArray(messages) ? messages.slice() : [];
+        arr.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+        const prevCount = chatMessages.length;
+        setChatMessages(arr);
+        if (arr.length > prevCount && chatListRef.current) {
+          // New messages arrived — scroll to the latest one.
+          setTimeout(() => { try { chatListRef.current.scrollToEnd({ animated: true }); } catch (_) {} }, 80);
+        }
       }
     } catch (e) {
       console.log('Chat load error:', e);
@@ -12520,6 +12531,48 @@ export default function App() {
     }
   };
   
+  const pickAndSendChatImage = async () => {
+    try {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm || perm.status !== 'granted') {
+        Alert.alert('Permission needed', 'Photo library access is required to send an image.');
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.7,
+        base64: true,
+      });
+      if (result.canceled || !result.assets || !result.assets.length) return;
+      const asset = result.assets[0];
+      let dataUri = '';
+      if (asset.base64) {
+        const ext = (asset.uri || '').toLowerCase().endsWith('.png') ? 'png' : 'jpeg';
+        dataUri = `data:image/${ext};base64,${asset.base64}`;
+      }
+      setChatLoading(true);
+      const response = await fetch(`${API_URL}/api/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+        body: JSON.stringify({
+          content: dataUri || (asset.uri || '[Image]'),
+          message_type: 'image',
+          media_url: dataUri || asset.uri || null,
+        }),
+      });
+      if (response.ok) {
+        loadChatMessages();
+      } else {
+        Alert.alert('Error', 'Failed to send image');
+      }
+    } catch (e) {
+      console.log('pickAndSendChatImage error:', e);
+      Alert.alert('Error', 'Failed to send image');
+    } finally {
+      setChatLoading(false);
+    }
+  };
+
   const sendVoiceMessage = async (uri) => {
     setChatLoading(true);
     try {
@@ -12976,6 +13029,12 @@ export default function App() {
       if (section === 'fundamentals') {
         setLocalWebViewHtml(buildFundamentalsHtml(selectedClass));
         setLocalWebViewTitle(title || 'Fundamentals');
+        setShowLocalWebView(true);
+        return;
+      }
+      if (section === 'formula-videos') {
+        setLocalWebViewHtml(buildFormulaVideosHtml(selectedClass));
+        setLocalWebViewTitle(title || 'Formula Videos');
         setShowLocalWebView(true);
         return;
       }
@@ -14299,7 +14358,7 @@ export default function App() {
         <Image source={require('./assets/icon.png')} style={styles.loginLogo} />
       </View>
       <Text style={styles.loginTitle}>GANITA PRAKASH</Text>
-      <Text style={styles.loginSubtitle}>NCERT Mathematics Class 6</Text>
+      <Text style={styles.loginSubtitle}>NCERT Mathematics — Class 6 and Class 7</Text>
 
       <View style={styles.loginCard}>
         <Text style={styles.welcomeTitle}>{isRegistering ? 'Create Account' : 'Welcome Back!'}</Text>
@@ -14422,9 +14481,11 @@ export default function App() {
 
       {/* Messages */}
       <FlatList
+        ref={chatListRef}
         data={chatMessages}
-        keyExtractor={(item, index) => index.toString()}
+        keyExtractor={(item, index) => String(item.id || index)}
         style={styles.chatList}
+        onContentSizeChange={() => { try { chatListRef.current && chatListRef.current.scrollToEnd({ animated: false }); } catch (_) {} }}
         renderItem={({ item, index }) => {
           const isAdminMsg = !!(item.is_admin_reply || item.is_admin ||
             (item.sender_username && item.sender_username.toLowerCase().indexOf('admin') !== -1) ||
@@ -14460,10 +14521,16 @@ export default function App() {
                   </View>
                 </TouchableOpacity>
               ) : isImage ? (
-                <TouchableOpacity onPress={() => item.file_url && Linking.openURL(item.file_url)}>
-                  <Text style={{fontSize: 24}}>🖼️</Text>
-                  <Text style={[styles.chatBubbleText, isAdminMsg ? styles.adminBubbleText : styles.userBubbleText]}>Image - Tap to view</Text>
-                </TouchableOpacity>
+                (() => {
+                  const imgSrc = item.media_url || item.file_url || (item.content && (item.content.startsWith('data:image') || item.content.startsWith('http')) ? item.content : null);
+                  return imgSrc ? (
+                    <TouchableOpacity onPress={() => imgSrc.startsWith('http') ? Linking.openURL(imgSrc) : null} activeOpacity={0.8}>
+                      <Image source={{ uri: imgSrc }} style={{ width: 200, height: 200, borderRadius: 10, backgroundColor: '#222' }} resizeMode="cover" />
+                    </TouchableOpacity>
+                  ) : (
+                    <Text style={[styles.chatBubbleText, isAdminMsg ? styles.adminBubbleText : styles.userBubbleText]}>🖼️ Image</Text>
+                  );
+                })()
               ) : isVoice ? (
                 <TouchableOpacity 
                   onPress={() => item.voice_data && playVoiceMessage(item.voice_data, index)}
@@ -14514,7 +14581,7 @@ export default function App() {
         </View>
       ) : (
         <View style={styles.chatInputBar}>
-          <TouchableOpacity style={styles.chatMediaBtn}>
+          <TouchableOpacity style={styles.chatMediaBtn} onPress={pickAndSendChatImage} disabled={chatLoading}>
             <Text style={styles.chatMediaIcon}>📷</Text>
           </TouchableOpacity>
           <TextInput
@@ -15812,8 +15879,8 @@ const styles = StyleSheet.create({
   textArea: { backgroundColor: 'rgba(0,229,255,0.08)', borderRadius: 14, padding: 14, color: '#fff', fontSize: 14, minHeight: 110, textAlignVertical: 'top', marginTop: 12, borderWidth: 1, borderColor: 'rgba(0,229,255,0.2)' },
   // Login styles - Deep Space Authentication Portal
   loginContainer: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 30, paddingHorizontal: 24 },
-  loginLogoContainer: { width: 80, height: 80, borderRadius: 40, overflow: 'hidden', marginBottom: 14, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,229,255,0.1)', borderWidth: 2, borderColor: '#00E5FF', shadowColor: '#00E5FF', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.6, shadowRadius: 12 },
-  loginLogo: { width: 72, height: 72, borderRadius: 36 },
+  loginLogoContainer: { width: 96, height: 96, borderRadius: 48, overflow: 'hidden', marginBottom: 16, justifyContent: 'center', alignItems: 'center', backgroundColor: '#1A1A2E', borderWidth: 2, borderColor: '#00E5FF', shadowColor: '#00E5FF', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.6, shadowRadius: 16 },
+  loginLogo: { width: 96, height: 96, borderRadius: 48, resizeMode: 'cover' },
   loginTitle: { fontSize: 22, fontWeight: 'bold', color: '#fff', marginBottom: 4, letterSpacing: 2.5, textShadowColor: '#00E5FF', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 8 },
   loginSubtitle: { fontSize: 11, color: '#00E5FF', marginBottom: 22, letterSpacing: 1.8, textTransform: 'uppercase' },
   loginCard: { width: '100%', maxWidth: 400, backgroundColor: 'rgba(41,121,255,0.08)', borderRadius: 24, padding: 32, borderWidth: 1, borderColor: 'rgba(41,121,255,0.25)', shadowColor: '#2979FF', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.2, shadowRadius: 20 },
