@@ -11767,40 +11767,86 @@ const chaptersClass7 = [
   }
 ];
 
+// 5-section exam format per Ganita Prakash spec:
+//   Section A — MCQ (single best answer, 1 mark each)
+//   Section B — Case-Based (read a small scenario, then pick the best answer, 1 mark each)
+//   Section C — Very Short Answer (write on paper, photograph and upload, 2 marks each)
+//   Section D — Short Answer (write on paper, photograph and upload, 3 marks each)
+//   Section E — Long Answer (write on paper, photograph and upload, 5 marks each)
+// Each MCQ object also carries `section` ('A' or 'B') and `case` (case-based scenario,
+// shown above the question for Section B). The pen-paper objects carry `section`
+// ('C', 'D', or 'E') so the screen can label them correctly.
+
 const finalExamMCQ = [
-  { q: "What is the next number: 3, 6, 9, 12, ?", options: ["14", "15", "16", "18"], answer: 1 },
-  { q: "An angle of 45 degrees is:", options: ["Acute", "Right", "Obtuse", "Reflex"], answer: 0 },
-  { q: "The place value of 7 in 47,832 is:", options: ["7", "70", "700", "7000"], answer: 3 },
-  { q: "In a pictograph, if 1 symbol = 10, then 5 symbols = ?", options: ["15", "50", "100", "5"], answer: 1 },
-  { q: "The smallest prime number is:", options: ["0", "1", "2", "3"], answer: 2 },
-  { q: "Perimeter of square with side 9 cm:", options: ["18 cm", "27 cm", "36 cm", "81 cm"], answer: 2 },
-  { q: "3/4 is a _____ fraction:", options: ["Proper", "Improper", "Mixed", "Unit"], answer: 0 },
-  { q: "Tool used to draw circles:", options: ["Ruler", "Compass", "Protractor", "Divider"], answer: 1 },
-  { q: "Lines of symmetry in a rectangle:", options: ["1", "2", "3", "4"], answer: 1 },
-  { q: "The opposite of -8 is:", options: ["-8", "0", "8", "1/8"], answer: 2 },
-  { q: "1, 4, 9, 16, 25 are called:", options: ["Prime numbers", "Square numbers", "Odd numbers", "Even numbers"], answer: 1 },
-  { q: "Two perpendicular lines form angle of:", options: ["45", "60", "90", "180"], answer: 2 },
-  { q: "Round 6,789 to nearest thousand:", options: ["6,000", "6,800", "7,000", "6,790"], answer: 2 },
-  { q: "Factors of 15 are:", options: ["1, 3, 5, 15", "1, 5, 15", "3, 5, 15", "1, 3, 15"], answer: 0 },
-  { q: "Area of rectangle 6cm x 4cm:", options: ["10 sq cm", "20 sq cm", "24 sq cm", "48 sq cm"], answer: 2 },
-  { q: "1/2 + 1/2 = ?", options: ["2/4", "1/4", "1", "2"], answer: 2 },
-  { q: "Diameter = 2 x ?", options: ["Area", "Perimeter", "Radius", "Circumference"], answer: 2 },
-  { q: "Equilateral triangle has _____ lines of symmetry:", options: ["1", "2", "3", "6"], answer: 2 },
-  { q: "-3 + 5 = ?", options: ["-8", "-2", "2", "8"], answer: 2 },
-  { q: "Which is greater: -10 or -5?", options: ["-10", "-5", "Equal", "Cannot compare"], answer: 1 },
-  { q: "The Fibonacci sequence starts with:", options: ["0, 1", "1, 2", "2, 3", "1, 3"], answer: 0 },
-  { q: "A straight angle measures:", options: ["90", "180", "270", "360"], answer: 1 },
-  { q: "LCM of 4 and 6 is:", options: ["2", "12", "24", "10"], answer: 1 },
-  { q: "How many vertices does a triangle have?", options: ["2", "3", "4", "5"], answer: 1 },
-  { q: "(-4) x (-2) = ?", options: ["-8", "-6", "6", "8"], answer: 3 }
+  // ---------- SECTION A — straight MCQ (15 × 1 = 15 marks) ----------
+  { section: 'A', q: "What is the next number: 3, 6, 9, 12, ?", options: ["14", "15", "16", "18"], answer: 1 },
+  { section: 'A', q: "An angle of 45 degrees is:", options: ["Acute", "Right", "Obtuse", "Reflex"], answer: 0 },
+  { section: 'A', q: "The place value of 7 in 47,832 is:", options: ["7", "70", "700", "7000"], answer: 3 },
+  { section: 'A', q: "The smallest prime number is:", options: ["0", "1", "2", "3"], answer: 2 },
+  { section: 'A', q: "Perimeter of square with side 9 cm:", options: ["18 cm", "27 cm", "36 cm", "81 cm"], answer: 2 },
+  { section: 'A', q: "3/4 is a _____ fraction:", options: ["Proper", "Improper", "Mixed", "Unit"], answer: 0 },
+  { section: 'A', q: "Tool used to draw circles:", options: ["Ruler", "Compass", "Protractor", "Divider"], answer: 1 },
+  { section: 'A', q: "Lines of symmetry in a rectangle:", options: ["1", "2", "3", "4"], answer: 1 },
+  { section: 'A', q: "The opposite of -8 is:", options: ["-8", "0", "8", "1/8"], answer: 2 },
+  { section: 'A', q: "1, 4, 9, 16, 25 are called:", options: ["Prime numbers", "Square numbers", "Odd numbers", "Even numbers"], answer: 1 },
+  { section: 'A', q: "Two perpendicular lines form an angle of:", options: ["45", "60", "90", "180"], answer: 2 },
+  { section: 'A', q: "Round 6,789 to nearest thousand:", options: ["6,000", "6,800", "7,000", "6,790"], answer: 2 },
+  { section: 'A', q: "Factors of 15 are:", options: ["1, 3, 5, 15", "1, 5, 15", "3, 5, 15", "1, 3, 15"], answer: 0 },
+  { section: 'A', q: "1/2 + 1/2 = ?", options: ["2/4", "1/4", "1", "2"], answer: 2 },
+  { section: 'A', q: "How many vertices does a triangle have?", options: ["2", "3", "4", "5"], answer: 1 },
+
+  // ---------- SECTION B — case-based MCQ (10 × 1 = 10 marks) ----------
+  { section: 'B',
+    case: "Riya is fencing a rectangular vegetable garden. The garden is 12 metres long and 8 metres wide. Use this for the next 3 questions.",
+    q: "What is the perimeter of the garden?",
+    options: ["20 m", "40 m", "48 m", "96 m"], answer: 1 },
+  { section: 'B',
+    case: "Riya is fencing a rectangular vegetable garden. The garden is 12 metres long and 8 metres wide. Use this for the next 3 questions.",
+    q: "What is the area of the garden?",
+    options: ["20 sq m", "40 sq m", "96 sq m", "120 sq m"], answer: 2 },
+  { section: 'B',
+    case: "Riya is fencing a rectangular vegetable garden. The garden is 12 metres long and 8 metres wide. Use this for the next 3 questions.",
+    q: "If fencing wire costs Rs.50 per metre, what is the total cost of fencing once around?",
+    options: ["Rs.1000", "Rs.1500", "Rs.2000", "Rs.4800"], answer: 2 },
+  { section: 'B',
+    case: "A school class has 30 students. 12 students play cricket, 8 play football, and the remaining play kabaddi. Use this for the next 2 questions.",
+    q: "How many students play kabaddi?",
+    options: ["6", "8", "10", "12"], answer: 2 },
+  { section: 'B',
+    case: "A school class has 30 students. 12 students play cricket, 8 play football, and the remaining play kabaddi. Use this for the next 2 questions.",
+    q: "What fraction of the class plays cricket?",
+    options: ["2/5", "1/3", "1/2", "12/15"], answer: 0 },
+  { section: 'B',
+    case: "On a number line, point P is at -4 and point Q is at +7. Use this for the next 2 questions.",
+    q: "What is the distance between P and Q on the number line?",
+    options: ["3", "7", "11", "28"], answer: 2 },
+  { section: 'B',
+    case: "On a number line, point P is at -4 and point Q is at +7. Use this for the next 2 questions.",
+    q: "Which integer is the midpoint of P and Q?",
+    options: ["-1", "0", "1.5", "3"], answer: 2 },
+  { section: 'B',
+    case: "Aman buys 6 books at Rs.45 each. He gives the shopkeeper Rs.500 and asks for change. Use this for the next 2 questions.",
+    q: "What is the total cost of the 6 books?",
+    options: ["Rs.225", "Rs.250", "Rs.270", "Rs.300"], answer: 2 },
+  { section: 'B',
+    case: "Aman buys 6 books at Rs.45 each. He gives the shopkeeper Rs.500 and asks for change. Use this for the next 2 questions.",
+    q: "How much change should the shopkeeper return?",
+    options: ["Rs.200", "Rs.230", "Rs.250", "Rs.275"], answer: 1 },
+  { section: 'B',
+    case: "A bus journey starts at 9:45 AM and ends at 1:20 PM the same day.",
+    q: "How long does the journey take?",
+    options: ["2 h 35 min", "3 h 25 min", "3 h 35 min", "4 h 25 min"], answer: 2 }
 ];
 
 const finalExamPenPaper = [
-  { q: "A rectangular field is 120m long and 80m wide. Find its perimeter and area. If fencing costs Rs.50 per meter, find total fencing cost.", marks: 10 },
-  { q: "Find the prime factorization of 180 using factor tree method. Then find LCM and HCF of 180 and 144.", marks: 10 },
-  { q: "Add the fractions: 2/3 + 3/4 + 5/6. Show all steps clearly.", marks: 10 },
-  { q: "Draw a number line from -15 to +15. Mark these integers and arrange in ascending order: 8, -12, 5, -7, 0, -3, 11", marks: 10 },
-  { q: "Construct a triangle ABC where AB=6cm, BC=5cm, and angle B=60 degrees. Measure AC and find all lines of symmetry if any.", marks: 10 }
+  // ---------- SECTION C — Very Short Answer (2 × 2 = 4 marks) ----------
+  { section: 'C', q: "Write the prime factorisation of 84 using a factor tree. Show every step on paper and upload a photo of your work.", marks: 2 },
+  { section: 'C', q: "Find the HCF and LCM of 18 and 24. Show your working on paper and upload a photo.", marks: 2 },
+  // ---------- SECTION D — Short Answer (2 × 3 = 6 marks) ----------
+  { section: 'D', q: "A rectangular field is 120 m long and 80 m wide. Find its perimeter and area. Show all steps on paper, then upload a photo.", marks: 3 },
+  { section: 'D', q: "Add the fractions 2/3 + 3/4 + 5/6 and reduce to lowest terms. Write the full solution on paper and upload a photo.", marks: 3 },
+  // ---------- SECTION E — Long Answer (1 × 5 = 5 marks) ----------
+  { section: 'E', q: "Construct triangle ABC with AB = 6 cm, BC = 5 cm and angle B = 60 degrees. Measure AC and draw all lines of symmetry (if any). Upload a clear photo of your construction.", marks: 5 }
 ];
 
 export default function App() {
@@ -11830,6 +11876,7 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [authToken, setAuthToken] = useState(null);
+  const [myUserId, setMyUserId] = useState(null);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false); // Show/hide password toggle
@@ -12192,6 +12239,7 @@ export default function App() {
     const html = buildCallHtml({
       apiUrl: API_URL,
       token: authToken,
+      myUserId: myUserId,
       mode: 'answer',
       peerUserId: callerId,
       callType: callType,
@@ -12271,8 +12319,17 @@ export default function App() {
     // Auto-submit exam
     setIsMonitoring(false);
     if (isFinalExam) {
-      const totalScore = mcqScore + Object.keys(penPaperAnswers).length * 2;
-      showResults(totalScore, finalExamMCQ.length + finalExamPenPaper.length);
+      // Approximate partial credit for paper sections answered before time-out.
+      var ppScore = 0;
+      finalExamPenPaper.forEach(function(q, idx) {
+        var t = (penPaperAnswers[idx] || '').trim();
+        var hasPhoto = !!penPaperPhotos[idx];
+        var m = q.marks || 2;
+        if (hasPhoto && t.length > 0) ppScore += m;
+        else if (hasPhoto || t.length > 0) ppScore += Math.floor(m / 2);
+      });
+      const totalScore = mcqScore + ppScore;
+      showResults(totalScore, 40);
     } else {
       showResults(score, currentChapter?.questions?.length || 10);
     }
@@ -12325,6 +12382,7 @@ export default function App() {
       if (token && userData) {
         const user = JSON.parse(userData);
         setAuthToken(token);
+        setMyUserId(user.id);
         setStudentName(user.name);
         setIsAdmin(user.is_admin);
         setIsLoggedIn(true);
@@ -12357,6 +12415,7 @@ export default function App() {
         await AsyncStorage.setItem('authToken', data.access_token);
         await AsyncStorage.setItem('userData', JSON.stringify(data.user));
         setAuthToken(data.access_token);
+        setMyUserId(data.user.id);
         setStudentName(data.user.name);
         setIsAdmin(data.user.is_admin);
         setIsLoggedIn(true);
@@ -12388,6 +12447,7 @@ export default function App() {
         await AsyncStorage.setItem('authToken', data.access_token);
         await AsyncStorage.setItem('userData', JSON.stringify(data.user));
         setAuthToken(data.access_token);
+        setMyUserId(data.user.id);
         setIsAdmin(data.user.is_admin);
         setIsLoggedIn(true);
         setScreen('home');
@@ -12882,8 +12942,17 @@ export default function App() {
               setIsMonitoring(false);
               if (isFinalExam) {
                 // Auto-submit final exam with current scores
-                const totalScore = mcqScore + Object.keys(penPaperAnswers).length * 2;
-                showResults(totalScore, finalExamMCQ.length + finalExamPenPaper.length);
+                // Approximate partial credit for paper sections answered before bail.
+                var ppScore = 0;
+                finalExamPenPaper.forEach(function(q, idx) {
+                  var t = (penPaperAnswers[idx] || '').trim();
+                  var hasPhoto = !!penPaperPhotos[idx];
+                  var m = q.marks || 2;
+                  if (hasPhoto && t.length > 0) ppScore += m;
+                  else if (hasPhoto || t.length > 0) ppScore += Math.floor(m / 2);
+                });
+                const totalScore = mcqScore + ppScore;
+                showResults(totalScore, 40);
               } else {
                 // Auto-submit chapter quiz with current score
                 showResults(score, currentChapter?.questions?.length || 10);
@@ -13168,10 +13237,12 @@ export default function App() {
   const submitAnswer = () => {
     const questions = isFinalExam ? finalExamMCQ : currentChapter.questions;
     const question = questions[currentQuestion];
-    
+
+    // Final-exam scoring: Sections A + B award 1 mark each.
+    // Chapter quiz: 1 mark each.
     let newScore = score;
     if (selectedOption === question.answer) {
-      newScore = score + (isFinalExam ? 2 : 1);
+      newScore = score + 1;
       setScore(newScore);
     }
 
@@ -13224,18 +13295,25 @@ export default function App() {
   };
 
   const submitFinalExam = async () => {
+    // Paper sections (C/D/E) are scored by admin after photo upload review.
+    // We award partial provisional marks here: full marks if photo + answer text
+    // exist, half marks if only text. Admin can override later.
     let penPaperScore = 0;
-    Object.keys(penPaperAnswers).forEach(key => {
-      if (penPaperAnswers[key] && penPaperAnswers[key].trim().length > 20) {
-        penPaperScore += 10;
-      } else if (penPaperAnswers[key] && penPaperAnswers[key].trim().length > 0) {
-        penPaperScore += 5;
-      }
+    finalExamPenPaper.forEach((q, idx) => {
+      const text = (penPaperAnswers[idx] || '').trim();
+      const hasPhoto = !!penPaperPhotos[idx];
+      const maxMarks = q.marks || 2;
+      if (hasPhoto && text.length > 0) penPaperScore += maxMarks;
+      else if (hasPhoto || text.length > 0) penPaperScore += Math.floor(maxMarks / 2);
     });
 
     const totalScore = mcqScore + penPaperScore;
-    const percentage = totalScore;
+    // Total possible: 25 (A+B) + 15 (C+D+E) = 40 marks
+    const totalPossible = 40;
+    const percentage = Math.round((totalScore / totalPossible) * 100);
     const passed = percentage >= 80;
+    stopScreenSharing();
+    setIsMonitoring(false);
 
     setFinalExamScore(totalScore);
     setFinalExamCompleted(true);
@@ -13252,7 +13330,7 @@ export default function App() {
       await saveData('certificates', newCerts);
     }
 
-    setResultData({ score: totalScore, total: 100, percentage, passed, isFinal: true, mcqScore, penPaperScore });
+    setResultData({ score: totalScore, total: totalPossible, percentage, passed, isFinal: true, mcqScore, penPaperScore });
     setShowResult(true);
   };
 
@@ -13799,12 +13877,28 @@ export default function App() {
       return (
         <View ref={screenViewRef} collapsable={false} style={{flex: 1}}>
         <ScrollView style={styles.container}>
-          <Text style={styles.sectionTitle}>Final Exam - Pen and Paper Section</Text>
-          <Text style={styles.examInfo}>MCQ Score: {mcqScore}/50 | Pen-Paper: 50 marks (5 questions x 10 marks)</Text>
+          {isScreenSharing ? (
+            <View style={{flexDirection: 'row', alignItems: 'center', backgroundColor: '#7a1f2b', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8, marginBottom: 10}}>
+              <View style={{width: 10, height: 10, borderRadius: 5, backgroundColor: '#fbbf24', marginRight: 8}} />
+              <Text style={{color: '#fff', fontSize: 12, fontWeight: '700', letterSpacing: 0.5}}>SCREEN SHARING — ADMIN IS MONITORING</Text>
+            </View>
+          ) : null}
+          <Text style={styles.sectionTitle}>Final Exam — Sections C / D / E (Write on Paper + Photo)</Text>
+          <Text style={styles.examInfo}>
+            MCQ + Case-Based Score: {mcqScore}/25  |  Paper Sections: 15 marks (C: 2×2, D: 2×3, E: 1×5)
+          </Text>
+          <Text style={{color: '#94a3b8', fontSize: 12, marginBottom: 10}}>
+            For each question: write the answer in your notebook, photograph it, and tap "Attach Photo of Written Answer".
+          </Text>
 
           {finalExamPenPaper.map((question, index) => {
-            // Sections: 0=C (Very Short), 1=C, 2=D (Short), 3=D, 4=E (Long) — all require photo of handwritten answer
-            const sectionLabel = index <= 1 ? 'Section C (Very Short Answer)' : index <= 3 ? 'Section D (Short Answer)' : 'Section E (Long Answer)';
+            const section = question.section || (index <= 1 ? 'C' : index <= 3 ? 'D' : 'E');
+            const sectionTitleByLetter = {
+              C: 'Section C — Very Short Answer (write on paper + photo)',
+              D: 'Section D — Short Answer (write on paper + photo)',
+              E: 'Section E — Long Answer (write on paper + photo)'
+            };
+            const sectionLabel = sectionTitleByLetter[section] || ('Section ' + section);
             const photoUri = penPaperPhotos[index];
             return (
               <View key={index} style={styles.questionCard}>
@@ -13852,22 +13946,59 @@ export default function App() {
     const questions = isFinalExam ? finalExamMCQ : currentChapter.questions;
     const question = questions[currentQuestion];
     const total = questions.length;
+    const section = isFinalExam ? (question.section || 'A') : null;
+    const sectionTitleByLetter = {
+      A: 'Section A — MCQ (1 mark each)',
+      B: 'Section B — Case-Based MCQ (1 mark each)'
+    };
+    // Only show the case scenario above the FIRST question of a contiguous
+    // run of Section B questions sharing the same case text. Subsequent
+    // questions in the same case display a smaller reminder.
+    const prevQuestion = currentQuestion > 0 ? questions[currentQuestion - 1] : null;
+    const isFirstOfCase = section === 'B' && question.case && (!prevQuestion || prevQuestion.case !== question.case);
+    const isContinuationOfCase = section === 'B' && question.case && prevQuestion && prevQuestion.case === question.case;
 
     return (
       <View ref={screenViewRef} collapsable={false} style={{flex: 1}}>
       <ScrollView style={styles.container}>
+        {isScreenSharing ? (
+          <View style={{flexDirection: 'row', alignItems: 'center', backgroundColor: '#7a1f2b', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8, marginBottom: 10}}>
+            <View style={{width: 10, height: 10, borderRadius: 5, backgroundColor: '#fbbf24', marginRight: 8}} />
+            <Text style={{color: '#fff', fontSize: 12, fontWeight: '700', letterSpacing: 0.5}}>SCREEN SHARING — ADMIN IS MONITORING</Text>
+          </View>
+        ) : null}
         <Text style={styles.sectionTitle}>
-          {isFinalExam ? 'Final Exam - MCQ Section (25 x 2 = 50 marks)' : 'Chapter ' + currentChapter.number + ' Quiz'}
+          {isFinalExam ? 'Final Exam — ' + sectionTitleByLetter[section] : 'Chapter ' + currentChapter.number + ' Quiz'}
         </Text>
+        {isFinalExam ? (
+          <Text style={{color: '#94a3b8', fontSize: 12, marginBottom: 10, textAlign: 'center'}}>
+            Sections: A (MCQ) · B (Case-Based) · C/D/E follow with paper + photo upload
+          </Text>
+        ) : null}
 
         <View style={styles.progressContainer}>
           <View style={[styles.progressBar, { width: ((currentQuestion / total) * 100) + '%' }]} />
         </View>
         <Text style={styles.progressText}>Question {currentQuestion + 1} of {total}</Text>
 
+        {isFirstOfCase ? (
+          <View style={{backgroundColor: '#0a2540', borderLeftWidth: 4, borderLeftColor: '#00d4ff', padding: 12, borderRadius: 8, marginBottom: 12}}>
+            <Text style={{color: '#00d4ff', fontSize: 11, fontWeight: '700', letterSpacing: 1, marginBottom: 6}}>CASE STUDY</Text>
+            <Text style={{color: '#e2e8f0', fontSize: 14, lineHeight: 20}}>{question.case}</Text>
+          </View>
+        ) : null}
+        {isContinuationOfCase ? (
+          <Text style={{color: '#64748b', fontSize: 11, fontStyle: 'italic', marginBottom: 8}}>(Continued — same case study as previous question)</Text>
+        ) : null}
+
         <View style={styles.questionCard}>
+          {isFinalExam ? (
+            <Text style={{fontSize: 11, color: '#00d4ff', fontWeight: '700', letterSpacing: 1, marginBottom: 4}}>
+              SECTION {section} {section === 'A' ? '— MCQ' : '— CASE-BASED'}
+            </Text>
+          ) : null}
           <Text style={styles.questionNumber}>
-            Question {currentQuestion + 1} {isFinalExam ? '(2 marks)' : ''}
+            Question {currentQuestion + 1} {isFinalExam ? '(1 mark)' : ''}
           </Text>
           <Text style={styles.questionText}>{question.q}</Text>
 
@@ -13888,7 +14019,11 @@ export default function App() {
           disabled={selectedOption === null}
         >
           <Text style={styles.primaryBtnText}>
-            {currentQuestion === total - 1 ? (isFinalExam ? 'Next: Pen-Paper Section' : 'Finish') : 'Next Question'}
+            {currentQuestion === total - 1
+              ? (isFinalExam ? 'Continue to Sections C / D / E (Paper)' : 'Finish')
+              : (section === 'A' && questions[currentQuestion + 1] && questions[currentQuestion + 1].section === 'B'
+                  ? 'Continue to Section B'
+                  : 'Next Question')}
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -14056,6 +14191,7 @@ export default function App() {
               await AsyncStorage.setItem('userData', JSON.stringify(userData));
               await AsyncStorage.setItem('studentName', loginData.user.name);
               setAuthToken(loginData.access_token);
+              setMyUserId(loginData.user.id);
               setStudentName(loginData.user.name);
               setIsAdmin(loginData.user.is_admin);
               setIsLoggedIn(true);
@@ -14170,6 +14306,7 @@ export default function App() {
         await AsyncStorage.setItem('userData', JSON.stringify(userData));
         await AsyncStorage.setItem('studentName', fullName);
         setAuthToken(finalToken);
+        setMyUserId(backendUserId);
         setStudentName(fullName);
         setIsAdmin(isAdminUser);
         setIsLoggedIn(true);
@@ -14235,6 +14372,7 @@ export default function App() {
         await AsyncStorage.setItem('userData', JSON.stringify(userData));
         await AsyncStorage.setItem('studentName', displayName);
         setAuthToken(finalToken);
+        setMyUserId(backendUserId);
         setStudentName(displayName);
         setIsAdmin(isAdminUser);
         setIsLoggedIn(true);
@@ -14346,6 +14484,7 @@ export default function App() {
         await AsyncStorage.setItem('authToken', finalToken);
         await AsyncStorage.setItem('userData', JSON.stringify(userData));
         setAuthToken(finalToken);
+        setMyUserId(backendUserId);
         setStudentName(finalName);
         setIsAdmin(isAdminUser);
         setIsLoggedIn(true);
@@ -14804,6 +14943,7 @@ export default function App() {
       const html = buildCallHtml({
         apiUrl: API_URL,
         token: authToken,
+        myUserId: myUserId,
         mode: 'call',
         peerUserId: user.id,
         callType: type,

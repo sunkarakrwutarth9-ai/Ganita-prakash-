@@ -1,24 +1,37 @@
-// Self-contained, native-looking in-app call UI for the APK.
-// Bundled HTML — no website redirect, no app shell. Renders just the call:
-// dark fullscreen background, remote video, local PIP, mute / camera / end
-// buttons. Uses the WebView's WebRTC engine (Android System WebView) to
-// negotiate the call against the backend's signaling API, so the actual
-// audio/video flows peer-to-peer (with TURN relay fallback).
+// Self-contained in-app WebRTC call HTML for the APK. Bundled into the APK
+// so there is NO website redirect, NO app shell load, and the call screen
+// looks native.
 //
-// URL params (set by App.js when opening the WebView):
-//   token        - student's auth JWT
+// Why this file exists: the previous v1.9.8 / v1.9.10 builds either redirected
+// to the website or used incorrect signaling endpoints, so the WebRTC peer
+// connection never finished negotiating and media never flowed. This rewrite
+// uses the *exact* same signaling that the web admin uses (verified against
+// web-app/app.js):
+//
+//   - Offer:  POST /api/webrtc/offer  { target_user_id, sdp, call_type }
+//   - Answer: POST /api/webrtc/answer { call_id, caller_user_id, sdp }
+//   - ICE:    POST /api/webrtc/candidate { target_user_id, candidate, sdp_mid, sdp_m_line_index }
+//   - End:    POST /api/webrtc/end-call?target_user_id=<n>
+//   - Notif poll: GET /api/notifications  (then POST /api/notifications/<id>/read)
+//   - WS (optional fast path): /ws/webrtc/{my_user_id}?token=...
+//   - TURN fallback: a.relay.metered.ca with the credentials baked into
+//     web-app/app.js — used when /api/ice-servers returns no servers.
+//
+// Required params (set by App.js when opening the WebView):
+//   apiUrl       - backend base URL (https://app-lmanxcts.fly.dev)
+//   token        - JWT for the student account
+//   myUserId     - student's own user id (numeric)
+//   peerUserId   - other side's user id (admin's id when student is callee, or callee's id when student is caller)
 //   mode         - 'call' (outgoing) or 'answer' (incoming)
-//   peerUserId   - admin's user id (for both directions; admin is id=1 for now,
-//                  but APK passes whatever id signalled the call)
 //   callType     - 'audio' or 'video'
-//   callerName   - display name shown on the call screen
-//   callId       - opaque call id (forwarded back in answer body)
-//   apiUrl       - backend base URL
+//   callerName   - name to display
+//   callId       - opaque call id (only set on the answer side; outgoing leaves blank and learns it from the offer response)
 
 function buildCallHtml(params) {
   const safe = (s) => String(s == null ? '' : s).replace(/[<>"'&]/g, c => ({'<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','&':'&amp;'})[c]);
   const apiUrl = params.apiUrl || 'https://app-lmanxcts.fly.dev';
   const token = params.token || '';
+  const myUserId = String(params.myUserId || '');
   const mode = params.mode === 'answer' ? 'answer' : 'call';
   const peerUserId = String(params.peerUserId || params.targetUserId || params.callerId || '');
   const callType = params.callType === 'video' ? 'video' : 'audio';
@@ -35,9 +48,7 @@ function buildCallHtml(params) {
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
   html, body { margin: 0; padding: 0; height: 100vh; width: 100vw; background: #000; color: #fff; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; overflow: hidden; }
   .stage { position: absolute; inset: 0; display: flex; flex-direction: column; }
-  .remote-video {
-    position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: #0a0a14;
-  }
+  .remote-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: #0a0a14; }
   .audio-pulse {
     position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
     background: radial-gradient(ellipse at center, #1f2257 0%, #0a0a14 100%);
@@ -66,8 +77,9 @@ function buildCallHtml(params) {
   .topbar .name { font-size: 1.15em; font-weight: 700; }
   .topbar .state { font-size: 0.85em; color: rgba(255,255,255,0.75); }
   .topbar .timer { font-size: 0.9em; color: #4ade80; font-weight: 700; }
+  .topbar .debug { font-size: 0.7em; color: rgba(255,255,255,0.55); margin-top: 4px; max-width: 90vw; word-break: break-word; }
   .local-video {
-    position: absolute; top: 90px; right: 18px;
+    position: absolute; top: 100px; right: 18px;
     width: 110px; height: 150px; border-radius: 12px; object-fit: cover;
     background: #111; border: 2px solid rgba(255,255,255,0.25);
     box-shadow: 0 6px 18px rgba(0,0,0,0.6); z-index: 5;
@@ -88,9 +100,7 @@ function buildCallHtml(params) {
   }
   .ctrl:active { transform: scale(0.92); }
   .ctrl.muted { background: #fff; color: #111; }
-  .ctrl.end {
-    width: 76px; height: 76px; background: #ef4444; box-shadow: 0 8px 24px rgba(239,68,68,0.5);
-  }
+  .ctrl.end { width: 76px; height: 76px; background: #ef4444; box-shadow: 0 8px 24px rgba(239,68,68,0.5); }
   .ctrl.end:active { background: #dc2626; }
   .hidden { display: none !important; }
   .error-banner {
@@ -108,10 +118,12 @@ function buildCallHtml(params) {
     <div class="caller-name">${safe(callerName)}</div>
     <div id="audioStatus" class="call-status">Connecting…</div>
   </div>
+  <audio id="remoteAudio" autoplay></audio>
   <div class="topbar">
     <div class="name">${safe(callerName)}</div>
     <div id="state" class="state">Connecting…</div>
     <div id="timer" class="timer hidden">00:00</div>
+    <div id="debug" class="debug"></div>
   </div>
   <video id="localVideo" class="local-video ${callType === 'audio' ? 'hidden' : ''}" autoplay playsinline muted></video>
   <div id="errorBanner" class="error-banner hidden"></div>
@@ -125,17 +137,20 @@ function buildCallHtml(params) {
 
 <script>
 (function(){
-  var API_URL   = ${JSON.stringify(apiUrl)};
-  var TOKEN     = ${JSON.stringify(token)};
-  var MODE      = ${JSON.stringify(mode)};
-  var PEER_ID   = ${JSON.stringify(peerUserId)};
-  var CALL_TYPE = ${JSON.stringify(callType)};
-  var CALL_ID   = ${JSON.stringify(callId)};
+  var API_URL    = ${JSON.stringify(apiUrl)};
+  var TOKEN      = ${JSON.stringify(token)};
+  var MY_USER_ID = ${JSON.stringify(myUserId)};
+  var MODE       = ${JSON.stringify(mode)};
+  var PEER_ID    = parseInt(${JSON.stringify(peerUserId)}) || 0;
+  var CALL_TYPE  = ${JSON.stringify(callType)};
+  var CALL_ID    = ${JSON.stringify(callId)};
 
   var stateEl       = document.getElementById('state');
   var audioStatusEl = document.getElementById('audioStatus');
   var timerEl       = document.getElementById('timer');
+  var debugEl       = document.getElementById('debug');
   var remoteVideo   = document.getElementById('remoteVideo');
+  var remoteAudio   = document.getElementById('remoteAudio');
   var localVideo    = document.getElementById('localVideo');
   var muteBtn       = document.getElementById('muteBtn');
   var camBtn        = document.getElementById('camBtn');
@@ -143,28 +158,41 @@ function buildCallHtml(params) {
   var endBtn        = document.getElementById('endBtn');
   var errorBanner   = document.getElementById('errorBanner');
 
-  var localStream  = null;
-  var remoteStream = null;
-  var pc           = null;
-  var ws           = null;
-  var iceServers   = [
-    { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun1.l.google.com:19302' },
-    { urls: 'stun:stun2.l.google.com:19302' }
-  ];
+  var localStream   = null;
+  var remoteStream  = null;
+  var pc            = null;
+  var ws            = null;
+  // TURN fallback identical to the web admin's. Keeps calls working on carrier
+  // NAT where STUN alone fails.
+  function turnFallback() {
+    var u = atob('ZThkZDY1YjkyYWY0ZDEyZWYwZWQzYjg2');
+    var c = atob('dVdkV05ta2h2eXFURXN3Tw==');
+    return [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:stun2.l.google.com:19302' },
+      { urls: 'turn:a.relay.metered.ca:80', username: u, credential: c },
+      { urls: 'turn:a.relay.metered.ca:443', username: u, credential: c },
+      { urls: 'turn:a.relay.metered.ca:443?transport=tcp', username: u, credential: c }
+    ];
+  }
+  var iceServers   = turnFallback();
   var iceCandQueue = [];
   var remoteSet    = false;
   var callStartedAt = 0;
   var timerInterval = null;
+  var pollInterval = null;
   var ended        = false;
   var muted        = false;
   var camOff       = false;
   var currentFacing = 'user';
+  var seenNotifIds = {};
 
   function setState(s) {
     if (stateEl) stateEl.textContent = s;
     if (audioStatusEl) audioStatusEl.textContent = s;
   }
+  function setDebug(s) { if (debugEl) debugEl.textContent = s; }
   function showError(msg) {
     errorBanner.textContent = msg;
     errorBanner.classList.remove('hidden');
@@ -186,7 +214,13 @@ function buildCallHtml(params) {
     return fetch(API_URL + path, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + TOKEN },
-      body: JSON.stringify(body)
+      body: JSON.stringify(body || {})
+    });
+  }
+  function postBackendQuery(path) {
+    return fetch(API_URL + path, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + TOKEN }
     });
   }
   function getBackend(path) {
@@ -199,61 +233,97 @@ function buildCallHtml(params) {
     }).catch(function(){});
   }
 
+  // Optional fast-path WS — backend relays {type, target_id, data} to the peer.
+  // If WS fails, the notification poller takes over the signaling.
   function connectWS() {
+    if (!MY_USER_ID) return;
     try {
-      var wsUrl = API_URL.replace(/^http/, 'ws') + '/ws/signaling?token=' + encodeURIComponent(TOKEN);
+      var wsUrl = API_URL.replace(/^http/, 'ws') + '/ws/webrtc/' + encodeURIComponent(MY_USER_ID) + '?token=' + encodeURIComponent(TOKEN);
       ws = new WebSocket(wsUrl);
-      ws.onopen = function(){ /* connected */ };
+      ws.onopen = function(){ setDebug('ws connected'); };
       ws.onmessage = function(ev) {
         try {
           var m = JSON.parse(ev.data);
-          if (m.type === 'answer' && m.sdp && pc) {
-            if (!remoteSet) {
-              pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: m.sdp }))
-                .then(function(){ remoteSet = true; drainCandidates(); })
-                .catch(function(e){ console.log('setRemote (answer) failed', e); });
-            }
-          } else if (m.type === 'ice_candidate' && m.candidate && pc) {
-            var cand = new RTCIceCandidate({ candidate: m.candidate, sdpMid: m.sdp_mid, sdpMLineIndex: m.sdp_m_line_index });
-            if (remoteSet) { pc.addIceCandidate(cand).catch(function(){}); }
-            else { iceCandQueue.push(cand); }
+          var data = m.data || {};
+          if (m.type === 'answer' && data.sdp) {
+            applyAnswer(data.sdp);
+          } else if (m.type === 'offer' && data.sdp) {
+            // unexpected on this side, but accept it if pc has no remote yet
+            applyOffer(data.sdp);
+          } else if (m.type === 'ice_candidate' && data.candidate) {
+            queueIce({ candidate: data.candidate, sdpMid: data.sdp_mid, sdpMLineIndex: data.sdp_m_line_index });
           } else if (m.type === 'call_ended' || m.type === 'hangup') {
-            endCall();
+            endCall(true);
           }
-        } catch (_) {}
+        } catch(_) {}
       };
-      ws.onerror = function(){};
-      ws.onclose = function(){};
+      ws.onerror = function(){ setDebug('ws error'); };
+      ws.onclose = function(){ setDebug('ws closed'); };
     } catch(_) {}
   }
 
-  function wsSend(type, body) {
+  function wsSend(type, data) {
     try {
       if (ws && ws.readyState === 1) {
-        ws.send(JSON.stringify(Object.assign({ type: type, to_user_id: PEER_ID }, body)));
+        ws.send(JSON.stringify({ type: type, target_id: PEER_ID, data: data }));
         return true;
       }
     } catch(_) {}
     return false;
   }
 
+  function queueIce(candidateInit) {
+    var cand;
+    try { cand = new RTCIceCandidate(candidateInit); } catch(_) { return; }
+    if (pc && remoteSet) {
+      pc.addIceCandidate(cand).catch(function(e){ setDebug('addIce err: ' + (e && e.message)); });
+    } else {
+      iceCandQueue.push(cand);
+    }
+  }
   function drainCandidates() {
     while (iceCandQueue.length && pc && remoteSet) {
       var c = iceCandQueue.shift();
-      try { pc.addIceCandidate(c); } catch(_){}
+      try { pc.addIceCandidate(c).catch(function(){}); } catch(_){}
     }
   }
 
-  function endCall() {
+  function applyAnswer(sdp) {
+    if (!pc || remoteSet) return;
+    if (!sdp || typeof sdp !== 'string' || sdp.indexOf('v=0') !== 0) return;
+    if (pc.signalingState !== 'have-local-offer') return;
+    pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: sdp }))
+      .then(function(){ remoteSet = true; drainCandidates(); setDebug('remote answer applied'); })
+      .catch(function(e){ setDebug('setRemote(answer) err: ' + (e && e.message)); });
+  }
+  function applyOffer(sdp) {
+    if (!pc || remoteSet) return;
+    if (!sdp || typeof sdp !== 'string' || sdp.indexOf('v=0') !== 0) return;
+    pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: sdp }))
+      .then(function(){
+        remoteSet = true; drainCandidates();
+        return pc.setLocalDescription();
+      })
+      .then(function(){
+        var ans = pc.localDescription;
+        wsSend('answer', { sdp: ans.sdp, call_id: CALL_ID });
+        return postBackend('/api/webrtc/answer', { call_id: CALL_ID, caller_user_id: PEER_ID, sdp: ans.sdp });
+      })
+      .catch(function(e){ setDebug('answer flow err: ' + (e && e.message)); });
+  }
+
+  function endCall(remoteInitiated) {
     if (ended) return; ended = true;
     setState('Call ended');
     try { if (timerInterval) clearInterval(timerInterval); } catch(_){}
+    try { if (pollInterval) clearInterval(pollInterval); } catch(_){}
     try { if (localStream) localStream.getTracks().forEach(function(t){ t.stop(); }); } catch(_){}
     try { if (pc) pc.close(); } catch(_){}
     try { if (ws) ws.close(); } catch(_){}
-    // Notify backend / peer
-    try { postBackend('/api/webrtc/end-call', { peer_user_id: parseInt(PEER_ID), call_id: CALL_ID }).catch(function(){}); } catch(_){}
-    try { wsSend('hangup', { call_id: CALL_ID }); } catch(_){}
+    // Notify backend / peer. Backend takes target_user_id as a QUERY param.
+    if (!remoteInitiated && PEER_ID) {
+      try { postBackendQuery('/api/webrtc/end-call?target_user_id=' + PEER_ID).catch(function(){}); } catch(_){}
+    }
     // Tell native shell to close the WebView
     try {
       if (window.ReactNativeWebView) window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'call_ended' }));
@@ -272,15 +342,15 @@ function buildCallHtml(params) {
 
   function buildPC() {
     pc = new RTCPeerConnection({ iceServers: iceServers, iceCandidatePoolSize: 10 });
-    localStream.getTracks().forEach(function(t){ pc.addTrack(t, localStream); });
+    if (localStream) localStream.getTracks().forEach(function(t){ pc.addTrack(t, localStream); });
     pc.ontrack = function(ev) {
       remoteStream = ev.streams[0];
-      remoteVideo.srcObject = remoteStream;
-      // Even for audio calls, we attach the audio track to the (hidden) remote
-      // video element so it plays through speakers.
-      if (CALL_TYPE === 'audio') {
-        remoteVideo.classList.remove('hidden');
-        remoteVideo.style.opacity = '0';
+      if (CALL_TYPE === 'video') {
+        remoteVideo.srcObject = remoteStream;
+      } else {
+        // Audio call — pipe to <audio> so phone speaker plays it.
+        remoteAudio.srcObject = remoteStream;
+        try { remoteAudio.play().catch(function(){}); } catch(_){}
       }
     };
     pc.onicecandidate = function(ev) {
@@ -290,67 +360,127 @@ function buildCallHtml(params) {
         candidate: c.candidate, sdp_mid: c.sdpMid, sdp_m_line_index: c.sdpMLineIndex
       });
       if (!sent) {
-        postBackend('/api/webrtc/ice-candidate', {
-          peer_user_id: parseInt(PEER_ID),
+        // HTTP fallback to backend ICE endpoint.
+        postBackend('/api/webrtc/candidate', {
+          target_user_id: PEER_ID,
           candidate: c.candidate, sdp_mid: c.sdpMid, sdp_m_line_index: c.sdpMLineIndex
         }).catch(function(){});
       }
     };
     pc.onconnectionstatechange = function() {
       var s = pc.connectionState;
+      setDebug('state: ' + s);
       if (s === 'connected') { setState('Connected'); startTimer(); }
       else if (s === 'failed') { setState('Connection failed'); showError('Connection failed — please try again.'); }
       else if (s === 'disconnected') { setState('Reconnecting…'); }
     };
     pc.oniceconnectionstatechange = function() {
+      setDebug('ice: ' + pc.iceConnectionState);
       if (pc.iceConnectionState === 'failed') { try { pc.restartIce(); } catch(_){} }
     };
   }
 
+  // Notification poller — primary signaling channel (works even when WS doesn't).
+  function startNotifPoll() {
+    if (pollInterval) clearInterval(pollInterval);
+    pollInterval = setInterval(function() {
+      if (ended) return;
+      getBackend('/api/notifications').then(function(r){ return r.json(); }).then(function(notifications){
+        if (!Array.isArray(notifications)) return;
+        for (var i = 0; i < notifications.length; i++) {
+          var n = notifications[i];
+          if (seenNotifIds[n.id]) continue;
+          if (n.is_read) { seenNotifIds[n.id] = true; continue; }
+          var data; try { data = JSON.parse(n.message); } catch(_) { data = {}; }
+          var consume = false;
+          if (n.notification_type === 'call_answered' && data.sdp) {
+            applyAnswer(data.sdp);
+            consume = true;
+          } else if (n.notification_type === 'incoming_call' && MODE === 'answer' && !remoteSet && data.sdp) {
+            // Backup path for incoming side if we missed pending-calls
+            CALL_ID = data.call_id || CALL_ID;
+            applyOffer(data.sdp);
+            consume = true;
+          } else if (n.notification_type === 'ice_candidate' && data.candidate) {
+            queueIce({ candidate: data.candidate, sdpMid: data.sdp_mid, sdpMLineIndex: data.sdp_m_line_index });
+            consume = true;
+          } else if (n.notification_type === 'call_ended') {
+            endCall(true);
+            consume = true;
+          }
+          if (consume) {
+            seenNotifIds[n.id] = true;
+            try { fetch(API_URL + '/api/notifications/' + n.id + '/read', { method: 'POST', headers: { 'Authorization': 'Bearer ' + TOKEN } }); } catch(_){}
+          }
+        }
+      }).catch(function(e){ setDebug('poll err: ' + (e && e.message)); });
+    }, 1500);
+  }
+
   async function placeOutgoing() {
     setState('Calling…');
-    await getMedia();
+    try { await getMedia(); } catch(e) { showError('Mic/camera blocked: ' + (e && e.message)); setState('Permission denied'); return; }
     buildPC();
     var offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: CALL_TYPE === 'video' });
     await pc.setLocalDescription(offer);
     connectWS();
+    startNotifPoll();
+    setDebug('sending offer to peer ' + PEER_ID);
     var resp = await postBackend('/api/webrtc/offer', {
-      target_user_id: parseInt(PEER_ID),
+      target_user_id: PEER_ID,
       sdp: pc.localDescription.sdp,
       call_type: CALL_TYPE
     });
-    var data = await resp.json().catch(function(){return {};});
-    if (data && data.call_id) CALL_ID = data.call_id;
+    try {
+      var data = await resp.json();
+      if (data && data.call_id) CALL_ID = data.call_id;
+      setDebug('offer ok, call_id=' + CALL_ID);
+    } catch(_) {}
   }
 
   async function answerIncoming() {
     setState('Connecting…');
-    await getMedia();
+    try { await getMedia(); } catch(e) { showError('Mic/camera blocked: ' + (e && e.message)); setState('Permission denied'); return; }
     buildPC();
     connectWS();
+    startNotifPoll();
+    // Pull the offer SDP from pending-calls.
     var pending = await getBackend('/api/webrtc/pending-calls').then(function(r){return r.json();}).catch(function(){return {};});
     var offerSdp = null;
     if (pending && pending.pending_calls && pending.pending_calls.length) {
-      var first = pending.pending_calls[0];
-      offerSdp = first.sdp;
-      if (!CALL_ID) CALL_ID = first.call_id || '';
-    }
-    if (!offerSdp) {
-      // Fallback to notifications
-      var notif = await getBackend('/api/notifications').then(function(r){return r.json();}).catch(function(){return [];});
-      for (var i = 0; i < notif.length; i++) {
-        if (notif[i].notification_type === 'incoming_call') {
-          try { var d = JSON.parse(notif[i].message); offerSdp = d.sdp; break; } catch(_){}
+      // Find the call from our peer (or the first one)
+      for (var i = 0; i < pending.pending_calls.length; i++) {
+        var pc2 = pending.pending_calls[i];
+        if (!PEER_ID || pc2.caller_id === PEER_ID) {
+          offerSdp = pc2.sdp;
+          if (!CALL_ID) CALL_ID = pc2.call_id || '';
+          if (!PEER_ID) PEER_ID = pc2.caller_id;
+          break;
         }
       }
     }
-    if (!offerSdp) { setState('Call unavailable'); showError('Could not retrieve incoming call. Please try again.'); return; }
-    await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: offerSdp }));
-    remoteSet = true; drainCandidates();
-    await pc.setLocalDescription();
-    var ans = pc.localDescription;
-    wsSend('answer', { sdp: ans.sdp, call_id: CALL_ID });
-    await postBackend('/api/webrtc/answer', { call_id: CALL_ID, caller_user_id: parseInt(PEER_ID), sdp: ans.sdp }).catch(function(){});
+    if (!offerSdp) {
+      // Fallback: pull from notifications
+      var notif = await getBackend('/api/notifications').then(function(r){return r.json();}).catch(function(){return [];});
+      for (var j = 0; j < notif.length; j++) {
+        if (notif[j].notification_type === 'incoming_call') {
+          try {
+            var d = JSON.parse(notif[j].message);
+            offerSdp = d.sdp;
+            if (!CALL_ID) CALL_ID = d.call_id || '';
+            if (!PEER_ID) PEER_ID = d.caller_id;
+            break;
+          } catch(_){}
+        }
+      }
+    }
+    if (!offerSdp) {
+      setState('Call unavailable');
+      showError('No incoming offer found. Ask caller to retry.');
+      return;
+    }
+    setDebug('got offer, applying…');
+    applyOffer(offerSdp);
   }
 
   muteBtn.addEventListener('click', function() {
@@ -382,13 +512,13 @@ function buildCallHtml(params) {
       localVideo.srcObject = localStream;
     } catch(e) { /* ignore */ }
   });
-  endBtn.addEventListener('click', function() { endCall(); });
+  endBtn.addEventListener('click', function() { endCall(false); });
 
   // Bootstrap.
   loadIceServers().then(function() {
     return MODE === 'answer' ? answerIncoming() : placeOutgoing();
   }).catch(function(e) {
-    console.log('call setup failed', e);
+    setDebug('boot err: ' + (e && e.message));
     showError('Could not start the call: ' + (e && e.message ? e.message : 'unknown error'));
     setState('Call failed');
   });

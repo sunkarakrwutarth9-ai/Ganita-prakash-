@@ -27,13 +27,13 @@ const CHAPTERS_7 = [
   { number: '6', title: 'Number Play' },
   { number: '7', title: 'A Tale of Three Intersecting Lines' },
   { number: '8', title: 'Working with Fractions' },
-  { number: '9', title: 'Constructions' },
-  { number: '10', title: 'Computer Algorithms' },
-  { number: '11', title: 'Comparing Quantities' },
-  { number: '12', title: 'Symmetry' },
-  { number: '13', title: 'Visualising Solid Shapes' },
-  { number: '14', title: 'Cube and Cuboid' },
-  { number: '15', title: 'Rational Numbers' },
+  { number: '9', title: 'Geometric Twins' },
+  { number: '10', title: 'Operations with Integers' },
+  { number: '11', title: 'Finding Common Ground' },
+  { number: '12', title: 'Another Peek Beyond the Point' },
+  { number: '13', title: 'Connecting the Dots' },
+  { number: '14', title: 'Constructions and Tilings' },
+  { number: '15', title: 'Finding the Unknown' },
 ];
 
 // Optional: per-chapter YouTube video IDs. Empty for now → cards render
