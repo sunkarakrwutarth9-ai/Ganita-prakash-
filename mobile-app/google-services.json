@@ -7,7 +7,7 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:624055621679:android:4d5321e8bb2c2dd75f8eda",
+        "mobilesdk_app_id": "1:624055621679:android:3d15161e07e9b5a85f8eda",
         "android_client_info": {
           "package_name": "com.cbseai.ganitaprakash"
         }
@@ -28,7 +28,7 @@
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyDux5CRyHqN0kX1O0rIWzTA4DtjYl3RKp0"
+          "current_key": "AIzaSyAJdaMV0yuhNpO48_xctAFk_KZbGRN29lc"
         }
       ],
       "services": {
