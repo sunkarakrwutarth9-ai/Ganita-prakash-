@@ -827,51 +827,9 @@ const openPDF = async (chapterId, title, setShowPdfViewer, setPdfBase64, setPdfT
       return;
     }
     
-    // Fallback to local PDF files
-    // Show loading indicator
-    Alert.alert('Loading', 'Opening PDF...', [], { cancelable: false });
-    
-    // Try to load the PDF asset
-    const pdfAssets = {
-      1: require('./assets/ppts/chapter1_ppt.pdf'),
-      2: require('./assets/ppts/chapter2_ppt.pdf'),
-      3: require('./assets/ppts/chapter3_ppt.pdf'),
-      4: require('./assets/ppts/chapter4_ppt.pdf'),
-      5: require('./assets/ppts/chapter5_ppt.pdf'),
-      6: require('./assets/ppts/chapter6_ppt.pdf'),
-      7: require('./assets/ppts/chapter7_ppt.pdf'),
-      8: require('./assets/ppts/chapter8_ppt.pdf'),
-      9: require('./assets/ppts/chapter9_ppt.pdf'),
-      10: require('./assets/ppts/chapter10_ppt.pdf'),
-    };
-    
-    const asset = Asset.fromModule(pdfAssets[chapterId]);
-    await asset.downloadAsync();
-    
-    const sourceUri = asset.localUri || asset.uri;
-    const destUri = FileSystem.documentDirectory + `chapter${chapterId}.pdf`;
-    
-    // Always copy fresh to avoid corruption
-    try {
-      await FileSystem.deleteAsync(destUri, { idempotent: true });
-    } catch (e) {}
-    await FileSystem.copyAsync({ from: sourceUri, to: destUri });
-    
-    // Read PDF as base64 for inbuilt viewer
-    const base64 = await FileSystem.readAsStringAsync(destUri, {
-      encoding: FileSystem.EncodingType.Base64,
-    });
-    
-    // Show inbuilt PDF viewer
-    if (setShowPdfViewer && setPdfBase64 && setPdfTitle) {
-      setPdfBase64(base64);
-      setPdfTitle(title || `Chapter ${chapterId} PPT`);
-      setShowPdfViewer(true);
-    } else if (globalSetShowPdfViewer && globalSetPdfBase64 && globalSetPdfTitle) {
-      globalSetPdfBase64(base64);
-      globalSetPdfTitle(title || `Chapter ${chapterId} PPT`);
-      globalSetShowPdfViewer(true);
-    }
+    // No local PDF files bundled — show coming soon
+    Alert.alert('Coming Soon', `PPT for ${title || 'Chapter ' + chapterId} will be available soon!`);
+    return;
   } catch (error) {
     console.log('PDF open error:', error);
     Alert.alert(
@@ -882,19 +840,8 @@ const openPDF = async (chapterId, title, setShowPdfViewer, setPdfBase64, setPdfT
   }
 };
 
-// Video assets for each chapter
-const videoAssets = {
-  1: require('./assets/videos/chapter1_video.mp4'),
-  2: require('./assets/videos/chapter2_video.mp4'),
-  3: require('./assets/videos/chapter3_video.mp4'),
-  4: require('./assets/videos/chapter4_video.mp4'),
-  5: require('./assets/videos/chapter5_video.mp4'),
-  6: require('./assets/videos/chapter6_video.mp4'),
-  7: require('./assets/videos/chapter7_video.mp4'),
-  8: require('./assets/videos/chapter8_video.mp4'),
-  9: require('./assets/videos/chapter9_video.mp4'),
-  10: require('./assets/videos/chapter10_video.mp4'),
-};
+// Video assets placeholder — no local videos bundled yet
+const videoAssets = {};
 
 // Global state for Video viewer (will be set by App component)
 let globalSetShowVideoPlayer = null;
@@ -927,33 +874,9 @@ const openVideo = async (chapterId, title, setShowVideoPlayer, setVideoBase64, s
       return;
     }
     
-    // Fallback to local video files
-    Alert.alert('Loading', 'Opening Video...', [], { cancelable: false });
-    
-    const asset = Asset.fromModule(videoAssets[chapterId]);
-    await asset.downloadAsync();
-    
-    const sourceUri = asset.localUri || asset.uri;
-    const destUri = FileSystem.documentDirectory + `chapter${chapterId}_video.mp4`;
-    
-    try {
-      await FileSystem.deleteAsync(destUri, { idempotent: true });
-    } catch (e) {}
-    await FileSystem.copyAsync({ from: sourceUri, to: destUri });
-    
-    const base64 = await FileSystem.readAsStringAsync(destUri, {
-      encoding: FileSystem.EncodingType.Base64,
-    });
-    
-    if (setShowVideoPlayer && setVideoBase64 && setVideoTitle) {
-      setVideoBase64(base64);
-      setVideoTitle(title || `Chapter ${chapterId} Video`);
-      setShowVideoPlayer(true);
-    } else if (globalSetShowVideoPlayer && globalSetVideoBase64 && globalSetVideoTitle) {
-      globalSetVideoBase64(base64);
-      globalSetVideoTitle(title || `Chapter ${chapterId} Video`);
-      globalSetShowVideoPlayer(true);
-    }
+    // No local video files bundled — show coming soon
+    Alert.alert('Coming Soon', `Video for ${title || 'Chapter ' + chapterId} will be available soon!`);
+    return;
   } catch (error) {
     console.log('Video open error:', error);
     Alert.alert(
