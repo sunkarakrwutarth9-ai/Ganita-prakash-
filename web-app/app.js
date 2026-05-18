@@ -9608,6 +9608,71 @@ function stopUserChatRefresh() {
     }
 }
 
+// Robust getUserMedia helper — retries with relaxed constraints on failure
+async function acquireMediaStream(callType) {
+    // Release any existing local stream first to free the device
+    if (localStream) {
+        try { localStream.getTracks().forEach(function(t) { t.stop(); }); } catch(_) {}
+        localStream = null;
+    }
+
+    // Check if mediaDevices API is available
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Your browser does not support audio/video calls. Please use Chrome or Edge.');
+    }
+
+    // Check if any audio input device exists
+    try {
+        var devices = await navigator.mediaDevices.enumerateDevices();
+        var hasAudio = devices.some(function(d) { return d.kind === 'audioinput'; });
+        if (!hasAudio) {
+            throw new Error('No microphone found. Please connect a microphone and try again.');
+        }
+    } catch(enumErr) {
+        console.warn('Device enumeration failed:', enumErr);
+    }
+
+    var constraints = callType === 'video'
+        ? { video: true, audio: true }
+        : { video: false, audio: true };
+
+    // First attempt
+    try {
+        return await navigator.mediaDevices.getUserMedia(constraints);
+    } catch(firstErr) {
+        console.warn('getUserMedia attempt 1 failed:', firstErr.name, firstErr.message);
+
+        // If video+audio failed, retry audio-only
+        if (callType === 'video') {
+            try {
+                var audioOnly = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
+                alert('Camera not available — continuing with audio only.');
+                return audioOnly;
+            } catch(audioErr) {
+                console.warn('Audio-only fallback also failed:', audioErr.name, audioErr.message);
+            }
+        }
+
+        // Retry with minimal constraints after a short delay
+        await new Promise(function(r) { setTimeout(r, 500); });
+        try {
+            return await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        } catch(retryErr) {
+            console.error('All getUserMedia attempts failed:', retryErr);
+            // Provide a specific error message based on the error type
+            if (retryErr.name === 'NotAllowedError' || retryErr.name === 'PermissionDeniedError') {
+                throw new Error('Microphone permission denied. Please click the lock icon in the address bar, allow microphone access, and reload the page.');
+            } else if (retryErr.name === 'NotFoundError') {
+                throw new Error('No microphone found. Please connect a microphone and try again.');
+            } else if (retryErr.name === 'NotReadableError' || retryErr.message.indexOf('Could not start') !== -1) {
+                throw new Error('Microphone is busy or unavailable. Please close other apps using the mic (Zoom, Teams, Discord, etc.), then try again.');
+            } else {
+                throw retryErr;
+            }
+        }
+    }
+}
+
 // User voice call function
 function userVoiceCall() {
     initiateUserCallWithWebRTC('audio');
@@ -9624,12 +9689,7 @@ async function initiateUserCallWithWebRTC(callType) {
     currentCallType = callType;
     
     try {
-        // Get local media stream
-        var constraints = callType === 'video' 
-            ? { video: true, audio: true } 
-            : { video: false, audio: true };
-        
-        localStream = await navigator.mediaDevices.getUserMedia(constraints);
+        localStream = await acquireMediaStream(callType);
         
         // Cleanup any existing peer connection
         if (peerConnection) { try { peerConnection.close(); } catch(e) {} peerConnection = null; }
@@ -9709,12 +9769,7 @@ async function initiateCallFromMobile(targetUserId, callType, existingCallId) {
     currentCallType = callType;
     
     try {
-        // Get local media stream
-        var constraints = callType === 'video' 
-            ? { video: true, audio: true } 
-            : { video: false, audio: true };
-        
-        localStream = await navigator.mediaDevices.getUserMedia(constraints);
+        localStream = await acquireMediaStream(callType);
         
         // Cleanup any existing peer connection
         if (peerConnection) { try { peerConnection.close(); } catch(e) {} peerConnection = null; }
@@ -9795,11 +9850,7 @@ async function answerCallFromMobile(callerId, callType, callId) {
     currentCallType = callType;
     
     try {
-        var constraints = callType === 'video' 
-            ? { video: true, audio: true } 
-            : { video: false, audio: true };
-        
-        localStream = await navigator.mediaDevices.getUserMedia(constraints);
+        localStream = await acquireMediaStream(callType);
         // Cleanup any existing peer connection
         if (peerConnection) { try { peerConnection.close(); } catch(e) {} peerConnection = null; }
         peerConnection = new RTCPeerConnection({ iceServers: sharedIceServers, iceCandidatePoolSize: 10 });
@@ -10941,8 +10992,7 @@ async function acceptIncomingCall() {
     currentCallUserId = callerId;
     currentCallType = callData.call_type || 'audio';
     try {
-        var constraints = currentCallType === 'video' ? { video: true, audio: true } : { video: false, audio: true };
-        localStream = await navigator.mediaDevices.getUserMedia(constraints);
+        localStream = await acquireMediaStream(currentCallType);
         // Cleanup any existing peer connection
         if (peerConnection) { try { peerConnection.close(); } catch(e) {} peerConnection = null; }
         peerConnection = new RTCPeerConnection({ iceServers: sharedIceServers, iceCandidatePoolSize: 10 });
@@ -11025,8 +11075,7 @@ async function initWebRTCCall(userId, callType) {
     currentCallUserId = userId;
     currentCallType = callType;
     try {
-        var constraints = callType === 'video' ? { video: true, audio: true } : { video: false, audio: true };
-        localStream = await navigator.mediaDevices.getUserMedia(constraints);
+        localStream = await acquireMediaStream(callType);
         // Cleanup any existing peer connection
         if (peerConnection) { try { peerConnection.close(); } catch(e) {} peerConnection = null; }
         peerConnection = new RTCPeerConnection({ iceServers: sharedIceServers, iceCandidatePoolSize: 10 });
