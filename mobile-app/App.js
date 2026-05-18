@@ -12288,10 +12288,9 @@ export default function App() {
     if (incomingCall) {
       Vibration.cancel();
       try {
-        await fetch(`${API_URL}/api/webrtc/end-call`, {
+        await fetch(`${API_URL}/api/webrtc/end-call?target_user_id=${incomingCall.callerId}`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-          body: JSON.stringify({ call_id: incomingCall.callId })
+          headers: { 'Authorization': `Bearer ${authToken}` },
         });
       } catch (error) {
         console.log('Error declining call:', error);
@@ -13322,6 +13321,7 @@ export default function App() {
                 setIsFinalExam(true);
                 setExamPhase('mcq');
                 setPenPaperAnswers({});
+                setPenPaperPhotos({});
                 setScreen('quiz');
               }}]
             );
@@ -13442,7 +13442,7 @@ export default function App() {
     
     const maxScore = totalQuestions;
     const percentage = Math.round((finalScore / maxScore) * 100);
-    const passed = finalScore >= 35; // Pass if 35+ out of 40 questions correct
+    const passed = percentage >= 80; // Pass if 80%+ correct (consistent with final exam)
 
     if (passed) {
       const newProgress = { ...chapterProgress, [currentChapter.id]: 'completed' };
@@ -15066,17 +15066,15 @@ export default function App() {
       setCallStatus('Call failed');
       Alert.alert('Error', 'Network error. Please check your connection.');
     }
-    setTimeout(() => { setCallingUser(null); setCallStatus(''); setActiveCall(null); setCallType(null); }, 5000);
   };
 
   // Function to end WebRTC call
   const endWebRTCCall = async () => {
-    if (activeCall) {
+    if (callingUser && callingUser.id) {
       try {
-        await fetch(`${API_URL}/api/webrtc/end-call`, {
+        await fetch(`${API_URL}/api/webrtc/end-call?target_user_id=${callingUser.id}`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify({ call_id: activeCall })
+          headers: { 'Authorization': `Bearer ${authToken}` },
         });
       } catch (error) {
         console.log('Error ending call:', error);
@@ -15095,7 +15093,7 @@ export default function App() {
     try {
       const response = await fetch(`${API_URL}/admin/gemini-call`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
         body: JSON.stringify({ user_id: user.id, action: 'initiate_call' })
       });
       if (response.ok) {
