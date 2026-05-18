@@ -11914,6 +11914,8 @@ export default function App() {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [profileNameInput, setProfileNameInput] = useState('');
   const [profileSaving, setProfileSaving] = useState(false);
+  const [profilePicture, setProfilePicture] = useState(null); // base64 data URI
+  const [profilePicUploading, setProfilePicUploading] = useState(false);
   const [selectedClass, setSelectedClass] = useState('6'); // '6' or '7'
   // Sync the module-level currentClass ref so top-level helpers (openPDF/openVideo) resolve the correct media map
   useEffect(() => { setCurrentClassRef(selectedClass); }, [selectedClass]);
@@ -12388,9 +12390,85 @@ export default function App() {
         setIsLoggedIn(true);
         setScreen('home');
         loadData();
+        fetchProfileFromServer(token);
       }
     } catch (e) {
       console.log('Auth check error:', e);
+    }
+  };
+
+  // Pull the latest profile (including profile_picture) from the backend.
+  // Safe to call after any login or app resume.
+  const fetchProfileFromServer = async (tokenOverride) => {
+    try {
+      const token = tokenOverride || authToken;
+      if (!token) return;
+      const res = await fetch(`${API_URL}/api/auth/me`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (!res.ok) return;
+      const me = await res.json();
+      if (me) {
+        if (me.profile_picture) setProfilePicture(me.profile_picture);
+        if (me.name) setStudentName(me.name);
+      }
+    } catch (e) {
+      console.log('fetchProfileFromServer error:', e);
+    }
+  };
+
+  // Open gallery/camera, downscale, and POST as a base64 data URI to
+  // /api/user/profile-picture. Updates UI optimistically.
+  const pickProfilePicture = async (source) => {
+    try {
+      if (source === 'camera') {
+        const perm = await ImagePicker.requestCameraPermissionsAsync();
+        if (!perm || perm.status !== 'granted') {
+          Alert.alert('Camera permission required', 'Grant camera access to take a profile photo.');
+          return;
+        }
+      } else {
+        const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!perm || perm.status !== 'granted') {
+          Alert.alert('Photos permission required', 'Grant access to photos to pick a profile picture.');
+          return;
+        }
+      }
+      const opts = {
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.6,
+        allowsEditing: true,
+        aspect: [1, 1],
+        base64: true,
+      };
+      const result = source === 'camera'
+        ? await ImagePicker.launchCameraAsync(opts)
+        : await ImagePicker.launchImageLibraryAsync(opts);
+      if (result.canceled || !result.assets || !result.assets[0]) return;
+      const asset = result.assets[0];
+      if (!asset.base64) {
+        Alert.alert('Error', 'Could not read image data.');
+        return;
+      }
+      const ext = (asset.uri || '').toLowerCase().endsWith('.png') ? 'png' : 'jpeg';
+      const dataUri = `data:image/${ext};base64,${asset.base64}`;
+      setProfilePicUploading(true);
+      setProfilePicture(dataUri); // optimistic
+      const res = await fetch(`${API_URL}/api/user/profile-picture`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+        body: JSON.stringify({ profile_picture: dataUri }),
+      });
+      if (!res.ok) {
+        let detail = '';
+        try { detail = (await res.text()).slice(0, 200); } catch(_) {}
+        Alert.alert('Upload failed', 'Could not save profile picture.' + (detail ? ('\n' + detail) : ''));
+      }
+    } catch (e) {
+      console.log('pickProfilePicture error:', e);
+      Alert.alert('Error', 'Failed to update profile picture.');
+    } finally {
+      setProfilePicUploading(false);
     }
   };
 
@@ -12421,6 +12499,7 @@ export default function App() {
         setIsLoggedIn(true);
         setScreen('home');
         loadData();
+        fetchProfileFromServer(data.access_token);
       } else {
         Alert.alert('Error', data.detail || 'Login failed');
       }
@@ -12451,6 +12530,7 @@ export default function App() {
         setIsAdmin(data.user.is_admin);
         setIsLoggedIn(true);
         setScreen('home');
+        fetchProfileFromServer(data.access_token);
       } else {
         Alert.alert('Error', data.detail || 'Registration failed');
       }
@@ -12623,11 +12703,14 @@ export default function App() {
         dataUri = `data:image/${ext};base64,${asset.base64}`;
       }
       setChatLoading(true);
+      // Send a SHORT placeholder as `content` (backend caps content size) and put
+      // the base64 data URI in `media_url`. Older builds sent the data URI as
+      // content and hit the 4000-char cap, which is why images silently failed.
       const response = await fetch(`${API_URL}/api/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
         body: JSON.stringify({
-          content: dataUri || (asset.uri || '[Image]'),
+          content: '[Image]',
           message_type: 'image',
           media_url: dataUri || asset.uri || null,
         }),
@@ -12635,7 +12718,9 @@ export default function App() {
       if (response.ok) {
         loadChatMessages();
       } else {
-        Alert.alert('Error', 'Failed to send image');
+        let detail = '';
+        try { detail = (await response.text()).slice(0, 200); } catch(_) {}
+        Alert.alert('Error', 'Failed to send image' + (detail ? ('\n' + detail) : ''));
       }
     } catch (e) {
       console.log('pickAndSendChatImage error:', e);
@@ -12653,25 +12738,31 @@ export default function App() {
         encoding: FileSystem.EncodingType.Base64,
       });
       
-      // Send to backend
+      // Carry the base64 audio in media_url as a data URI so the admin web
+      // chat can play it inline with a single <audio src=...>. The legacy
+      // voice_data field is also sent for backwards compatibility.
+      const audioDataUri = `data:audio/m4a;base64,${base64Audio}`;
       const response = await fetch(`${API_URL}/api/messages`, {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json', 
-          'Authorization': `Bearer ${authToken}` 
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           content: `[Voice Message - ${recordingDuration}s]`,
-          message_type: 'voice',
+          message_type: 'audio',
+          media_url: audioDataUri,
           voice_data: base64Audio,
-          duration: recordingDuration
+          duration: recordingDuration,
         }),
       });
-      
+
       if (response.ok) {
         loadChatMessages();
       } else {
-        Alert.alert('Error', 'Failed to send voice message');
+        let detail = '';
+        try { detail = (await response.text()).slice(0, 200); } catch(_) {}
+        Alert.alert('Error', 'Failed to send voice message' + (detail ? ('\n' + detail) : ''));
       }
     } catch (error) {
       console.log('Send voice error:', error);
@@ -12680,7 +12771,7 @@ export default function App() {
     setChatLoading(false);
   };
   
-  const playVoiceMessage = async (voiceData, messageId) => {
+  const playVoiceMessage = async (voiceSrc, messageId) => {
     try {
       // Stop any currently playing audio
       if (soundRef.current) {
@@ -12698,10 +12789,14 @@ export default function App() {
         allowsRecordingIOS: false,
         playsInSilentModeIOS: true,
       });
-      
-      // Create and play sound from base64
+
+      // voiceSrc may be either a full data URI / http URL (preferred) or a raw
+      // base64 string from the legacy voice_data field. Normalize to a URI.
+      const uri = (typeof voiceSrc === 'string' && (voiceSrc.startsWith('data:') || voiceSrc.startsWith('http')))
+        ? voiceSrc
+        : `data:audio/m4a;base64,${voiceSrc}`;
       const { sound } = await Audio.Sound.createAsync(
-        { uri: `data:audio/m4a;base64,${voiceData}` },
+        { uri },
         { shouldPlay: true }
       );
       
@@ -12750,15 +12845,21 @@ export default function App() {
     setAiMessages(prev => [...prev, { role: 'assistant', content: 'Thinking...' }]);
     
     try {
-      // Use backend API for AI chat
+      // Use backend API for AI chat. We pass the student's selected class
+      // (6 or 7) so the assistant restricts itself to the right syllabus, and
+      // we prepend a Class label to the message as a belt-and-braces hint.
+      const classNum = selectedClass === '7' ? 7 : 6;
       const response = await fetch(`${API_URL}/api/ai/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}),
         },
         body: JSON.stringify({
-          message: userMessage + (currentChapter ? ` (Context: Chapter ${currentChapter.id} - ${currentChapter.title})` : ''),
-          chapter_id: currentChapter?.id || null
+          message: `[Class ${classNum} student] ` + userMessage +
+            (currentChapter ? ` (Context: Chapter ${currentChapter.id} - ${currentChapter.title})` : ''),
+          chapter_id: currentChapter?.id || null,
+          class_num: classNum,
         }),
       });
       
@@ -13946,7 +14047,9 @@ export default function App() {
     const questions = isFinalExam ? finalExamMCQ : currentChapter.questions;
     const question = questions[currentQuestion];
     const total = questions.length;
-    const section = isFinalExam ? (question.section || 'A') : null;
+    // Every quiz (chapter or final) uses the same 5-section schema. Chapter
+    // quizzes are pure MCQ → always Section A. The Final Exam mixes A/B/C/D/E.
+    const section = question.section || 'A';
     const sectionTitleByLetter = {
       A: 'Section A — MCQ (1 mark each)',
       B: 'Section B — Case-Based MCQ (1 mark each)'
@@ -13968,13 +14071,15 @@ export default function App() {
           </View>
         ) : null}
         <Text style={styles.sectionTitle}>
-          {isFinalExam ? 'Final Exam — ' + sectionTitleByLetter[section] : 'Chapter ' + currentChapter.number + ' Quiz'}
+          {isFinalExam
+            ? 'Final Exam — ' + sectionTitleByLetter[section]
+            : 'Chapter ' + currentChapter.number + ' Quiz — ' + (sectionTitleByLetter[section] || 'Section A')}
         </Text>
-        {isFinalExam ? (
-          <Text style={{color: '#94a3b8', fontSize: 12, marginBottom: 10, textAlign: 'center'}}>
-            Sections: A (MCQ) · B (Case-Based) · C/D/E follow with paper + photo upload
-          </Text>
-        ) : null}
+        <Text style={{color: '#94a3b8', fontSize: 12, marginBottom: 10, textAlign: 'center'}}>
+          {isFinalExam
+            ? 'Sections: A (MCQ) · B (Case-Based) · C/D/E follow with paper + photo upload'
+            : 'Section A — Multiple Choice. Final Exam adds B (Case-Based) + C/D/E (paper).'}
+        </Text>
 
         <View style={styles.progressContainer}>
           <View style={[styles.progressBar, { width: ((currentQuestion / total) * 100) + '%' }]} />
@@ -13992,13 +14097,11 @@ export default function App() {
         ) : null}
 
         <View style={styles.questionCard}>
-          {isFinalExam ? (
-            <Text style={{fontSize: 11, color: '#00d4ff', fontWeight: '700', letterSpacing: 1, marginBottom: 4}}>
-              SECTION {section} {section === 'A' ? '— MCQ' : '— CASE-BASED'}
-            </Text>
-          ) : null}
+          <Text style={{fontSize: 11, color: '#00d4ff', fontWeight: '700', letterSpacing: 1, marginBottom: 4}}>
+            SECTION {section} {section === 'A' ? '— MCQ' : section === 'B' ? '— CASE-BASED' : ''}
+          </Text>
           <Text style={styles.questionNumber}>
-            Question {currentQuestion + 1} {isFinalExam ? '(1 mark)' : ''}
+            Question {currentQuestion + 1} (1 mark)
           </Text>
           <Text style={styles.questionText}>{question.q}</Text>
 
@@ -14643,7 +14746,7 @@ export default function App() {
             item.sender_name === 'Master' || item.sender_name === 'Master Admin');
           const isPDF = item.message_type === 'pdf' || (item.content && item.content.toLowerCase().endsWith('.pdf'));
           const isImage = item.message_type === 'image' || (item.content && (item.content.toLowerCase().endsWith('.jpg') || item.content.toLowerCase().endsWith('.png')));
-          const isVoice = item.message_type === 'voice' || (item.content && item.content.startsWith('[Voice Message'));
+          const isVoice = item.message_type === 'voice' || item.message_type === 'audio' || (item.content && item.content.startsWith('[Voice Message'));
           
           return (
             <View style={[styles.chatBubble, isAdminMsg ? styles.adminBubble : styles.userBubble]}>
@@ -14684,7 +14787,12 @@ export default function App() {
                 })()
               ) : isVoice ? (
                 <TouchableOpacity 
-                  onPress={() => item.voice_data && playVoiceMessage(item.voice_data, index)}
+                  onPress={() => {
+                    // Prefer media_url (data URI) if present, otherwise fall back
+                    // to the legacy voice_data field.
+                    const audioSrc = item.media_url || (item.voice_data ? `data:audio/m4a;base64,${item.voice_data}` : null);
+                    if (audioSrc) playVoiceMessage(audioSrc, index);
+                  }}
                   style={{flexDirection: 'row', alignItems: 'center', padding: 8, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 20, minWidth: 150}}
                 >
                   <View style={{width: 36, height: 36, borderRadius: 18, backgroundColor: playingVoiceId === index ? '#FF5252' : '#00E5FF', justifyContent: 'center', alignItems: 'center', marginRight: 10}}>
@@ -15358,7 +15466,45 @@ export default function App() {
           <View style={[styles.modalContent, { maxWidth: 420 }]}>
             <Text style={styles.modalTitle}>Profile</Text>
 
-            <Text style={[styles.modalText, { marginTop: 8 }]}>Display Name</Text>
+            {/* Profile picture: avatar with Gallery/Camera buttons. Tapping
+                avatar opens gallery. */}
+            <View style={{ alignItems: 'center', marginTop: 8 }}>
+              <TouchableOpacity onPress={() => pickProfilePicture('gallery')} activeOpacity={0.8}>
+                {profilePicture ? (
+                  <Image
+                    source={{ uri: profilePicture }}
+                    style={{ width: 96, height: 96, borderRadius: 48, borderWidth: 2, borderColor: '#00E5FF', backgroundColor: '#222' }}
+                  />
+                ) : (
+                  <View style={{ width: 96, height: 96, borderRadius: 48, borderWidth: 2, borderColor: '#00E5FF', backgroundColor: 'rgba(0,229,255,0.12)', justifyContent: 'center', alignItems: 'center' }}>
+                    <Text style={{ fontSize: 36, color: '#00E5FF' }}>{(profileNameInput || studentName || '?').trim().charAt(0).toUpperCase() || '?'}</Text>
+                  </View>
+                )}
+                {profilePicUploading && (
+                  <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: 48 }}>
+                    <ActivityIndicator color="#00E5FF" />
+                  </View>
+                )}
+              </TouchableOpacity>
+              <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
+                <TouchableOpacity
+                  style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: 'rgba(0,229,255,0.12)', borderWidth: 1, borderColor: '#00E5FF' }}
+                  onPress={() => pickProfilePicture('gallery')}
+                  disabled={profilePicUploading}
+                >
+                  <Text style={{ color: '#00E5FF', fontWeight: '600' }}>Gallery</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: 'rgba(0,229,255,0.12)', borderWidth: 1, borderColor: '#00E5FF' }}
+                  onPress={() => pickProfilePicture('camera')}
+                  disabled={profilePicUploading}
+                >
+                  <Text style={{ color: '#00E5FF', fontWeight: '600' }}>Camera</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <Text style={[styles.modalText, { marginTop: 16 }]}>Display Name</Text>
             <TextInput
               style={styles.input}
               value={profileNameInput}

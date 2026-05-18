@@ -187,6 +187,8 @@ function buildCallHtml(params) {
   var camOff       = false;
   var currentFacing = 'user';
   var seenNotifIds = {};
+  var connectStartAt = 0;     // when we kicked off signaling
+  var didRelayFallback = false; // have we already retried with relay-only?
 
   function setState(s) {
     if (stateEl) stateEl.textContent = s;
@@ -369,14 +371,93 @@ function buildCallHtml(params) {
     };
     pc.onconnectionstatechange = function() {
       var s = pc.connectionState;
-      setDebug('state: ' + s);
+      setDebug('state: ' + s + ' / ice: ' + pc.iceConnectionState + ' / sig: ' + pc.signalingState);
       if (s === 'connected') { setState('Connected'); startTimer(); }
-      else if (s === 'failed') { setState('Connection failed'); showError('Connection failed — please try again.'); }
-      else if (s === 'disconnected') { setState('Reconnecting…'); }
+      else if (s === 'failed') {
+        setState('Connection failed');
+        showError('Connection failed — retrying with relay…');
+        retryWithRelayOnly();
+      }
+      else if (s === 'disconnected') {
+        // Transient mobile-network jitter is common — keep the call up. If we
+        // are STILL disconnected 8s later, only then surface the failure.
+        setState('Reconnecting…');
+        setTimeout(function() {
+          if (!ended && pc && (pc.connectionState === 'disconnected' || pc.connectionState === 'failed')) {
+            retryWithRelayOnly();
+          }
+        }, 8000);
+      }
+    };
+    pc.oniceconnectionstatechange = function() {
+      setDebug('ice: ' + pc.iceConnectionState + ' / state: ' + pc.connectionState);
+      if (pc.iceConnectionState === 'failed') {
+        try { pc.restartIce(); } catch(_){}
+        retryWithRelayOnly();
+      }
+    };
+  }
+
+  // If the call hasn't connected after a few seconds with the normal config,
+  // tear down the RTCPeerConnection and rebuild it forcing iceTransportPolicy
+  // 'relay'. This drops every direct-path candidate and uses TURN only, which
+  // is what the user's carrier NATs usually need. Idempotent — runs at most
+  // once per call.
+  function retryWithRelayOnly() {
+    if (didRelayFallback || ended) return;
+    didRelayFallback = true;
+    setDebug('retry: relay-only');
+    try { if (pc) pc.close(); } catch(_){}
+    pc = new RTCPeerConnection({ iceServers: iceServers, iceCandidatePoolSize: 10, iceTransportPolicy: 'relay' });
+    // Re-add tracks + handlers, then re-negotiate.
+    if (localStream) localStream.getTracks().forEach(function(t){ pc.addTrack(t, localStream); });
+    rebindPCHandlers();
+    remoteSet = false; iceCandQueue.length = 0;
+    if (MODE === 'answer') {
+      // Re-pull the offer and answer with relay-only.
+      answerIncoming();
+    } else {
+      // Caller path: create new offer.
+      pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: CALL_TYPE === 'video' })
+        .then(function(o){ return pc.setLocalDescription(o); })
+        .then(function(){
+          return postBackend('/api/webrtc/offer', {
+            target_user_id: PEER_ID, sdp: pc.localDescription.sdp, call_type: CALL_TYPE
+          });
+        })
+        .catch(function(e){ setDebug('relay-retry err: ' + (e && e.message)); });
+    }
+  }
+
+  function rebindPCHandlers() {
+    pc.ontrack = function(ev) {
+      remoteStream = ev.streams[0];
+      if (CALL_TYPE === 'video') remoteVideo.srcObject = remoteStream;
+      else {
+        remoteAudio.srcObject = remoteStream;
+        try { remoteAudio.play().catch(function(){}); } catch(_){}
+      }
+    };
+    pc.onicecandidate = function(ev) {
+      if (!ev.candidate) return;
+      var c = ev.candidate;
+      var sent = wsSend('ice_candidate', {
+        candidate: c.candidate, sdp_mid: c.sdpMid, sdp_m_line_index: c.sdpMLineIndex
+      });
+      if (!sent) {
+        postBackend('/api/webrtc/candidate', {
+          target_user_id: PEER_ID,
+          candidate: c.candidate, sdp_mid: c.sdpMid, sdp_m_line_index: c.sdpMLineIndex
+        }).catch(function(){});
+      }
+    };
+    pc.onconnectionstatechange = function() {
+      var s = pc.connectionState;
+      setDebug('state: ' + s + ' / ice: ' + pc.iceConnectionState);
+      if (s === 'connected') { setState('Connected'); startTimer(); }
     };
     pc.oniceconnectionstatechange = function() {
       setDebug('ice: ' + pc.iceConnectionState);
-      if (pc.iceConnectionState === 'failed') { try { pc.restartIce(); } catch(_){} }
     };
   }
 
@@ -516,6 +597,15 @@ function buildCallHtml(params) {
 
   // Bootstrap.
   loadIceServers().then(function() {
+    connectStartAt = Date.now();
+    // Connect watchdog: if we haven't reached 'connected' in 12s, force a
+    // relay-only retry. Most "ring but never connect" cases on student
+    // mobile networks recover after this.
+    setTimeout(function() {
+      if (!ended && pc && pc.connectionState !== 'connected') {
+        retryWithRelayOnly();
+      }
+    }, 12000);
     return MODE === 'answer' ? answerIncoming() : placeOutgoing();
   }).catch(function(e) {
     setDebug('boot err: ' + (e && e.message));

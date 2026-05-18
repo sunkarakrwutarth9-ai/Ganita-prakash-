@@ -16,6 +16,29 @@ function sanitizeHTML(str) {
     return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
 }
 
+// Render a chat message body. Inline-displays image and voice messages so
+// admins can see/hear them without leaving the panel. Only base64 data URIs
+// and same-origin URLs are allowed in src to keep this safe.
+function renderChatBody(msg) {
+    if (!msg) return '';
+    var t = (msg.message_type || '').toLowerCase();
+    var url = msg.media_url || '';
+    var isSafeUrl = typeof url === 'string' && (url.indexOf('data:image/') === 0 || url.indexOf('data:audio/') === 0 || url.indexOf('https://') === 0);
+    if (t === 'image' && isSafeUrl && url.indexOf('data:image/') === 0) {
+        return '<div style="margin-bottom:4px;"><img src="' + url + '" style="max-width:240px; max-height:240px; border-radius:8px; display:block; cursor:pointer;" onclick="window.open(this.src,\'_blank\')"></div>' +
+               (msg.content && msg.content !== '[Image]' ? '<div style="word-wrap:break-word; font-size:0.85em; opacity:0.85;">' + sanitizeHTML(msg.content) + '</div>' : '');
+    }
+    if ((t === 'audio' || t === 'voice') && isSafeUrl && url.indexOf('data:audio/') === 0) {
+        return '<div style="margin-bottom:4px;"><audio controls preload="none" src="' + url + '" style="max-width:240px;"></audio></div>' +
+               (msg.content && msg.content.indexOf('[Voice') !== 0 ? '<div style="word-wrap:break-word; font-size:0.85em; opacity:0.85;">' + sanitizeHTML(msg.content) + '</div>' : '');
+    }
+    if ((t === 'audio' || t === 'voice') && typeof msg.voice_data === 'string' && msg.voice_data.length > 100) {
+        var src = 'data:audio/m4a;base64,' + msg.voice_data;
+        return '<div style="margin-bottom:4px;"><audio controls preload="none" src="' + src + '" style="max-width:240px;"></audio></div>';
+    }
+    return '<div style="word-wrap:break-word;">' + sanitizeHTML(msg.content || '') + '</div>';
+}
+
 // Indian Festival Calendar 2026
 const indianFestivals2026 = [
     // January
@@ -9974,15 +9997,19 @@ async function askAI() {
     try {
         // Use the user's just-submitted message; backend handles system prompt and OpenRouter/Claude routing
         
-        // Call backend AI endpoint (uses OpenRouter Claude → Groq → Gemini fallback chain)
+        // Call backend AI endpoint (uses OpenRouter Claude → Groq → Gemini fallback chain).
+        // Pass the user's selected class so the assistant aligns with their syllabus.
+        var classNum = parseInt(localStorage.getItem('selectedClass') || (appState && appState.selectedClass) || '6', 10);
+        if (classNum !== 6 && classNum !== 7) classNum = 6;
         const response = await fetch(API_URL + '/api/ai/chat', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                message: content,
-                chapter_id: null
+                message: '[Class ' + classNum + ' student] ' + content,
+                chapter_id: null,
+                class_num: classNum
             })
         });
         
@@ -11757,19 +11784,17 @@ function renderChatMessages() {
     chatDiv.innerHTML = chatMessages.map(function(msg) {
         var isAdmin = msg.is_admin_reply;
         var time = new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-        
+        var bodyHtml = renderChatBody(msg);
         if (isAdmin) {
-            // Admin message - right side (green bubble like WhatsApp)
             return '<div style="display: flex; justify-content: flex-end; margin-bottom: 10px;">' +
                 '<div style="max-width: 70%; background: linear-gradient(135deg, #00a884, #008f72); padding: 10px 15px; border-radius: 15px 15px 0 15px; color: #fff;">' +
-                '<div style="word-wrap: break-word;">' + sanitizeHTML(msg.content) + '</div>' +
+                bodyHtml +
                 '<div style="text-align: right; font-size: 0.7em; color: rgba(255,255,255,0.7); margin-top: 5px;">' + time + '</div>' +
                 '</div></div>';
         } else {
-            // User message - left side (white/gray bubble)
             return '<div style="display: flex; justify-content: flex-start; margin-bottom: 10px;">' +
                 '<div style="max-width: 70%; background: rgba(255,255,255,0.1); padding: 10px 15px; border-radius: 15px 15px 15px 0; color: #fff;">' +
-                '<div style="word-wrap: break-word;">' + sanitizeHTML(msg.content) + '</div>' +
+                bodyHtml +
                 '<div style="text-align: right; font-size: 0.7em; color: rgba(255,255,255,0.5); margin-top: 5px;">' + time + '</div>' +
                 '</div></div>';
         }

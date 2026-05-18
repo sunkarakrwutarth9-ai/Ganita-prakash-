@@ -307,18 +307,25 @@ class MessageCreate(BaseModel):
     content: str
     message_type: str = "text"
     media_url: Optional[str] = None
+    voice_data: Optional[str] = None  # Legacy: APK <= v1.9.11 sent base64 audio here
+    duration: Optional[int] = None  # Voice message duration in seconds
     target_user_id: Optional[int] = None  # Optional; used by admin to reply to a specific student
 
     @field_validator("content")
     @classmethod
     def _v_content(cls, v: str) -> str:
-        return _sanitize_text(v, "content", 4000)
+        # Large limit so base64-encoded image/voice payloads (up to ~8MB) pass through.
+        # The strict 4000-char cap previously rejected every image and voice message.
+        return _sanitize_text(v, "content", 12_000_000)
 
     @field_validator("message_type")
     @classmethod
     def _v_type(cls, v: str) -> str:
+        # Accept both 'audio' and the legacy mobile 'voice' alias.
+        aliases = {"voice": "audio"}
         allowed = {"text", "image", "video", "audio", "file"}
         v = (v or "text").lower()
+        v = aliases.get(v, v)
         if v not in allowed:
             raise ValueError(f"message_type must be one of {sorted(allowed)}")
         return v
@@ -326,6 +333,7 @@ class MessageCreate(BaseModel):
 class AIChat(BaseModel):
     message: str
     chapter_id: Optional[int] = None
+    class_num: Optional[int] = None  # 6 or 7 — lets the prompt target the right syllabus
 
     @field_validator("message")
     @classmethod
@@ -491,8 +499,23 @@ async def login(user_data: UserLogin):
 
 @app.get("/api/auth/me")
 async def get_me(user: dict = Depends(get_current_user)):
-    return {"id": user["id"], "username": user["username"], "name": user["name"],
-        "is_admin": bool(user["is_admin"]), "platform": user["platform"]}
+    # Fetch the profile_picture column if present. Older deployments may not
+    # have this column yet, so handle the OperationalError gracefully.
+    profile_picture = None
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            db.row_factory = aiosqlite.Row
+            cursor = await db.execute("SELECT profile_picture FROM users WHERE id = ?", (user["id"],))
+            row = await cursor.fetchone()
+            if row and "profile_picture" in row.keys():
+                profile_picture = row["profile_picture"]
+    except Exception:
+        pass
+    return {
+        "id": user["id"], "username": user["username"], "name": user["name"],
+        "is_admin": bool(user["is_admin"]), "platform": user["platform"],
+        "profile_picture": profile_picture,
+    }
 
 class CheckUserRequest(BaseModel):
     email: str
@@ -546,6 +569,35 @@ async def update_user_name(name_data: NameUpdate, user: dict = Depends(get_curre
 class PasswordChange(BaseModel):
     current_password: str
     new_password: str
+
+class ProfilePicUpdate(BaseModel):
+    # Base64 data URI of the cropped/resized profile picture. The mobile app
+    # downscales to ~256x256 before sending, so payloads are typically <120KB.
+    profile_picture: str
+
+@app.post("/api/user/profile-picture")
+async def set_profile_picture(data: ProfilePicUpdate, user: dict = Depends(get_current_user)):
+    """Set or update the authenticated user's profile picture.
+
+    Stored inline in the users table as a base64 data URI so we don't need a
+    separate object-storage hop. Front-end (APK + web admin) reads it from
+    /api/auth/me and admin user list.
+    """
+    pic = (data.profile_picture or "").strip()
+    if not pic or not pic.startswith("data:image/"):
+        raise HTTPException(status_code=400, detail="profile_picture must be a base64 data URI")
+    if len(pic) > 2_000_000:
+        raise HTTPException(status_code=400, detail="profile_picture is too large (max ~1.5MB)")
+    async with aiosqlite.connect(DB_PATH) as db:
+        # Idempotent column add for existing deployments.
+        try:
+            await db.execute("ALTER TABLE users ADD COLUMN profile_picture TEXT")
+            await db.commit()
+        except Exception:
+            pass
+        await db.execute("UPDATE users SET profile_picture = ? WHERE id = ?", (pic, user["id"]))
+        await db.commit()
+    return {"status": "success", "profile_picture": pic}
 
 @app.post("/api/user/change-password")
 async def change_password(data: PasswordChange, user: dict = Depends(get_current_user)):
@@ -634,9 +686,34 @@ async def send_message(message_data: MessageCreate, user: dict = Depends(get_cur
 @app.post("/api/ai/chat")
 async def ai_chat(chat_data: AIChat, user: dict = Depends(get_optional_user)):
     try:
-        system_prompt = "You are an AI assistant for GANITA PRAKASH, a Class 6 NCERT Mathematics learning app. Help students understand mathematical concepts in simple terms. IMPORTANT: Keep your responses very concise - maximum 3 lines only. Be brief and to the point."
-        chapter_topics = {1: "Patterns in Mathematics", 2: "Lines and Angles", 3: "Number Play", 4: "Data Handling",
-            5: "Prime Time", 6: "Perimeter and Area", 7: "Fractions", 8: "Playing with Constructions", 9: "Symmetry", 10: "The Other Side of Zero"}
+        # Class-aware system prompt. The mobile app passes class_num (6 or 7); when
+        # absent we default to Class 6 to preserve old behaviour.
+        cls_num = chat_data.class_num if chat_data.class_num in (6, 7) else 6
+        class_label = f"Class {cls_num}"
+        system_prompt = (
+            f"You are the GANITA PRAKASH AI Tutor for NCERT {class_label} Mathematics. "
+            f"Answer ONLY in the context of the {class_label} Ganita Prakash syllabus — "
+            "use only the vocabulary, formulas, and difficulty appropriate for that class. "
+            "Explain concepts in simple terms, give a short worked example when useful, "
+            "and keep replies to 3-5 short lines unless the student explicitly asks for more."
+        )
+        chapter_topics_class6 = {
+            1: "Patterns in Mathematics", 2: "Lines and Angles", 3: "Number Play",
+            4: "Data Handling and Presentation", 5: "Prime Time", 6: "Perimeter and Area",
+            7: "Fractions", 8: "Playing with Constructions", 9: "Symmetry",
+            10: "The Other Side of Zero",
+        }
+        chapter_topics_class7 = {
+            1: "Large Numbers Around Us", 2: "Arithmetic Expressions",
+            3: "A Peek Beyond the Point", 4: "Expressions Using Letter-Numbers",
+            5: "Parallel and Intersecting Lines", 6: "Number Play",
+            7: "A Tale of Three Intersecting Lines", 8: "Working with Fractions",
+            9: "Geometric Twins", 10: "Operations with Integers",
+            11: "Finding Common Ground", 12: "Another Peek Beyond the Point",
+            13: "Connecting the Dots", 14: "Constructions and Tilings",
+            15: "Finding the Unknown",
+        }
+        chapter_topics = chapter_topics_class7 if cls_num == 7 else chapter_topics_class6
         if chat_data.chapter_id:
             system_prompt += f"\nCurrent chapter: {chapter_topics.get(chat_data.chapter_id, '')}"
         
@@ -823,22 +900,6 @@ class GeminiChatWithLanguage(BaseModel):
     message: str
     language: str = "en"
     chapter_id: Optional[int] = None
-
-@app.post("/api/admin/reply")
-async def admin_reply(reply_data: AdminReply, admin: dict = Depends(get_admin_user)):
-    async with aiosqlite.connect(DB_PATH) as db:
-        # Ensure target_user_id column exists
-        try:
-            await db.execute("ALTER TABLE messages ADD COLUMN target_user_id INTEGER")
-            await db.commit()
-        except:
-            pass  # Column already exists
-        # Insert admin reply with target_user_id set to the user being replied to
-        # user_id is admin's ID (1), target_user_id is the student's ID
-        await db.execute("INSERT INTO messages (user_id, content, message_type, is_admin_reply, target_user_id) VALUES (?, ?, 'text', TRUE, ?)",
-            (admin["id"], reply_data.message, reply_data.user_id))
-        await db.commit()
-        return {"status": "success", "message": "Reply sent"}
 
 @app.post("/api/admin/notify")
 async def admin_notify(notify_data: AdminNotify, admin: dict = Depends(get_admin_user)):
