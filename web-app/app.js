@@ -11173,8 +11173,10 @@ async function handleICECandidate(candidateData) {
 }
 
 var callPollInterval = null;
+var _seenCallNotifIds = {};
 function startPollingForCallUpdates() {
     if (callPollInterval) clearInterval(callPollInterval);
+    _seenCallNotifIds = {};
     callPollInterval = setInterval(async function() {
         try {
             var response = await fetch(API_URL + '/api/notifications', {
@@ -11184,6 +11186,8 @@ function startPollingForCallUpdates() {
                 var notifications = await response.json();
                 for (var i = 0; i < notifications.length; i++) {
                     var notif = notifications[i];
+                    if (notif.is_read || _seenCallNotifIds[notif.id]) continue;
+                    _seenCallNotifIds[notif.id] = true;
                     if (notif.notification_type === 'call_answered') {
                         var data = JSON.parse(notif.message);
                         handleCallAnswer(data.sdp);

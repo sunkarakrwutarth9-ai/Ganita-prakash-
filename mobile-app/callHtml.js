@@ -598,14 +598,14 @@ function buildCallHtml(params) {
   // Bootstrap.
   loadIceServers().then(function() {
     connectStartAt = Date.now();
-    // Connect watchdog: if we haven't reached 'connected' in 12s, force a
-    // relay-only retry. Most "ring but never connect" cases on student
-    // mobile networks recover after this.
+    // Connect watchdog: if we haven't reached 'connected' in 30s, force a
+    // relay-only retry. Needs to be long enough for the callee to see the
+    // incoming-call notification (polled every 3s) and tap Answer.
     setTimeout(function() {
       if (!ended && pc && pc.connectionState !== 'connected') {
         retryWithRelayOnly();
       }
-    }, 12000);
+    }, 30000);
     return MODE === 'answer' ? answerIncoming() : placeOutgoing();
   }).catch(function(e) {
     setDebug('boot err: ' + (e && e.message));
