@@ -11095,6 +11095,7 @@ export default function App() {
       callType: callType,
       callerName: callerName,
       callId: callId,
+      offerSdp: incomingCall.sdp || '',
     });
     setCallWebViewHtml(html);
     setCallWebViewUrl('');
@@ -11248,6 +11249,10 @@ export default function App() {
   // Safe to call after any login or app resume.
   const fetchProfileFromServer = async (tokenOverride) => {
     try {
+      // Load locally-cached profile picture first (instant, works offline).
+      const localPic = await AsyncStorage.getItem('profilePicture');
+      if (localPic) setProfilePicture(localPic);
+
       const token = tokenOverride || authToken;
       if (!token) return;
       const res = await fetch(`${API_URL}/api/auth/me`, {
@@ -11256,7 +11261,10 @@ export default function App() {
       if (!res.ok) return;
       const me = await res.json();
       if (me) {
-        if (me.profile_picture) setProfilePicture(me.profile_picture);
+        if (me.profile_picture) {
+          setProfilePicture(me.profile_picture);
+          try { await AsyncStorage.setItem('profilePicture', me.profile_picture); } catch(_) {}
+        }
         if (me.name) setStudentName(me.name);
       }
     } catch (e) {
@@ -11306,15 +11314,28 @@ export default function App() {
       }
       setProfilePicUploading(true);
       setProfilePicture(dataUri); // optimistic
-      const res = await fetch(`${API_URL}/api/user/profile-picture`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-        body: JSON.stringify({ profile_picture: dataUri }),
-      });
-      if (!res.ok) {
-        let detail = '';
-        try { detail = (await res.text()).slice(0, 200); } catch(_) {}
-        Alert.alert('Upload failed', 'Could not save profile picture.' + (detail ? ('\n' + detail) : ''));
+      // Always persist locally so the pic survives app restarts even if the
+      // backend endpoint is unavailable (e.g. older deployment without it).
+      try { await AsyncStorage.setItem('profilePicture', dataUri); } catch(_) {}
+      try {
+        const res = await fetch(`${API_URL}/api/user/profile-picture`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+          body: JSON.stringify({ profile_picture: dataUri }),
+        });
+        if (!res.ok) {
+          const status = res.status;
+          if (status === 404) {
+            // Backend doesn't have this endpoint yet — pic is saved locally.
+            console.log('profile-picture endpoint not deployed; saved locally');
+          } else {
+            let detail = '';
+            try { detail = (await res.text()).slice(0, 200); } catch(_) {}
+            Alert.alert('Upload failed', 'Could not sync profile picture to server.' + (detail ? ('\n' + detail) : ''));
+          }
+        }
+      } catch (netErr) {
+        console.log('profile-picture network error (saved locally):', netErr);
       }
     } catch (e) {
       console.log('pickProfilePicture error:', e);
@@ -11585,15 +11606,25 @@ export default function App() {
   const sendVoiceMessage = async (uri) => {
     setChatLoading(true);
     try {
-      // Read the audio file as base64
       const base64Audio = await FileSystem.readAsStringAsync(uri, {
         encoding: FileSystem.EncodingType.Base64,
       });
-      
-      // Carry the base64 audio in media_url as a data URI so the admin web
-      // chat can play it inline with a single <audio src=...>. The legacy
-      // voice_data field is also sent for backwards compatibility.
+
+      if (!base64Audio || base64Audio.length === 0) {
+        Alert.alert('Error', 'Recording is empty. Please try again.');
+        setChatLoading(false);
+        return;
+      }
+
       const audioDataUri = `data:audio/m4a;base64,${base64Audio}`;
+
+      // Guard against oversized payloads that would fail on the server.
+      if (audioDataUri.length > 8_000_000) {
+        Alert.alert('Recording too long', 'Please record a shorter voice message (under 60 seconds).');
+        setChatLoading(false);
+        return;
+      }
+
       const response = await fetch(`${API_URL}/api/messages`, {
         method: 'POST',
         headers: {
@@ -11618,7 +11649,7 @@ export default function App() {
       }
     } catch (error) {
       console.log('Send voice error:', error);
-      Alert.alert('Error', 'Failed to send voice message');
+      Alert.alert('Error', 'Failed to send voice message. Check your connection and try again.');
     }
     setChatLoading(false);
   };

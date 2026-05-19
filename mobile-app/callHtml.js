@@ -26,6 +26,9 @@
 //   callType     - 'audio' or 'video'
 //   callerName   - name to display
 //   callId       - opaque call id (only set on the answer side; outgoing leaves blank and learns it from the offer response)
+//   offerSdp     - (answer mode only) the offer SDP received from the incoming-call notification;
+//                  passed directly so the WebView doesn't need to re-fetch from pending-calls
+//                  or notifications (which may already be marked as read by the APK poller).
 
 function buildCallHtml(params) {
   const safe = (s) => String(s == null ? '' : s).replace(/[<>"'&]/g, c => ({'<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','&':'&amp;'})[c]);
@@ -37,6 +40,7 @@ function buildCallHtml(params) {
   const callType = params.callType === 'video' ? 'video' : 'audio';
   const callerName = params.callerName || (callType === 'video' ? 'Video Call' : 'Voice Call');
   const callId = params.callId || '';
+  const offerSdp = params.offerSdp || '';
 
   return `<!DOCTYPE html>
 <html lang="en"><head>
@@ -144,6 +148,7 @@ function buildCallHtml(params) {
   var PEER_ID    = parseInt(${JSON.stringify(peerUserId)}) || 0;
   var CALL_TYPE  = ${JSON.stringify(callType)};
   var CALL_ID    = ${JSON.stringify(callId)};
+  var OFFER_SDP  = ${JSON.stringify(offerSdp)};
 
   var stateEl       = document.getElementById('state');
   var audioStatusEl = document.getElementById('audioStatus');
@@ -525,23 +530,26 @@ function buildCallHtml(params) {
     buildPC();
     connectWS();
     startNotifPoll();
-    // Pull the offer SDP from pending-calls.
-    var pending = await getBackend('/api/webrtc/pending-calls').then(function(r){return r.json();}).catch(function(){return {};});
-    var offerSdp = null;
-    if (pending && pending.pending_calls && pending.pending_calls.length) {
-      // Find the call from our peer (or the first one)
-      for (var i = 0; i < pending.pending_calls.length; i++) {
-        var pc2 = pending.pending_calls[i];
-        if (!PEER_ID || pc2.caller_id === PEER_ID) {
-          offerSdp = pc2.sdp;
-          if (!CALL_ID) CALL_ID = pc2.call_id || '';
-          if (!PEER_ID) PEER_ID = pc2.caller_id;
-          break;
+    // 1) Use the SDP passed directly from the APK notification (most reliable —
+    //    avoids re-fetching from pending-calls or notifications which may be stale).
+    var offerSdp = OFFER_SDP || null;
+    // 2) Fallback: pull from pending-calls (in-memory on backend).
+    if (!offerSdp) {
+      var pending = await getBackend('/api/webrtc/pending-calls').then(function(r){return r.json();}).catch(function(){return {};});
+      if (pending && pending.pending_calls && pending.pending_calls.length) {
+        for (var i = 0; i < pending.pending_calls.length; i++) {
+          var pc2 = pending.pending_calls[i];
+          if (!PEER_ID || pc2.caller_id === PEER_ID) {
+            offerSdp = pc2.sdp;
+            if (!CALL_ID) CALL_ID = pc2.call_id || '';
+            if (!PEER_ID) PEER_ID = pc2.caller_id;
+            break;
+          }
         }
       }
     }
+    // 3) Last resort: pull from notifications (may already be marked read).
     if (!offerSdp) {
-      // Fallback: pull from notifications
       var notif = await getBackend('/api/notifications').then(function(r){return r.json();}).catch(function(){return [];});
       for (var j = 0; j < notif.length; j++) {
         if (notif[j].notification_type === 'incoming_call') {
