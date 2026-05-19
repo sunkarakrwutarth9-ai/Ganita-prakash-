@@ -10709,8 +10709,8 @@ function startAdminChatRefresh() {
     // even when no specific user is selected).
     var dashboardTick = 0;
     adminChatRefreshInterval = setInterval(function() {
-        if (selectedChatUserId) {
-            try { loadChatHistory(selectedChatUserId); } catch (_) {}
+        if (selectedUserId) {
+            try { loadChatHistory(selectedUserId); } catch (_) {}
         }
         dashboardTick++;
         // Roughly every 6 seconds (2 ticks × 3s) refresh full dashboard.
