@@ -9,7 +9,7 @@ const CLAUDE_API_KEY = '';
 var GROQ_API_KEY = window.GROQ_KEY || '';
 
 // Backend API URL - must be at top before any functions use it
-const API_URL = "https://app-lmanxcts.fly.dev";
+const API_URL = "https://ganita-prakash-production.up.railway.app";
 
 function sanitizeHTML(str) {
     if (!str) return '';

@@ -282,7 +282,7 @@ const generate3DModelHTML = (modelType, modelName) => {
   `;
 };
 
-const API_URL = "https://app-lmanxcts.fly.dev";
+const API_URL = "https://ganita-prakash-production.up.railway.app";
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // Admin email for Google OAuth
