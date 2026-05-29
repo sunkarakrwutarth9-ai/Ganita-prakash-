@@ -192,6 +192,132 @@ const generate3DModelHTML = (modelType, modelName) => {
       const plane = new THREE.Mesh(planeGeom, planeMat);
       scene.add(plane);
     `,
+    'numberline': `
+      const nlLine = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-3, 0, 0), new THREE.Vector3(3, 0, 0)]);
+      scene.add(new THREE.Line(nlLine, new THREE.LineBasicMaterial({ color: 0x00ffff })));
+      for (let ni = -3; ni <= 3; ni++) {
+        const tick = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(ni, -0.2, 0), new THREE.Vector3(ni, 0.2, 0)]);
+        scene.add(new THREE.Line(tick, new THREE.LineBasicMaterial({ color: 0xffffff })));
+        const dot = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 16), new THREE.MeshPhongMaterial({ color: ni < 0 ? 0xEF4444 : ni === 0 ? 0xFFD700 : 0x4CAF50, shininess: 100 }));
+        dot.position.set(ni, 0, 0);
+        scene.add(dot);
+      }
+      const arrowR = new THREE.Mesh(new THREE.ConeGeometry(0.15, 0.4, 8), new THREE.MeshPhongMaterial({ color: 0x00ffff }));
+      arrowR.position.set(3.2, 0, 0); arrowR.rotation.z = -Math.PI / 2;
+      scene.add(arrowR);
+      const arrowL = new THREE.Mesh(new THREE.ConeGeometry(0.15, 0.4, 8), new THREE.MeshPhongMaterial({ color: 0x00ffff }));
+      arrowL.position.set(-3.2, 0, 0); arrowL.rotation.z = Math.PI / 2;
+      scene.add(arrowL);
+    `,
+    'bargraph': `
+      const barColors = [0xE94560, 0x2196F3, 0x4CAF50, 0xFFC107, 0x9C27B0];
+      for (let bi = 0; bi < 5; bi++) {
+        const h = 0.5 + Math.random() * 2;
+        const bar = new THREE.Mesh(new THREE.BoxGeometry(0.5, h, 0.5), new THREE.MeshPhongMaterial({ color: barColors[bi], shininess: 100 }));
+        bar.position.set(bi * 0.7 - 1.4, h / 2 - 1, 0);
+        scene.add(bar);
+      }
+    `,
+    'piechart': `
+      const slices = 8;
+      const pieColors = [0xE94560, 0x2196F3, 0x4CAF50, 0xFFC107, 0x9C27B0, 0xFF5722, 0x00BCD4, 0x8BC34A];
+      for (let i = 0; i < slices; i++) {
+        const sliceGeom = new THREE.CylinderGeometry(1, 1, 0.3, 32, 1, false, i * Math.PI * 2 / slices, Math.PI * 2 / slices - 0.03);
+        const sliceMat = new THREE.MeshPhongMaterial({ color: pieColors[i], shininess: 100 });
+        const sliceMesh = new THREE.Mesh(sliceGeom, sliceMat);
+        sliceMesh.rotation.x = Math.PI / 2;
+        scene.add(sliceMesh);
+      }
+    `,
+    'lines': `
+      const l1 = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-2, 0, 0), new THREE.Vector3(2, 0, 0)]);
+      scene.add(new THREE.Line(l1, new THREE.LineBasicMaterial({ color: 0x00ffff })));
+      const l2 = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-2, 1, 0), new THREE.Vector3(2, 1, 0)]);
+      scene.add(new THREE.Line(l2, new THREE.LineBasicMaterial({ color: 0xff00ff })));
+      const dot = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 16), new THREE.MeshPhongMaterial({ color: 0xE94560, shininess: 100 }));
+      scene.add(dot);
+    `,
+    'perpendicular': `
+      const pl1 = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-2, 0, 0), new THREE.Vector3(2, 0, 0)]);
+      scene.add(new THREE.Line(pl1, new THREE.LineBasicMaterial({ color: 0x00ffff })));
+      const pl2 = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, -2, 0), new THREE.Vector3(0, 2, 0)]);
+      scene.add(new THREE.Line(pl2, new THREE.LineBasicMaterial({ color: 0xff00ff })));
+      const pdot = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 16), new THREE.MeshPhongMaterial({ color: 0xE94560, shininess: 100 }));
+      scene.add(pdot);
+    `,
+    'angles': `
+      const semicircle = new THREE.Mesh(new THREE.CircleGeometry(1.5, 64, 0, Math.PI), new THREE.MeshPhongMaterial({ color: 0xFFC107, side: THREE.DoubleSide, shininess: 100 }));
+      scene.add(semicircle);
+      for (let ai = 0; ai <= 180; ai += 30) {
+        const ang = ai * Math.PI / 180;
+        const lineG = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0.01), new THREE.Vector3(Math.cos(ang) * 1.4, Math.sin(ang) * 1.4, 0.01)]);
+        scene.add(new THREE.Line(lineG, new THREE.LineBasicMaterial({ color: 0x333333 })));
+      }
+    `,
+    'rectangle': `
+      const rectGeom = new THREE.BoxGeometry(2.5, 1.5, 0.2);
+      const rectMesh = new THREE.Mesh(rectGeom, new THREE.MeshPhongMaterial({ color: 0x2196F3, shininess: 100 }));
+      scene.add(rectMesh);
+      const rectEdges = new THREE.EdgesGeometry(rectGeom);
+      scene.add(new THREE.LineSegments(rectEdges, new THREE.LineBasicMaterial({ color: 0xffffff })));
+    `,
+    'coordinate': `
+      const xAxis = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-3, 0, 0), new THREE.Vector3(3, 0, 0)]);
+      scene.add(new THREE.Line(xAxis, new THREE.LineBasicMaterial({ color: 0xEF4444 })));
+      const yAxis = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, -3, 0), new THREE.Vector3(0, 3, 0)]);
+      scene.add(new THREE.Line(yAxis, new THREE.LineBasicMaterial({ color: 0x4CAF50 })));
+      [[1,2],[2,1],[-1,1],[1,-1],[-2,-1]].forEach(p => {
+        const cDot = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), new THREE.MeshPhongMaterial({ color: 0x00ffff, shininess: 100 }));
+        cDot.position.set(p[0], p[1], 0);
+        scene.add(cDot);
+      });
+    `,
+    'balance': `
+      const balBase = new THREE.Mesh(new THREE.ConeGeometry(0.5, 1.2, 3), new THREE.MeshPhongMaterial({ color: 0xFFD700, shininess: 100 }));
+      balBase.position.y = -1.4;
+      scene.add(balBase);
+      const beam = new THREE.Mesh(new THREE.BoxGeometry(4, 0.15, 0.3), new THREE.MeshPhongMaterial({ color: 0x9C27B0, shininess: 100 }));
+      beam.position.y = -0.7;
+      scene.add(beam);
+      const leftPan = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 0.1, 32), new THREE.MeshPhongMaterial({ color: 0x2196F3, shininess: 100 }));
+      leftPan.position.set(-1.7, -0.9, 0);
+      scene.add(leftPan);
+      const rightPan = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 0.1, 32), new THREE.MeshPhongMaterial({ color: 0xEF4444, shininess: 100 }));
+      rightPan.position.set(1.7, -0.9, 0);
+      scene.add(rightPan);
+    `,
+    'nets': `
+      const sq = 0.8;
+      [[0,0],[0,1],[0,-1],[0,-2],[-1,0],[1,0]].forEach(pos => {
+        const face = new THREE.Mesh(new THREE.BoxGeometry(sq, sq, 0.05), new THREE.MeshPhongMaterial({ color: 0x2196F3, shininess: 100 }));
+        face.position.set(pos[0] * (sq + 0.05), pos[1] * (sq + 0.05), 0);
+        scene.add(face);
+        const edges = new THREE.EdgesGeometry(new THREE.BoxGeometry(sq, sq, 0.05));
+        const edgeMesh = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xffffff }));
+        edgeMesh.position.copy(face.position);
+        scene.add(edgeMesh);
+      });
+    `,
+    'tessellation': `
+      const hr = 0.5;
+      const hexColors = [0xE94560, 0x2196F3, 0x4CAF50, 0xFFD700, 0x9C27B0, 0xFF5722];
+      let hi = 0;
+      for (let hrow = -2; hrow <= 2; hrow++) {
+        for (let hcol = -2; hcol <= 2; hcol++) {
+          const hex = new THREE.Mesh(new THREE.CircleGeometry(hr, 6), new THREE.MeshPhongMaterial({ color: hexColors[hi % hexColors.length], side: THREE.DoubleSide, shininess: 100 }));
+          hex.position.set(hcol * hr * 1.75, hrow * hr * 1.52 + (hcol % 2 !== 0 ? hr * 0.76 : 0), 0);
+          scene.add(hex);
+          hi++;
+        }
+      }
+    `,
+    'cone': `
+      const coneGeom = new THREE.ConeGeometry(1.2, 2.5, 32);
+      const coneMesh = new THREE.Mesh(coneGeom, new THREE.MeshPhongMaterial({ color: 0xFF5722, shininess: 100 }));
+      scene.add(coneMesh);
+      const coneEdges = new THREE.EdgesGeometry(coneGeom);
+      scene.add(new THREE.LineSegments(coneEdges, new THREE.LineBasicMaterial({ color: 0xffffff })));
+    `,
   };
 
   const shapeCode = shapes[modelType] || shapes['cube'];
@@ -890,74 +1016,183 @@ const openVideo = async (chapterId, title, setShowVideoPlayer, setVideoBase64, s
 // 3D Models data for each chapter (5 per chapter)
 const chapter3DModels = {
   1: [
-    { id: 1, name: "Number Sequence Spiral", type: "spiral", description: "Visualize number patterns" },
-    { id: 2, name: "Fibonacci Spiral", type: "fibonacci", description: "Golden ratio spiral" },
-    { id: 3, name: "Magic Square 3D", type: "cube", description: "Interactive 3x3 magic square" },
+    { id: 1, name: "Number Sequence Spiral", type: "spiral", description: "Visualize number patterns in a spiral" },
+    { id: 2, name: "Fibonacci Spiral", type: "fibonacci", description: "Golden ratio spiral pattern" },
+    { id: 3, name: "Magic Square Cube", type: "cube", description: "Interactive 3x3 magic square" },
     { id: 4, name: "Triangular Numbers", type: "pyramid", description: "Stack of dots forming triangular numbers" },
     { id: 5, name: "Square Numbers Grid", type: "grid", description: "Visual representation of square numbers" },
   ],
   2: [
-    { id: 1, name: "Parallel Lines", type: "lines", description: "Two lines that never meet" },
-    { id: 2, name: "Perpendicular Lines", type: "lines", description: "Lines meeting at 90 degrees" },
-    { id: 3, name: "Angle Types", type: "angles", description: "Acute, right, obtuse angles" },
-    { id: 4, name: "Protractor 3D", type: "protractor", description: "Interactive angle measurement" },
-    { id: 5, name: "Ray and Segment", type: "lines", description: "Difference between ray and segment" },
+    { id: 1, name: "Angle Protractor", type: "protractor", description: "Interactive angle measurement tool" },
+    { id: 2, name: "Parallel Lines", type: "lines", description: "Visualize parallel and transversal lines" },
+    { id: 3, name: "Perpendicular Lines", type: "perpendicular", description: "90-degree angle visualization" },
+    { id: 4, name: "Angle Types", type: "angles", description: "Acute, right, obtuse, and reflex angles" },
+    { id: 5, name: "Line Segments", type: "lines", description: "Points, rays, and line segments" },
   ],
   3: [
-    { id: 1, name: "Place Value Blocks", type: "blocks", description: "Units, tens, hundreds" },
-    { id: 2, name: "Number Line 3D", type: "numberline", description: "Interactive number line" },
-    { id: 3, name: "Divisibility Wheel", type: "wheel", description: "Visual divisibility rules" },
-    { id: 4, name: "Factor Tree", type: "tree", description: "Prime factorization tree" },
-    { id: 5, name: "Number Bonds", type: "bonds", description: "Number relationships" },
+    { id: 1, name: "Number Line Explorer", type: "numberline", description: "Interactive number line with tick marks" },
+    { id: 2, name: "Place Value Blocks", type: "cube", description: "Ones, tens, hundreds visualization" },
+    { id: 3, name: "Odd-Even Pattern Grid", type: "grid", description: "Odd and even number patterns" },
+    { id: 4, name: "Number Spiral", type: "spiral", description: "Numbers arranged in a spiral pattern" },
+    { id: 5, name: "Dice Cube", type: "cube", description: "Explore numbers on a dice" },
   ],
   4: [
-    { id: 1, name: "Bar Graph 3D", type: "bargraph", description: "Interactive 3D bar chart" },
-    { id: 2, name: "Pie Chart 3D", type: "piechart", description: "3D pie chart visualization" },
-    { id: 3, name: "Pictograph", type: "pictograph", description: "Picture-based data" },
-    { id: 4, name: "Line Graph", type: "linegraph", description: "Trend visualization" },
-    { id: 5, name: "Tally Marks", type: "tally", description: "Counting with tally marks" },
+    { id: 1, name: "Bar Graph Builder", type: "bargraph", description: "Create and explore 3D bar charts" },
+    { id: 2, name: "Pie Chart Maker", type: "piechart", description: "Visualize data as pie chart slices" },
+    { id: 3, name: "Data Table Grid", type: "grid", description: "Organize data in a visual grid" },
+    { id: 4, name: "Pictograph Bars", type: "cylinder", description: "Picture-based data visualization" },
+    { id: 5, name: "Tally Counter Cube", type: "cube", description: "3D tally mark counter" },
   ],
   5: [
-    { id: 1, name: "Prime Sieve", type: "sieve", description: "Sieve of Eratosthenes" },
-    { id: 2, name: "Factor Pairs", type: "pairs", description: "Visual factor pairs" },
-    { id: 3, name: "LCM Visualization", type: "lcm", description: "Least common multiple" },
-    { id: 4, name: "HCF Visualization", type: "hcf", description: "Highest common factor" },
-    { id: 5, name: "Prime Spiral", type: "spiral", description: "Ulam spiral of primes" },
+    { id: 1, name: "Factor Tree", type: "pyramid", description: "Prime factorization tree visualization" },
+    { id: 2, name: "Sieve of Eratosthenes", type: "grid", description: "Visual sieve to find prime numbers" },
+    { id: 3, name: "Prime Number Spiral", type: "spiral", description: "Ulam spiral of prime numbers" },
+    { id: 4, name: "Divisibility Cube", type: "cube", description: "Interactive divisibility rules" },
+    { id: 5, name: "Factor Pairs Pyramid", type: "pyramid", description: "Factor pairs stacked as pyramid" },
   ],
   6: [
-    { id: 1, name: "Rectangle Perimeter", type: "rectangle", description: "Interactive perimeter" },
-    { id: 2, name: "Square Area", type: "square", description: "Area of square" },
-    { id: 3, name: "Triangle Area", type: "triangle", description: "Triangle area formula" },
-    { id: 4, name: "Composite Shapes", type: "composite", description: "Breaking down shapes" },
-    { id: 5, name: "Grid Area", type: "grid", description: "Counting squares for area" },
+    { id: 1, name: "Rectangle Shape", type: "rectangle", description: "Interactive rectangle with dimensions" },
+    { id: 2, name: "Area Grid", type: "grid", description: "Calculate area using unit squares" },
+    { id: 3, name: "Square Shape", type: "cube", description: "3D square/cube for area concepts" },
+    { id: 4, name: "Triangle Shape", type: "pyramid", description: "Triangle area visualization" },
+    { id: 5, name: "Circle Shape", type: "sphere", description: "Circle area and circumference" },
   ],
   7: [
-    { id: 1, name: "Fraction Circles", type: "circles", description: "Circular fraction representation" },
-    { id: 2, name: "Fraction Bars", type: "bars", description: "Bar model for fractions" },
-    { id: 3, name: "Equivalent Fractions", type: "equivalent", description: "Visual equivalence" },
-    { id: 4, name: "Fraction Addition", type: "addition", description: "Adding fractions visually" },
-    { id: 5, name: "Mixed Numbers", type: "mixed", description: "Mixed number visualization" },
+    { id: 1, name: "Fraction Pie", type: "piechart", description: "Fractions as slices of a pie" },
+    { id: 2, name: "Fraction Circles", type: "sphere", description: "Visualize fractions as parts of a whole" },
+    { id: 3, name: "Fraction Bars", type: "cylinder", description: "Compare fractions using bars" },
+    { id: 4, name: "Fraction Wall Grid", type: "grid", description: "Fraction wall showing equivalent fractions" },
+    { id: 5, name: "Equal Parts Cube", type: "cube", description: "Dividing shapes into equal parts" },
   ],
   8: [
-    { id: 1, name: "Compass Drawing", type: "compass", description: "Circle construction" },
-    { id: 2, name: "Angle Bisector", type: "bisector", description: "Bisecting angles" },
-    { id: 3, name: "Perpendicular Bisector", type: "perpbisector", description: "Perpendicular line" },
-    { id: 4, name: "Triangle Construction", type: "triangle", description: "Building triangles" },
-    { id: 5, name: "Parallel Line Construction", type: "parallel", description: "Drawing parallel lines" },
+    { id: 1, name: "Compass Circle", type: "sphere", description: "Draw circles with a compass" },
+    { id: 2, name: "Angle Constructor", type: "protractor", description: "Construct angles with protractor" },
+    { id: 3, name: "Perpendicular Builder", type: "perpendicular", description: "Construct perpendicular lines" },
+    { id: 4, name: "Line Drawing Tool", type: "lines", description: "Draw and measure line segments" },
+    { id: 5, name: "Geometric Pattern", type: "tessellation", description: "Create geometric patterns" },
   ],
   9: [
-    { id: 1, name: "Line Symmetry", type: "linesym", description: "Reflection symmetry" },
-    { id: 2, name: "Rotational Symmetry", type: "rotsym", description: "Rotation symmetry" },
-    { id: 3, name: "Mirror Image", type: "mirror", description: "Mirror reflection" },
-    { id: 4, name: "Symmetry in Nature", type: "nature", description: "Natural symmetry" },
-    { id: 5, name: "Symmetry Patterns", type: "patterns", description: "Creating symmetric patterns" },
+    { id: 1, name: "Symmetry Mirror", type: "symmetry", description: "Lines of symmetry visualization" },
+    { id: 2, name: "Dodecahedron", type: "dodecahedron", description: "12-faced regular polyhedron" },
+    { id: 3, name: "Shape Net (Cube)", type: "nets", description: "Unfold a cube into its net" },
+    { id: 4, name: "Tessellation Pattern", type: "tessellation", description: "Tiling patterns with shapes" },
+    { id: 5, name: "Octahedron", type: "octahedron", description: "8-faced regular polyhedron" },
   ],
   10: [
-    { id: 1, name: "Number Line Integers", type: "numberline", description: "Integers on number line" },
-    { id: 2, name: "Integer Addition", type: "addition", description: "Adding positive and negative" },
-    { id: 3, name: "Integer Subtraction", type: "subtraction", description: "Subtracting integers" },
-    { id: 4, name: "Temperature Scale", type: "temperature", description: "Negative temperatures" },
-    { id: 5, name: "Elevation Model", type: "elevation", description: "Above and below sea level" },
+    { id: 1, name: "Integer Number Line", type: "numberline", description: "Positive and negative integers on a line" },
+    { id: 2, name: "Positive-Negative Cubes", type: "cube", description: "Colored cubes for positive and negative" },
+    { id: 3, name: "Temperature Scale", type: "cylinder", description: "Thermometer showing negative temperatures" },
+    { id: 4, name: "Elevation Pyramid", type: "pyramid", description: "Above and below sea level model" },
+    { id: 5, name: "Zero Point Sphere", type: "sphere", description: "The origin point - zero" },
+  ],
+};
+
+// 3D Models data for Class 7 chapters (Ganita Prakash)
+const chapter3DModels7 = {
+  1: [
+    { id: 1, name: "Place Value Blocks", type: "cube", description: "Visualize lakhs and crores with blocks" },
+    { id: 2, name: "Number Pattern Spiral", type: "spiral", description: "Patterns in large number products" },
+    { id: 3, name: "Indian Number Grid", type: "grid", description: "Indian vs International place value" },
+    { id: 4, name: "Powers of 10 Pyramid", type: "pyramid", description: "Growing powers of 10" },
+    { id: 5, name: "Large Number Bars", type: "cylinder", description: "Compare large numbers as bars" },
+  ],
+  2: [
+    { id: 1, name: "Expression Tiles", type: "cube", description: "Build arithmetic expressions visually" },
+    { id: 2, name: "BODMAS Balance", type: "balance", description: "Order of operations on a balance scale" },
+    { id: 3, name: "Expression Tree", type: "pyramid", description: "Parse expressions as trees" },
+    { id: 4, name: "Bracket Cube", type: "cube", description: "Group operations with brackets" },
+    { id: 5, name: "Operations Grid", type: "grid", description: "Step-by-step expression evaluation" },
+  ],
+  3: [
+    { id: 1, name: "Decimal Number Line", type: "numberline", description: "Explore decimals on a number line" },
+    { id: 2, name: "Place Value Grid", type: "grid", description: "Tenths, hundredths, thousandths grid" },
+    { id: 3, name: "Fraction-Decimal Pie", type: "piechart", description: "Convert fractions to decimals visually" },
+    { id: 4, name: "Decimal Comparison Bars", type: "cylinder", description: "Compare decimal numbers as bars" },
+    { id: 5, name: "Decimal Spiral", type: "spiral", description: "Decimal patterns in a spiral" },
+  ],
+  4: [
+    { id: 1, name: "Letter Tiles", type: "cube", description: "Represent unknowns with letter tiles" },
+    { id: 2, name: "Pattern Grid", type: "grid", description: "Convert patterns to expressions" },
+    { id: 3, name: "Variable Cube", type: "cube", description: "Understanding variables" },
+    { id: 4, name: "Expression Pyramid", type: "pyramid", description: "Build expressions step by step" },
+    { id: 5, name: "Balance Scale", type: "balance", description: "Balance expressions on a scale" },
+  ],
+  5: [
+    { id: 1, name: "Parallel Lines", type: "lines", description: "Parallel lines visualization" },
+    { id: 2, name: "Intersecting Lines", type: "perpendicular", description: "Lines crossing at a point" },
+    { id: 3, name: "Angle Measurer", type: "protractor", description: "Measure angles between lines" },
+    { id: 4, name: "Transversal Angles", type: "angles", description: "Angles formed by transversals" },
+    { id: 5, name: "Right Angle Builder", type: "perpendicular", description: "Right angle construction" },
+  ],
+  6: [
+    { id: 1, name: "Number Puzzle Grid", type: "grid", description: "Interactive number puzzles" },
+    { id: 2, name: "Palindrome Spiral", type: "spiral", description: "Discover palindromic numbers" },
+    { id: 3, name: "Divisibility Cube", type: "cube", description: "Test divisibility rules interactively" },
+    { id: 4, name: "Factor Tree", type: "pyramid", description: "Find factors of numbers" },
+    { id: 5, name: "Magic Number Sphere", type: "sphere", description: "Explore magic number properties" },
+  ],
+  7: [
+    { id: 1, name: "Triangle Builder", type: "pyramid", description: "Build triangles with intersecting lines" },
+    { id: 2, name: "Angle Sum Property", type: "angles", description: "Triangle angle sum = 180 degrees" },
+    { id: 3, name: "Medians Visualizer", type: "lines", description: "Medians of a triangle" },
+    { id: 4, name: "Altitudes Visualizer", type: "perpendicular", description: "Altitudes of a triangle" },
+    { id: 5, name: "Centroid Finder", type: "sphere", description: "Find the centroid of a triangle" },
+  ],
+  8: [
+    { id: 1, name: "Fraction Circles", type: "sphere", description: "Visualize fractions as parts of circles" },
+    { id: 2, name: "Fraction Bars", type: "cylinder", description: "Compare fractions using bars" },
+    { id: 3, name: "Fraction Pie", type: "piechart", description: "Add, subtract, multiply fractions" },
+    { id: 4, name: "Fraction Grid", type: "grid", description: "Equivalent fractions on a grid" },
+    { id: 5, name: "Mixed Number Cube", type: "cube", description: "Work with mixed numbers" },
+  ],
+  9: [
+    { id: 1, name: "Symmetry Mirror", type: "symmetry", description: "Line symmetry in geometric shapes" },
+    { id: 2, name: "Congruent Cubes", type: "cube", description: "Identify congruent shapes" },
+    { id: 3, name: "Rotation Torus", type: "torus", description: "Rotate shapes and compare" },
+    { id: 4, name: "Congruent Triangles", type: "pyramid", description: "Matching congruent triangles" },
+    { id: 5, name: "Shape Matching Grid", type: "grid", description: "Match geometric twins on a grid" },
+  ],
+  10: [
+    { id: 1, name: "Integer Number Line", type: "numberline", description: "Positive and negative integers" },
+    { id: 2, name: "Integer Addition Bars", type: "cylinder", description: "Adding integers visually with bars" },
+    { id: 3, name: "Integer Cube", type: "cube", description: "Positive and negative integer operations" },
+    { id: 4, name: "Positive-Negative Spiral", type: "spiral", description: "Integer patterns in a spiral" },
+    { id: 5, name: "Elevation Pyramid", type: "pyramid", description: "Above and below zero" },
+  ],
+  11: [
+    { id: 1, name: "Factor Tree", type: "pyramid", description: "Prime factorization tree" },
+    { id: 2, name: "Common Multiple Grid", type: "grid", description: "Find common multiples visually" },
+    { id: 3, name: "HCF Cube", type: "cube", description: "Highest common factor visualization" },
+    { id: 4, name: "Venn Diagram Torus", type: "torus", description: "Overlapping sets for LCM and HCF" },
+    { id: 5, name: "Multiple Spiral", type: "spiral", description: "Patterns in multiples" },
+  ],
+  12: [
+    { id: 1, name: "Decimal Number Line", type: "numberline", description: "Thousandths and beyond" },
+    { id: 2, name: "Decimal Multiply Grid", type: "grid", description: "Multiply decimals visually" },
+    { id: 3, name: "Decimal Division Bars", type: "cylinder", description: "Divide decimals step by step" },
+    { id: 4, name: "Money Pie Chart", type: "piechart", description: "Real-world decimal calculations" },
+    { id: 5, name: "Decimal Pattern Spiral", type: "spiral", description: "Patterns in decimal numbers" },
+  ],
+  13: [
+    { id: 1, name: "Coordinate Plane", type: "coordinate", description: "Plot points on coordinate axes" },
+    { id: 2, name: "Dot Connector Lines", type: "lines", description: "Connect dots to form shapes" },
+    { id: 3, name: "Shape Plot Grid", type: "grid", description: "Draw shapes using coordinates" },
+    { id: 4, name: "Triangle Coordinates", type: "pyramid", description: "Plot triangles on coordinate plane" },
+    { id: 5, name: "Data Graph Bars", type: "bargraph", description: "Plot data on bar graphs" },
+  ],
+  14: [
+    { id: 1, name: "Compass & Ruler", type: "protractor", description: "Geometric construction tools" },
+    { id: 2, name: "Tessellation Pattern", type: "tessellation", description: "Create tiling patterns" },
+    { id: 3, name: "Shape Net (Cube)", type: "nets", description: "Unfold and fold 3D shapes" },
+    { id: 4, name: "Tiling Grid", type: "grid", description: "Explore tiling patterns on grid" },
+    { id: 5, name: "Construction Lines", type: "lines", description: "Step-by-step constructions" },
+  ],
+  15: [
+    { id: 1, name: "Equation Balance", type: "balance", description: "Solve equations using balance scale" },
+    { id: 2, name: "Equation Grid", type: "grid", description: "Build and solve equations on grid" },
+    { id: 3, name: "Variable Cube", type: "cube", description: "Find the unknown variable" },
+    { id: 4, name: "Equation Pyramid", type: "pyramid", description: "Step-by-step equation solving" },
+    { id: 5, name: "Solution Sphere", type: "sphere", description: "Verify equation solutions" },
   ],
 };
 
@@ -12742,7 +12977,7 @@ export default function App() {
               </TouchableOpacity>
             </View>
             <ScrollView>
-              {(chapter3DModels[currentChapter.id] || []).map((model) => (
+              {((selectedClass === '7' ? chapter3DModels7 : chapter3DModels)[currentChapter.id] || []).map((model) => (
                 <TouchableOpacity
                   key={model.id}
                   style={styles.modelCard}

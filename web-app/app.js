@@ -8692,12 +8692,12 @@ document.addEventListener('DOMContentLoaded', init);
 
 // API_URL is defined at top of file
 
-// 3D Models data for each chapter
+// 3D Models data for each chapter (Class 6 - Ganita Prakash)
 const chapter3DModels = {
     1: [
         { id: 1, name: "Number Sequence Spiral", type: "spiral", description: "Visualize number patterns in a spiral" },
         { id: 2, name: "Fibonacci Spiral", type: "fibonacci", description: "Golden ratio spiral pattern" },
-        { id: 3, name: "Magic Square 3D", type: "cube", description: "Interactive 3x3 magic square" },
+        { id: 3, name: "Magic Square Cube", type: "cube", description: "Interactive 3x3 magic square" },
         { id: 4, name: "Triangular Numbers", type: "pyramid", description: "Stack of dots forming triangular numbers" },
         { id: 5, name: "Square Numbers Grid", type: "grid", description: "Visual representation of square numbers" }
     ],
@@ -8709,91 +8709,91 @@ const chapter3DModels = {
         { id: 5, name: "Line Segments", type: "segments", description: "Points, rays, and line segments" }
     ],
     3: [
-        { id: 1, name: "Number Line", type: "numberline", description: "Interactive number line exploration" },
+        { id: 1, name: "Number Line Explorer", type: "numberline", description: "Interactive number line with tick marks" },
         { id: 2, name: "Place Value Blocks", type: "blocks", description: "Ones, tens, hundreds visualization" },
-        { id: 3, name: "Comparison Scale", type: "scale", description: "Compare numbers visually" },
-        { id: 4, name: "Rounding Visualizer", type: "rounding", description: "See how rounding works" },
-        { id: 5, name: "Number Operations", type: "operations", description: "Addition and subtraction on number line" }
+        { id: 3, name: "Odd-Even Pattern Grid", type: "grid", description: "Odd and even number patterns" },
+        { id: 4, name: "Number Spiral", type: "spiral", description: "Numbers arranged in a spiral pattern" },
+        { id: 5, name: "Dice Cube", type: "cube", description: "Explore numbers on a dice" }
     ],
     4: [
-        { id: 1, name: "Integer Number Line", type: "integers", description: "Positive and negative numbers" },
-        { id: 2, name: "Temperature Scale", type: "temperature", description: "Real-world integer application" },
-        { id: 3, name: "Elevation Model", type: "elevation", description: "Above and below sea level" },
-        { id: 4, name: "Integer Addition", type: "addition", description: "Adding positive and negative numbers" },
-        { id: 5, name: "Integer Subtraction", type: "subtraction", description: "Subtracting integers visually" }
+        { id: 1, name: "Bar Graph Builder", type: "bargraph", description: "Create and explore 3D bar charts" },
+        { id: 2, name: "Pie Chart Maker", type: "piechart", description: "Visualize data as pie chart slices" },
+        { id: 3, name: "Data Table Grid", type: "grid", description: "Organize data in a visual grid" },
+        { id: 4, name: "Pictograph Bars", type: "bars", description: "Picture-based data visualization" },
+        { id: 5, name: "Tally Counter Cube", type: "cube", description: "3D tally mark counter" }
     ],
     5: [
-        { id: 1, name: "Fraction Circles", type: "circles", description: "Visualize fractions as parts of a whole" },
-        { id: 2, name: "Fraction Bars", type: "bars", description: "Compare fractions using bars" },
-        { id: 3, name: "Equivalent Fractions", type: "equivalent", description: "See equivalent fractions" },
-        { id: 4, name: "Fraction Addition", type: "addition", description: "Adding fractions visually" },
-        { id: 5, name: "Mixed Numbers", type: "mixed", description: "Whole numbers and fractions" }
+        { id: 1, name: "Factor Tree", type: "factortree", description: "Prime factorization tree visualization" },
+        { id: 2, name: "Sieve of Eratosthenes", type: "grid", description: "Visual sieve to find prime numbers" },
+        { id: 3, name: "Prime Number Spiral", type: "spiral", description: "Ulam spiral of prime numbers" },
+        { id: 4, name: "Divisibility Cube", type: "cube", description: "Interactive divisibility rules" },
+        { id: 5, name: "Factor Pairs Pyramid", type: "pyramid", description: "Factor pairs stacked as pyramid" }
     ],
     6: [
-        { id: 1, name: "Perimeter Explorer", type: "perimeter", description: "Measure perimeter of shapes" },
-        { id: 2, name: "Area Grid", type: "area", description: "Calculate area using unit squares" },
-        { id: 3, name: "Rectangle Builder", type: "rectangle", description: "Build rectangles with given dimensions" },
-        { id: 4, name: "Composite Shapes", type: "composite", description: "Area of complex shapes" },
-        { id: 5, name: "Real-World Measurement", type: "realworld", description: "Practical measurement applications" }
+        { id: 1, name: "Rectangle Shape", type: "rectangle", description: "Interactive rectangle with dimensions" },
+        { id: 2, name: "Area Grid", type: "grid", description: "Calculate area using unit squares" },
+        { id: 3, name: "Square Shape", type: "cube", description: "3D square/cube for area concepts" },
+        { id: 4, name: "Triangle Shape", type: "pyramid", description: "Triangle area visualization" },
+        { id: 5, name: "Circle Shape", type: "sphere", description: "Circle area and circumference" }
     ],
     7: [
-        { id: 1, name: "Factor Tree", type: "factortree", description: "Prime factorization visualization" },
-        { id: 2, name: "Multiple Patterns", type: "multiples", description: "See patterns in multiples" },
-        { id: 3, name: "LCM Finder", type: "lcm", description: "Find least common multiple" },
-        { id: 4, name: "HCF Finder", type: "hcf", description: "Find highest common factor" },
-        { id: 5, name: "Divisibility Rules", type: "divisibility", description: "Interactive divisibility tests" }
+        { id: 1, name: "Fraction Pie", type: "piechart", description: "Fractions as slices of a pie" },
+        { id: 2, name: "Fraction Circles", type: "circles", description: "Visualize fractions as parts of a whole" },
+        { id: 3, name: "Fraction Bars", type: "bars", description: "Compare fractions using bars" },
+        { id: 4, name: "Fraction Wall Grid", type: "grid", description: "Fraction wall showing equivalent fractions" },
+        { id: 5, name: "Equal Parts Cube", type: "cube", description: "Dividing shapes into equal parts" }
     ],
     8: [
-        { id: 1, name: "Decimal Place Value", type: "decimal", description: "Understand decimal positions" },
-        { id: 2, name: "Decimal Number Line", type: "decimalline", description: "Decimals on number line" },
-        { id: 3, name: "Fraction to Decimal", type: "conversion", description: "Convert fractions to decimals" },
-        { id: 4, name: "Decimal Operations", type: "operations", description: "Add and subtract decimals" },
-        { id: 5, name: "Money Calculator", type: "money", description: "Real-world decimal application" }
+        { id: 1, name: "Compass Circle", type: "sphere", description: "Draw circles with a compass" },
+        { id: 2, name: "Angle Constructor", type: "protractor", description: "Construct angles with protractor" },
+        { id: 3, name: "Perpendicular Builder", type: "perpendicular", description: "Construct perpendicular lines" },
+        { id: 4, name: "Line Drawing Tool", type: "lines", description: "Draw and measure line segments" },
+        { id: 5, name: "Geometric Pattern", type: "tessellation", description: "Create geometric patterns with constructions" }
     ],
     9: [
-        { id: 1, name: "2D Shape Explorer", type: "shapes2d", description: "Properties of 2D shapes" },
-        { id: 2, name: "3D Shape Viewer", type: "shapes3d", description: "Explore 3D shapes" },
-        { id: 3, name: "Symmetry Mirror", type: "symmetry", description: "Lines of symmetry" },
-        { id: 4, name: "Shape Nets", type: "nets", description: "Unfold 3D shapes" },
-        { id: 5, name: "Tessellation Maker", type: "tessellation", description: "Create shape patterns" }
+        { id: 1, name: "Symmetry Mirror", type: "symmetry", description: "Lines of symmetry visualization" },
+        { id: 2, name: "Dodecahedron", type: "dodecahedron", description: "12-faced regular polyhedron" },
+        { id: 3, name: "Shape Net (Cube)", type: "nets", description: "Unfold a cube into its net" },
+        { id: 4, name: "Tessellation Pattern", type: "tessellation", description: "Tiling patterns with shapes" },
+        { id: 5, name: "Octahedron", type: "octahedron", description: "8-faced regular polyhedron" }
     ],
     10: [
-        { id: 1, name: "Algebra Tiles", type: "tiles", description: "Visualize algebraic expressions" },
-        { id: 2, name: "Balance Scale", type: "balance", description: "Solve equations visually" },
-        { id: 3, name: "Variable Explorer", type: "variables", description: "Understand variables" },
-        { id: 4, name: "Pattern to Algebra", type: "patterns", description: "From patterns to expressions" },
-        { id: 5, name: "Equation Solver", type: "solver", description: "Step-by-step equation solving" }
+        { id: 1, name: "Integer Number Line", type: "numberline", description: "Positive and negative integers on a line" },
+        { id: 2, name: "Positive-Negative Cubes", type: "cube", description: "Colored cubes for positive and negative" },
+        { id: 3, name: "Temperature Scale", type: "bars", description: "Thermometer showing negative temperatures" },
+        { id: 4, name: "Elevation Pyramid", type: "pyramid", description: "Above and below sea level model" },
+        { id: 5, name: "Zero Point Sphere", type: "sphere", description: "The origin point - zero" }
     ]
 };
 
-// 3D Models data for Class 7 chapters
+// 3D Models data for Class 7 chapters (Ganita Prakash)
 const chapter3DModels7 = {
     1: [
-        { id: 1, name: "Place Value Explorer", type: "blocks", description: "Visualize lakhs and crores with place value blocks" },
+        { id: 1, name: "Place Value Blocks", type: "blocks", description: "Visualize lakhs and crores with place value blocks" },
         { id: 2, name: "Number Pattern Spiral", type: "spiral", description: "Patterns in large number products" },
-        { id: 3, name: "Indian Number System", type: "grid", description: "Indian vs International place value" },
-        { id: 4, name: "Powers of 10", type: "pyramid", description: "Growing powers of 10 visualization" },
-        { id: 5, name: "Large Number Scale", type: "scale", description: "Compare large numbers on a scale" }
+        { id: 3, name: "Indian Number Grid", type: "grid", description: "Indian vs International place value" },
+        { id: 4, name: "Powers of 10 Pyramid", type: "pyramid", description: "Growing powers of 10 visualization" },
+        { id: 5, name: "Large Number Bars", type: "bars", description: "Compare large numbers as bars" }
     ],
     2: [
-        { id: 1, name: "Expression Builder", type: "tiles", description: "Build arithmetic expressions visually" },
-        { id: 2, name: "Order of Operations", type: "balance", description: "BODMAS rule visualization" },
+        { id: 1, name: "Expression Tiles", type: "tiles", description: "Build arithmetic expressions visually" },
+        { id: 2, name: "BODMAS Balance", type: "balance", description: "Order of operations on a balance scale" },
         { id: 3, name: "Expression Tree", type: "factortree", description: "Parse expressions as trees" },
-        { id: 4, name: "Bracket Groups", type: "blocks", description: "Group operations with brackets" },
-        { id: 5, name: "Expression Solver", type: "solver", description: "Step-by-step expression evaluation" }
+        { id: 4, name: "Bracket Cube", type: "cube", description: "Group operations with brackets" },
+        { id: 5, name: "Operations Grid", type: "grid", description: "Step-by-step expression evaluation" }
     ],
     3: [
         { id: 1, name: "Decimal Number Line", type: "numberline", description: "Explore decimals on a number line" },
-        { id: 2, name: "Decimal Place Value", type: "decimal", description: "Tenths, hundredths, thousandths" },
-        { id: 3, name: "Fraction to Decimal", type: "conversion", description: "Convert fractions to decimals" },
-        { id: 4, name: "Decimal Comparison", type: "scale", description: "Compare decimal numbers" },
-        { id: 5, name: "Decimal Operations", type: "operations", description: "Add and subtract decimals" }
+        { id: 2, name: "Place Value Grid", type: "grid", description: "Tenths, hundredths, thousandths grid" },
+        { id: 3, name: "Fraction-Decimal Pie", type: "piechart", description: "Convert fractions to decimals visually" },
+        { id: 4, name: "Decimal Comparison Bars", type: "bars", description: "Compare decimal numbers as bars" },
+        { id: 5, name: "Decimal Spiral", type: "spiral", description: "Decimal patterns in a spiral" }
     ],
     4: [
-        { id: 1, name: "Letter-Number Tiles", type: "tiles", description: "Represent unknowns with letter tiles" },
-        { id: 2, name: "Pattern to Expression", type: "patterns", description: "Convert patterns to algebraic expressions" },
-        { id: 3, name: "Variable Explorer", type: "variables", description: "Understanding variables in expressions" },
-        { id: 4, name: "Expression Evaluator", type: "solver", description: "Evaluate expressions for given values" },
+        { id: 1, name: "Letter Tiles", type: "tiles", description: "Represent unknowns with letter tiles" },
+        { id: 2, name: "Pattern Grid", type: "grid", description: "Convert patterns to algebraic expressions" },
+        { id: 3, name: "Variable Cube", type: "cube", description: "Understanding variables in expressions" },
+        { id: 4, name: "Expression Pyramid", type: "pyramid", description: "Build expressions step by step" },
         { id: 5, name: "Balance Scale", type: "balance", description: "Balance expressions on a scale" }
     ],
     5: [
@@ -8801,14 +8801,14 @@ const chapter3DModels7 = {
         { id: 2, name: "Intersecting Lines", type: "perpendicular", description: "Lines crossing at a point" },
         { id: 3, name: "Angle Measurer", type: "protractor", description: "Measure angles between lines" },
         { id: 4, name: "Transversal Angles", type: "angles", description: "Angles formed by transversals" },
-        { id: 5, name: "Perpendicular Lines", type: "perpendicular", description: "Right angle construction" }
+        { id: 5, name: "Right Angle Builder", type: "perpendicular", description: "Right angle construction" }
     ],
     6: [
         { id: 1, name: "Number Puzzle Grid", type: "grid", description: "Interactive number puzzles" },
-        { id: 2, name: "Palindrome Explorer", type: "spiral", description: "Discover palindromic numbers" },
-        { id: 3, name: "Divisibility Tester", type: "divisibility", description: "Test divisibility rules" },
-        { id: 4, name: "Factor Finder", type: "factortree", description: "Find factors of numbers" },
-        { id: 5, name: "Magic Square", type: "cube", description: "Create and solve magic squares" }
+        { id: 2, name: "Palindrome Spiral", type: "spiral", description: "Discover palindromic numbers" },
+        { id: 3, name: "Divisibility Cube", type: "cube", description: "Test divisibility rules interactively" },
+        { id: 4, name: "Factor Tree", type: "factortree", description: "Find factors of numbers" },
+        { id: 5, name: "Magic Number Sphere", type: "sphere", description: "Explore magic number properties" }
     ],
     7: [
         { id: 1, name: "Triangle Builder", type: "pyramid", description: "Build triangles with intersecting lines" },
@@ -8820,58 +8820,58 @@ const chapter3DModels7 = {
     8: [
         { id: 1, name: "Fraction Circles", type: "circles", description: "Visualize fractions as parts of circles" },
         { id: 2, name: "Fraction Bars", type: "bars", description: "Compare fractions using bars" },
-        { id: 3, name: "Fraction Operations", type: "operations", description: "Add, subtract, multiply fractions" },
-        { id: 4, name: "Equivalent Fractions", type: "equivalent", description: "Find equivalent fractions" },
-        { id: 5, name: "Mixed Numbers", type: "mixed", description: "Work with mixed numbers" }
+        { id: 3, name: "Fraction Pie", type: "piechart", description: "Add, subtract, multiply fractions visually" },
+        { id: 4, name: "Fraction Grid", type: "grid", description: "Equivalent fractions on a grid" },
+        { id: 5, name: "Mixed Number Cube", type: "cube", description: "Work with mixed numbers" }
     ],
     9: [
         { id: 1, name: "Symmetry Mirror", type: "symmetry", description: "Line symmetry in geometric shapes" },
-        { id: 2, name: "Congruent Shapes", type: "shapes2d", description: "Identify congruent shapes" },
-        { id: 3, name: "Rotation Explorer", type: "rounding", description: "Rotate shapes and compare" },
-        { id: 4, name: "Reflection Tool", type: "symmetry", description: "Reflect shapes across a line" },
-        { id: 5, name: "Twin Shape Matcher", type: "shapes2d", description: "Match geometric twins" }
+        { id: 2, name: "Congruent Cubes", type: "cube", description: "Identify congruent shapes" },
+        { id: 3, name: "Rotation Torus", type: "torus", description: "Rotate shapes and compare" },
+        { id: 4, name: "Congruent Triangles", type: "pyramid", description: "Matching congruent triangles" },
+        { id: 5, name: "Shape Matching Grid", type: "grid", description: "Match geometric twins on a grid" }
     ],
     10: [
-        { id: 1, name: "Integer Number Line", type: "integers", description: "Positive and negative integers" },
-        { id: 2, name: "Integer Addition", type: "addition", description: "Adding integers on number line" },
-        { id: 3, name: "Integer Subtraction", type: "subtraction", description: "Subtracting integers visually" },
-        { id: 4, name: "Temperature Scale", type: "temperature", description: "Real-world integer application" },
-        { id: 5, name: "Elevation Model", type: "elevation", description: "Above and below zero" }
+        { id: 1, name: "Integer Number Line", type: "numberline", description: "Positive and negative integers" },
+        { id: 2, name: "Integer Addition Bars", type: "bars", description: "Adding integers visually with bars" },
+        { id: 3, name: "Integer Cube", type: "cube", description: "Positive and negative integer operations" },
+        { id: 4, name: "Positive-Negative Spiral", type: "spiral", description: "Integer patterns in a spiral" },
+        { id: 5, name: "Elevation Pyramid", type: "pyramid", description: "Above and below zero visualization" }
     ],
     11: [
-        { id: 1, name: "LCM Finder", type: "lcm", description: "Find least common multiple" },
-        { id: 2, name: "HCF Finder", type: "hcf", description: "Find highest common factor" },
-        { id: 3, name: "Factor Tree", type: "factortree", description: "Prime factorization tree" },
-        { id: 4, name: "Multiple Patterns", type: "multiples", description: "Common multiples visualization" },
-        { id: 5, name: "Divisibility Checker", type: "divisibility", description: "Interactive divisibility rules" }
+        { id: 1, name: "Factor Tree", type: "factortree", description: "Prime factorization tree" },
+        { id: 2, name: "Common Multiple Grid", type: "grid", description: "Find common multiples visually" },
+        { id: 3, name: "HCF Cube", type: "cube", description: "Highest common factor visualization" },
+        { id: 4, name: "Venn Diagram Torus", type: "torus", description: "Overlapping sets for LCM and HCF" },
+        { id: 5, name: "Multiple Spiral", type: "spiral", description: "Patterns in multiples" }
     ],
     12: [
-        { id: 1, name: "Decimal Deep Dive", type: "decimal", description: "Thousandths and beyond" },
-        { id: 2, name: "Decimal Multiplication", type: "operations", description: "Multiply decimals visually" },
-        { id: 3, name: "Decimal Division", type: "operations", description: "Divide decimals step by step" },
-        { id: 4, name: "Money Calculator", type: "money", description: "Real-world decimal calculations" },
-        { id: 5, name: "Decimal Patterns", type: "patterns", description: "Patterns in decimal numbers" }
+        { id: 1, name: "Decimal Number Line", type: "numberline", description: "Thousandths and beyond on number line" },
+        { id: 2, name: "Decimal Multiply Grid", type: "grid", description: "Multiply decimals visually on grid" },
+        { id: 3, name: "Decimal Division Bars", type: "bars", description: "Divide decimals step by step" },
+        { id: 4, name: "Money Pie Chart", type: "piechart", description: "Real-world decimal calculations" },
+        { id: 5, name: "Decimal Pattern Spiral", type: "spiral", description: "Patterns in decimal numbers" }
     ],
     13: [
-        { id: 1, name: "Coordinate Grid", type: "grid", description: "Plot points on a grid" },
-        { id: 2, name: "Dot Connector", type: "lines", description: "Connect dots to form shapes" },
-        { id: 3, name: "Shape Drawer", type: "shapes2d", description: "Draw shapes using coordinates" },
-        { id: 4, name: "Distance Finder", type: "segments", description: "Find distances between points" },
-        { id: 5, name: "Graph Plotter", type: "bars", description: "Plot data on graphs" }
+        { id: 1, name: "Coordinate Plane", type: "coordinate", description: "Plot points on coordinate axes" },
+        { id: 2, name: "Dot Connector Lines", type: "lines", description: "Connect dots to form shapes" },
+        { id: 3, name: "Shape Plot Grid", type: "grid", description: "Draw shapes using coordinates" },
+        { id: 4, name: "Triangle Coordinates", type: "pyramid", description: "Plot triangles on coordinate plane" },
+        { id: 5, name: "Data Graph Bars", type: "bars", description: "Plot data on bar graphs" }
     ],
     14: [
         { id: 1, name: "Compass & Ruler", type: "protractor", description: "Geometric construction tools" },
-        { id: 2, name: "Tessellation Maker", type: "tessellation", description: "Create tiling patterns" },
-        { id: 3, name: "Shape Nets", type: "nets", description: "Unfold and fold 3D shapes" },
-        { id: 4, name: "Tiling Explorer", type: "tiles", description: "Explore tiling patterns" },
-        { id: 5, name: "Construction Steps", type: "segments", description: "Step-by-step constructions" }
+        { id: 2, name: "Tessellation Pattern", type: "tessellation", description: "Create tiling patterns" },
+        { id: 3, name: "Shape Net (Cube)", type: "nets", description: "Unfold and fold 3D shapes" },
+        { id: 4, name: "Tiling Grid", type: "grid", description: "Explore tiling patterns on grid" },
+        { id: 5, name: "Construction Lines", type: "lines", description: "Step-by-step line constructions" }
     ],
     15: [
-        { id: 1, name: "Balance Scale", type: "balance", description: "Solve equations using balance" },
-        { id: 2, name: "Equation Builder", type: "solver", description: "Build and solve equations" },
-        { id: 3, name: "Variable Finder", type: "variables", description: "Find the unknown variable" },
-        { id: 4, name: "Equation Visualizer", type: "tiles", description: "Visualize equation solving" },
-        { id: 5, name: "Solution Checker", type: "solver", description: "Verify equation solutions" }
+        { id: 1, name: "Equation Balance", type: "balance", description: "Solve equations using balance scale" },
+        { id: 2, name: "Equation Grid", type: "grid", description: "Build and solve equations on grid" },
+        { id: 3, name: "Variable Cube", type: "cube", description: "Find the unknown variable" },
+        { id: 4, name: "Equation Pyramid", type: "pyramid", description: "Step-by-step equation solving" },
+        { id: 5, name: "Solution Sphere", type: "sphere", description: "Verify equation solutions" }
     ]
 };
 
@@ -11400,14 +11400,14 @@ function getModelIcon(type) {
     const icons = {
         'spiral': '🌀', 'fibonacci': '🐚', 'cube': '🎲', 'pyramid': '🔺', 'grid': '⊞',
         'protractor': '📐', 'lines': '📏', 'perpendicular': '⊥', 'angles': '∠', 'segments': '—',
-        'numberline': '↔️', 'blocks': '🧱', 'scale': '⚖️', 'rounding': '🔄', 'operations': '➕',
-        'integers': '±', 'temperature': '🌡️', 'elevation': '⛰️', 'addition': '➕', 'subtraction': '➖',
-        'circles': '⭕', 'bars': '📊', 'equivalent': '≡', 'mixed': '½',
-        'perimeter': '⬜', 'area': '▦', 'rectangle': '▭', 'composite': '🔷', 'realworld': '🏠',
-        'factortree': '🌳', 'multiples': '✖️', 'lcm': '🔢', 'hcf': '🔗', 'divisibility': '÷',
-        'decimal': '0.1', 'decimalline': '↔️', 'conversion': '🔄', 'money': '💰',
-        'shapes2d': '⬡', 'shapes3d': '🎲', 'symmetry': '🦋', 'nets': '📦', 'tessellation': '🔶',
-        'tiles': '🔲', 'balance': '⚖️', 'variables': 'x', 'patterns': '🔢', 'solver': '='
+        'numberline': '↔️', 'blocks': '🧱', 'integers': '±',
+        'circles': '⭕', 'bars': '📊', 'sphere': '🔵',
+        'rectangle': '▭', 'factortree': '🌳',
+        'symmetry': '🦋', 'nets': '📦', 'tessellation': '🔶',
+        'tiles': '🔲', 'balance': '⚖️',
+        'piechart': '🥧', 'bargraph': '📊', 'coordinate': '📍',
+        'dodecahedron': '💎', 'icosahedron': '🔮', 'octahedron': '💠', 'tetrahedron': '🔺',
+        'cone': '🔻', 'torus': '🍩', 'cylinder': '🛢️'
     };
     return icons[type] || '📐';
 }
@@ -11596,6 +11596,125 @@ function viewModel(id, name, type, description) {
                 bar.position.set(bi * 0.7 - 1.4, h / 2 - 1, 0);
                 bar.castShadow = true;
                 group.add(bar);
+            }
+            mesh = group;
+        } else if (type === 'numberline' || type === 'integers') {
+            var group = new THREE.Group();
+            var nlLine = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-3, 0, 0), new THREE.Vector3(3, 0, 0)]);
+            group.add(new THREE.Line(nlLine, new THREE.LineBasicMaterial({ color: 0x00ffff })));
+            for (var ni = -3; ni <= 3; ni++) {
+                var tick = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(ni, -0.2, 0), new THREE.Vector3(ni, 0.2, 0)]);
+                group.add(new THREE.Line(tick, new THREE.LineBasicMaterial({ color: 0xffffff })));
+                var nlDot = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 16), new THREE.MeshStandardMaterial({ color: ni < 0 ? 0xEF4444 : ni === 0 ? 0xFFD700 : 0x4CAF50, emissive: ni < 0 ? 0xEF4444 : ni === 0 ? 0xFFD700 : 0x4CAF50, emissiveIntensity: 0.3 }));
+                nlDot.position.set(ni, 0, 0);
+                group.add(nlDot);
+            }
+            var arrowR = new THREE.Mesh(new THREE.ConeGeometry(0.15, 0.4, 8), new THREE.MeshStandardMaterial({ color: 0x00ffff }));
+            arrowR.position.set(3.2, 0, 0); arrowR.rotation.z = -Math.PI / 2;
+            group.add(arrowR);
+            var arrowL = new THREE.Mesh(new THREE.ConeGeometry(0.15, 0.4, 8), new THREE.MeshStandardMaterial({ color: 0x00ffff }));
+            arrowL.position.set(-3.2, 0, 0); arrowL.rotation.z = Math.PI / 2;
+            group.add(arrowL);
+            mesh = group;
+        } else if (type === 'dodecahedron') {
+            var geometry = new THREE.DodecahedronGeometry(1.5);
+            mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0xEF4444, metalness: 0.5, roughness: 0.3, flatShading: true }));
+            mesh.castShadow = true;
+            mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geometry), new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.5, transparent: true })));
+        } else if (type === 'icosahedron') {
+            var geometry = new THREE.IcosahedronGeometry(1.5);
+            mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0x8B5CF6, metalness: 0.5, roughness: 0.3, flatShading: true }));
+            mesh.castShadow = true;
+            mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geometry), new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.5, transparent: true })));
+        } else if (type === 'octahedron') {
+            var geometry = new THREE.OctahedronGeometry(1.5);
+            mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0x14B8A6, metalness: 0.5, roughness: 0.3, flatShading: true }));
+            mesh.castShadow = true;
+            mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geometry), new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.5, transparent: true })));
+        } else if (type === 'tetrahedron') {
+            var geometry = new THREE.TetrahedronGeometry(1.5);
+            mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0xFFD700, metalness: 0.5, roughness: 0.3, flatShading: true }));
+            mesh.castShadow = true;
+            mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geometry), new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.5, transparent: true })));
+        } else if (type === 'cone') {
+            var geometry = new THREE.ConeGeometry(1.2, 2.5, 32);
+            mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0xFF5722, metalness: 0.4, roughness: 0.3 }));
+            mesh.castShadow = true;
+            mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geometry), new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.3, transparent: true })));
+        } else if (type === 'rectangle') {
+            var geometry = new THREE.BoxGeometry(3, 2, 0.3);
+            mesh = new THREE.Mesh(geometry, [
+                new THREE.MeshStandardMaterial({ color: 0x2196F3, metalness: 0.3, roughness: 0.4 }),
+                new THREE.MeshStandardMaterial({ color: 0x2196F3, metalness: 0.3, roughness: 0.4 }),
+                new THREE.MeshStandardMaterial({ color: 0x1565C0, metalness: 0.3, roughness: 0.4 }),
+                new THREE.MeshStandardMaterial({ color: 0x1565C0, metalness: 0.3, roughness: 0.4 }),
+                new THREE.MeshStandardMaterial({ color: 0x42A5F5, metalness: 0.3, roughness: 0.4 }),
+                new THREE.MeshStandardMaterial({ color: 0x42A5F5, metalness: 0.3, roughness: 0.4 })
+            ]);
+            mesh.castShadow = true;
+            mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geometry), new THREE.LineBasicMaterial({ color: 0xffffff })));
+        } else if (type === 'coordinate') {
+            var group = new THREE.Group();
+            var xAxis = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-3, 0, 0), new THREE.Vector3(3, 0, 0)]);
+            group.add(new THREE.Line(xAxis, new THREE.LineBasicMaterial({ color: 0xEF4444 })));
+            var yAxis = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, -3, 0), new THREE.Vector3(0, 3, 0)]);
+            group.add(new THREE.Line(yAxis, new THREE.LineBasicMaterial({ color: 0x4CAF50 })));
+            for (var ci = -3; ci <= 3; ci++) {
+                var hL = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-3, ci, -0.01), new THREE.Vector3(3, ci, -0.01)]);
+                group.add(new THREE.Line(hL, new THREE.LineBasicMaterial({ color: 0x333366, transparent: true, opacity: 0.3 })));
+                var vL = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(ci, -3, -0.01), new THREE.Vector3(ci, 3, -0.01)]);
+                group.add(new THREE.Line(vL, new THREE.LineBasicMaterial({ color: 0x333366, transparent: true, opacity: 0.3 })));
+            }
+            [[1,2],[2,1],[-1,1],[1,-1],[-2,-1]].forEach(function(p) {
+                var cDot = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), new THREE.MeshStandardMaterial({ color: 0x00ffff, emissive: 0x00ffff, emissiveIntensity: 0.5 }));
+                cDot.position.set(p[0], p[1], 0);
+                group.add(cDot);
+            });
+            mesh = group;
+        } else if (type === 'balance') {
+            var group = new THREE.Group();
+            var balBase = new THREE.Mesh(new THREE.ConeGeometry(0.5, 1.2, 3), new THREE.MeshStandardMaterial({ color: 0xFFD700, metalness: 0.5, roughness: 0.3 }));
+            balBase.position.y = -1.4;
+            group.add(balBase);
+            var beam = new THREE.Mesh(new THREE.BoxGeometry(4, 0.15, 0.3), new THREE.MeshStandardMaterial({ color: 0x9C27B0, metalness: 0.3, roughness: 0.4 }));
+            beam.position.y = -0.7;
+            group.add(beam);
+            var leftPan = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 0.1, 32), new THREE.MeshStandardMaterial({ color: 0x2196F3, metalness: 0.4, roughness: 0.3 }));
+            leftPan.position.set(-1.7, -0.9, 0);
+            group.add(leftPan);
+            var rightPan = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 0.1, 32), new THREE.MeshStandardMaterial({ color: 0xEF4444, metalness: 0.4, roughness: 0.3 }));
+            rightPan.position.set(1.7, -0.9, 0);
+            group.add(rightPan);
+            var leftObj = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.4), new THREE.MeshStandardMaterial({ color: 0x4CAF50 }));
+            leftObj.position.set(-1.7, -0.5, 0);
+            group.add(leftObj);
+            var rightObj = new THREE.Mesh(new THREE.SphereGeometry(0.25, 16, 16), new THREE.MeshStandardMaterial({ color: 0xFF9800 }));
+            rightObj.position.set(1.7, -0.5, 0);
+            group.add(rightObj);
+            mesh = group;
+        } else if (type === 'nets') {
+            var group = new THREE.Group();
+            var sq = 0.8;
+            [[0,0],[0,1],[0,-1],[0,-2],[-1,0],[1,0]].forEach(function(pos) {
+                var face = new THREE.Mesh(new THREE.BoxGeometry(sq, sq, 0.05), new THREE.MeshStandardMaterial({ color: 0x2196F3, metalness: 0.3, roughness: 0.4 }));
+                face.position.set(pos[0] * (sq + 0.05), pos[1] * (sq + 0.05), 0);
+                face.add(new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(sq, sq, 0.05)), new THREE.LineBasicMaterial({ color: 0xffffff })));
+                group.add(face);
+            });
+            mesh = group;
+        } else if (type === 'tessellation') {
+            var group = new THREE.Group();
+            var hr = 0.5;
+            var hexColors = [0xE94560, 0x2196F3, 0x4CAF50, 0xFFD700, 0x9C27B0, 0xFF5722];
+            var hi = 0;
+            for (var hrow = -2; hrow <= 2; hrow++) {
+                for (var hcol = -2; hcol <= 2; hcol++) {
+                    var hex = new THREE.Mesh(new THREE.CircleGeometry(hr, 6), new THREE.MeshStandardMaterial({ color: hexColors[hi % hexColors.length], metalness: 0.3, roughness: 0.4, side: THREE.DoubleSide }));
+                    hex.position.set(hcol * hr * 1.75, hrow * hr * 1.52 + (hcol % 2 !== 0 ? hr * 0.76 : 0), 0);
+                    hex.add(new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.CircleGeometry(hr, 6)), new THREE.LineBasicMaterial({ color: 0xffffff })));
+                    group.add(hex);
+                    hi++;
+                }
             }
             mesh = group;
         } else {
