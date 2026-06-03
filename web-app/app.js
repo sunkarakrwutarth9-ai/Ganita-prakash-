@@ -10904,6 +10904,8 @@ function handleSignalingMessage(msg) {
     } else if (msg.type === 'call_ended') {
         cleanupCall();
         alert('Call ended by the other party');
+    } else if (msg.type === 'switch_to_gemini') {
+        startGeminiVoiceChat(msg.data || {});
     }
 }
 
@@ -11174,40 +11176,72 @@ async function handleICECandidate(candidateData) {
 
 var callPollInterval = null;
 var _seenCallNotifIds = {};
+var _callStartTimestamp = 0;
+
+// Flush all stale call-related notifications before starting a new call's poll.
+// This prevents old call_ended / call_answered / ice_candidate notifications
+// from a previous call from accidentally ending the new call.
+async function flushStaleCallNotifications() {
+    try {
+        var response = await fetch(API_URL + '/api/notifications', {
+            headers: { 'Authorization': 'Bearer ' + appState.authToken }
+        });
+        if (response.ok) {
+            var notifications = await response.json();
+            var callTypes = ['call_ended', 'call_answered', 'ice_candidate', 'incoming_call'];
+            for (var i = 0; i < notifications.length; i++) {
+                var notif = notifications[i];
+                if (callTypes.indexOf(notif.notification_type) !== -1) {
+                    _seenCallNotifIds[notif.id] = true;
+                    markNotificationRead(notif.id);
+                }
+            }
+        }
+    } catch(e) { console.log('Flush stale notifs error:', e); }
+}
+
 function startPollingForCallUpdates() {
     if (callPollInterval) clearInterval(callPollInterval);
     _seenCallNotifIds = {};
-    callPollInterval = setInterval(async function() {
-        try {
-            var response = await fetch(API_URL + '/api/notifications', {
-                headers: { 'Authorization': 'Bearer ' + appState.authToken }
-            });
-            if (response.ok) {
-                var notifications = await response.json();
-                for (var i = 0; i < notifications.length; i++) {
-                    var notif = notifications[i];
-                    if (notif.is_read || _seenCallNotifIds[notif.id]) continue;
-                    _seenCallNotifIds[notif.id] = true;
-                    if (notif.notification_type === 'call_answered') {
-                        var data = JSON.parse(notif.message);
-                        handleCallAnswer(data.sdp);
-                        markNotificationRead(notif.id);
-                    } else if (notif.notification_type === 'ice_candidate') {
-                        var data = JSON.parse(notif.message);
-                        handleICECandidate(data);
-                        markNotificationRead(notif.id);
-                    } else if (notif.notification_type === 'call_ended') {
-                        cleanupCall();
-                        markNotificationRead(notif.id);
-                    } else if (notif.notification_type === 'incoming_call' && !appState.inCall && !appState.isAdmin) {
-                        var data = JSON.parse(notif.message);
-                        handleIncomingCall(data.caller_id, { sdp: data.sdp, call_type: data.call_type, call_id: data.call_id });
-                        markNotificationRead(notif.id);
+    _callStartTimestamp = Date.now();
+    // Flush stale notifications first, then start polling
+    flushStaleCallNotifications().then(function() {
+        callPollInterval = setInterval(async function() {
+            try {
+                var response = await fetch(API_URL + '/api/notifications', {
+                    headers: { 'Authorization': 'Bearer ' + appState.authToken }
+                });
+                if (response.ok) {
+                    var notifications = await response.json();
+                    for (var i = 0; i < notifications.length; i++) {
+                        var notif = notifications[i];
+                        if (notif.is_read || _seenCallNotifIds[notif.id]) continue;
+                        _seenCallNotifIds[notif.id] = true;
+                        if (notif.notification_type === 'call_answered') {
+                            var data = JSON.parse(notif.message);
+                            handleCallAnswer(data.sdp);
+                            markNotificationRead(notif.id);
+                        } else if (notif.notification_type === 'ice_candidate') {
+                            var data = JSON.parse(notif.message);
+                            handleICECandidate(data);
+                            markNotificationRead(notif.id);
+                        } else if (notif.notification_type === 'call_ended') {
+                            cleanupCall();
+                            markNotificationRead(notif.id);
+                        } else if (notif.notification_type === 'switch_to_gemini') {
+                            var gData = JSON.parse(notif.message);
+                            startGeminiVoiceChat(gData);
+                            markNotificationRead(notif.id);
+                        } else if (notif.notification_type === 'incoming_call' && !appState.inCall && !appState.isAdmin) {
+                            var data = JSON.parse(notif.message);
+                            handleIncomingCall(data.caller_id, { sdp: data.sdp, call_type: data.call_type, call_id: data.call_id });
+                            markNotificationRead(notif.id);
+                        }
                     }
                 }
-            }
-        } catch(e) { console.error('Poll error:', e); }
-    }, 2000);
+            } catch(e) { console.error('Poll error:', e); }
+        }, 2000);
+    });
 }
 
 async function markNotificationRead(notifId) {
@@ -11236,6 +11270,7 @@ function showCallUI(callType) {
             '</div>' : 
             '<div style="font-size: 100px; margin-bottom: 20px;">📞</div><p style="color: #fff; margin-bottom: 20px;">Voice call active</p>' +
             '<audio id="remote-audio" autoplay></audio>') +
+        (appState.isAdmin ? '<button onclick="switchToGemini()" id="gemini-switch-btn" style="padding: 15px 30px; background: linear-gradient(135deg, #4285f4, #a855f7); color: white; border: none; border-radius: 10px; font-size: 16px; cursor: pointer; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;"><span style="font-size: 22px;">🤖</span> Switch to Gemini</button>' : '') +
         '<button onclick="endWebRTCCall()" style="padding: 15px 40px; background: #EF4444; color: white; border: none; border-radius: 10px; font-size: 18px; cursor: pointer;">End Call</button>' +
         '</div>';
     document.body.appendChild(callModal);
@@ -11343,8 +11378,212 @@ function endCall() {
 
 function toggleAIInCall() {
     if (!appState.inCall) { alert('Start a call first to invite AI'); return; }
-    appState.aiInCall = !appState.aiInCall;
-    alert(appState.aiInCall ? 'Gemini AI has joined the call!' : 'Gemini AI has left the call.');
+    switchToGemini();
+}
+
+// Switch to Gemini AI voice chat - admin sends signal to student
+async function switchToGemini() {
+    if (!appState.isAdmin || !currentCallUserId) { alert('No active call to switch'); return; }
+    var btn = document.getElementById('gemini-switch-btn');
+    if (btn) { btn.textContent = '🤖 Switching...'; btn.disabled = true; }
+    try {
+        // Send switch_to_gemini notification to the student
+        await fetch(API_URL + '/api/admin/notify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + appState.authToken },
+            body: JSON.stringify({
+                user_id: currentCallUserId,
+                notification_type: 'switch_to_gemini',
+                message: JSON.stringify({ from_admin: true, admin_name: 'Master Admin' })
+            })
+        });
+        // Also try WS fast path
+        sendSignalingMessage('switch_to_gemini', currentCallUserId, { from_admin: true });
+        // Mute admin's mic since Gemini takes over
+        if (localStream) {
+            localStream.getAudioTracks().forEach(function(t) { t.enabled = false; });
+        }
+        var statusEl = document.getElementById('call-status');
+        if (statusEl) statusEl.textContent = '🤖 Gemini AI is talking to the student';
+        if (btn) { btn.textContent = '🤖 Gemini Active'; btn.style.background = 'linear-gradient(135deg, #10b981, #059669)'; }
+    } catch(e) {
+        console.error('Switch to Gemini error:', e);
+        alert('Failed to switch to Gemini: ' + e.message);
+        if (btn) { btn.textContent = '🤖 Switch to Gemini'; btn.disabled = false; }
+    }
+}
+
+// Gemini voice chat state
+var geminiVoiceActive = false;
+var geminiRecognition = null;
+var geminiConversation = [];
+
+// Start Gemini voice chat on student side (triggered by admin's switch_to_gemini signal)
+function startGeminiVoiceChat(data) {
+    if (geminiVoiceActive) return;
+    geminiVoiceActive = true;
+    geminiConversation = [];
+
+    // End the WebRTC call audio - Gemini takes over
+    if (localStream) {
+        localStream.getAudioTracks().forEach(function(t) { t.enabled = false; });
+    }
+
+    // Remove existing call modal and show Gemini voice chat UI
+    var callModal = document.getElementById('call-modal');
+    if (callModal) callModal.remove();
+
+    var geminiModal = document.createElement('div');
+    geminiModal.id = 'gemini-voice-modal';
+    geminiModal.innerHTML =
+        '<div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(180deg, #0a0a2e 0%, #1a1a3e 50%, #0a0a2e 100%); z-index: 10000; display: flex; flex-direction: column; align-items: center; justify-content: center;">' +
+        '<div id="gemini-pulse" style="width: 140px; height: 140px; border-radius: 50%; background: linear-gradient(135deg, #4285f4, #a855f7); display: flex; align-items: center; justify-content: center; font-size: 64px; box-shadow: 0 0 80px rgba(66, 133, 244, 0.5); animation: pulse 2.4s ease-in-out infinite; margin-bottom: 30px;">🤖</div>' +
+        '<h2 style="color: #fff; margin-bottom: 10px; font-size: 1.6em;">Gemini AI</h2>' +
+        '<p id="gemini-status" style="color: #a0a0ff; margin-bottom: 20px; font-size: 1.1em;">Listening...</p>' +
+        '<div id="gemini-transcript" style="max-height: 200px; overflow-y: auto; width: 90%; max-width: 400px; margin-bottom: 20px; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 12px; font-size: 0.9em; color: #ccc;"></div>' +
+        '<div style="display: flex; gap: 15px;">' +
+        '<button onclick="geminiVoiceInput()" id="gemini-mic-btn" style="padding: 15px 30px; background: #4285f4; color: white; border: none; border-radius: 10px; font-size: 16px; cursor: pointer;">🎤 Speak</button>' +
+        '<button onclick="endGeminiVoiceChat()" style="padding: 15px 30px; background: #EF4444; color: white; border: none; border-radius: 10px; font-size: 16px; cursor: pointer;">End Chat</button>' +
+        '</div>' +
+        '</div>';
+    document.body.appendChild(geminiModal);
+
+    // Auto-start listening
+    geminiVoiceInput();
+
+    // Speak a greeting
+    geminiSpeak('Hello! I am Gemini AI assistant. How can I help you with Mathematics today?');
+}
+
+// Speech recognition for Gemini voice chat
+function geminiVoiceInput() {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        alert('Speech recognition not supported in this browser. Please use Chrome.');
+        return;
+    }
+    var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (geminiRecognition) { try { geminiRecognition.stop(); } catch(_) {} }
+    geminiRecognition = new SpeechRecognition();
+    geminiRecognition.continuous = false;
+    geminiRecognition.interimResults = true;
+    geminiRecognition.lang = 'en-IN';
+    geminiRecognition.maxAlternatives = 1;
+
+    var statusEl = document.getElementById('gemini-status');
+    var micBtn = document.getElementById('gemini-mic-btn');
+    if (statusEl) statusEl.textContent = '🎤 Listening...';
+    if (micBtn) { micBtn.style.background = '#ef4444'; micBtn.textContent = '🔴 Listening...'; }
+
+    var finalTranscript = '';
+    geminiRecognition.onresult = function(event) {
+        var interim = '';
+        for (var i = event.resultIndex; i < event.results.length; i++) {
+            if (event.results[i].isFinal) {
+                finalTranscript += event.results[i][0].transcript;
+            } else {
+                interim += event.results[i][0].transcript;
+            }
+        }
+        if (statusEl) statusEl.textContent = finalTranscript || interim || 'Listening...';
+    };
+
+    geminiRecognition.onend = function() {
+        if (micBtn) { micBtn.style.background = '#4285f4'; micBtn.textContent = '🎤 Speak'; }
+        if (finalTranscript.trim()) {
+            sendToGemini(finalTranscript.trim());
+        } else {
+            if (statusEl) statusEl.textContent = 'Tap Speak to ask a question';
+        }
+    };
+
+    geminiRecognition.onerror = function(event) {
+        console.log('Speech recognition error:', event.error);
+        if (micBtn) { micBtn.style.background = '#4285f4'; micBtn.textContent = '🎤 Speak'; }
+        if (event.error === 'no-speech') {
+            if (statusEl) statusEl.textContent = 'No speech detected. Tap Speak to try again.';
+        }
+    };
+
+    geminiRecognition.start();
+}
+
+// Send transcribed text to Gemini and speak response
+async function sendToGemini(text) {
+    var statusEl = document.getElementById('gemini-status');
+    var transcriptEl = document.getElementById('gemini-transcript');
+    if (statusEl) statusEl.textContent = '🤔 Thinking...';
+
+    // Add user message to transcript
+    geminiConversation.push({ role: 'user', text: text });
+    if (transcriptEl) {
+        transcriptEl.innerHTML += '<div style="margin-bottom: 8px;"><span style="color: #4ade80;">You:</span> ' + text + '</div>';
+        transcriptEl.scrollTop = transcriptEl.scrollHeight;
+    }
+
+    try {
+        var classNum = parseInt(localStorage.getItem('selectedClass') || '6', 10);
+        var response = await fetch(API_URL + '/api/ai/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + appState.authToken },
+            body: JSON.stringify({ message: text, chapter_id: null, class_num: classNum })
+        });
+        var data = await response.json();
+        var aiText = data.response || 'Sorry, I could not generate a response. Please try again.';
+
+        // Add AI response to transcript
+        geminiConversation.push({ role: 'assistant', text: aiText });
+        if (transcriptEl) {
+            transcriptEl.innerHTML += '<div style="margin-bottom: 8px;"><span style="color: #a0a0ff;">Gemini:</span> ' + aiText + '</div>';
+            transcriptEl.scrollTop = transcriptEl.scrollHeight;
+        }
+
+        // Speak the response
+        geminiSpeak(aiText);
+    } catch(e) {
+        console.error('Gemini chat error:', e);
+        if (statusEl) statusEl.textContent = 'Error getting response. Tap Speak to try again.';
+    }
+}
+
+// Text-to-Speech for Gemini responses
+function geminiSpeak(text) {
+    var statusEl = document.getElementById('gemini-status');
+    if (statusEl) statusEl.textContent = '🔊 Speaking...';
+
+    if (!window.speechSynthesis) {
+        if (statusEl) statusEl.textContent = 'Tap Speak to ask a question';
+        return;
+    }
+
+    window.speechSynthesis.cancel();
+    var utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'en-IN';
+    utterance.rate = 0.95;
+    utterance.pitch = 1;
+
+    utterance.onend = function() {
+        if (statusEl) statusEl.textContent = 'Tap Speak to ask another question';
+        // Auto-restart listening after Gemini finishes speaking
+        if (geminiVoiceActive) {
+            setTimeout(function() { if (geminiVoiceActive) geminiVoiceInput(); }, 500);
+        }
+    };
+    utterance.onerror = function() {
+        if (statusEl) statusEl.textContent = 'Tap Speak to ask a question';
+    };
+
+    window.speechSynthesis.speak(utterance);
+}
+
+// End Gemini voice chat
+function endGeminiVoiceChat() {
+    geminiVoiceActive = false;
+    if (geminiRecognition) { try { geminiRecognition.stop(); } catch(_) {} geminiRecognition = null; }
+    window.speechSynthesis.cancel();
+    var geminiModal = document.getElementById('gemini-voice-modal');
+    if (geminiModal) geminiModal.remove();
+    // End the underlying WebRTC call if still active
+    endWebRTCCall();
 }
 
 // 3D Models functions - uses progressive unlocking and supports both Class 6 and Class 7

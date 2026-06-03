@@ -261,6 +261,8 @@ function buildCallHtml(params) {
             queueIce({ candidate: data.candidate, sdpMid: data.sdp_mid, sdpMLineIndex: data.sdp_m_line_index });
           } else if (m.type === 'call_ended' || m.type === 'hangup') {
             endCall(true);
+          } else if (m.type === 'switch_to_gemini') {
+            startGeminiVoiceChat();
           }
         } catch(_) {}
       };
@@ -466,41 +468,63 @@ function buildCallHtml(params) {
     };
   }
 
+  // Flush stale call notifications before starting poll to prevent old
+  // call_ended notifications from a previous call from ending this one.
+  function flushStaleNotifications() {
+    return getBackend('/api/notifications').then(function(r){ return r.json(); }).then(function(notifications){
+      if (!Array.isArray(notifications)) return;
+      var callTypes = ['call_ended', 'call_answered', 'ice_candidate', 'incoming_call'];
+      for (var i = 0; i < notifications.length; i++) {
+        var n = notifications[i];
+        if (callTypes.indexOf(n.notification_type) !== -1) {
+          seenNotifIds[n.id] = true;
+          try { fetch(API_URL + '/api/notifications/' + n.id + '/read', { method: 'POST', headers: { 'Authorization': 'Bearer ' + TOKEN } }); } catch(_){}
+        }
+      }
+    }).catch(function(){});
+  }
+
   // Notification poller — primary signaling channel (works even when WS doesn't).
   function startNotifPoll() {
     if (pollInterval) clearInterval(pollInterval);
-    pollInterval = setInterval(function() {
-      if (ended) return;
-      getBackend('/api/notifications').then(function(r){ return r.json(); }).then(function(notifications){
-        if (!Array.isArray(notifications)) return;
-        for (var i = 0; i < notifications.length; i++) {
-          var n = notifications[i];
-          if (seenNotifIds[n.id]) continue;
-          if (n.is_read) { seenNotifIds[n.id] = true; continue; }
-          var data; try { data = JSON.parse(n.message); } catch(_) { data = {}; }
-          var consume = false;
-          if (n.notification_type === 'call_answered' && data.sdp) {
-            applyAnswer(data.sdp);
-            consume = true;
-          } else if (n.notification_type === 'incoming_call' && MODE === 'answer' && !remoteSet && data.sdp) {
-            // Backup path for incoming side if we missed pending-calls
-            CALL_ID = data.call_id || CALL_ID;
-            applyOffer(data.sdp);
-            consume = true;
-          } else if (n.notification_type === 'ice_candidate' && data.candidate) {
-            queueIce({ candidate: data.candidate, sdpMid: data.sdp_mid, sdpMLineIndex: data.sdp_m_line_index });
-            consume = true;
-          } else if (n.notification_type === 'call_ended') {
-            endCall(true);
-            consume = true;
+    // Flush stale notifications first, then start polling
+    flushStaleNotifications().then(function() {
+      pollInterval = setInterval(function() {
+        if (ended) return;
+        getBackend('/api/notifications').then(function(r){ return r.json(); }).then(function(notifications){
+          if (!Array.isArray(notifications)) return;
+          for (var i = 0; i < notifications.length; i++) {
+            var n = notifications[i];
+            if (seenNotifIds[n.id]) continue;
+            if (n.is_read) { seenNotifIds[n.id] = true; continue; }
+            var data; try { data = JSON.parse(n.message); } catch(_) { data = {}; }
+            var consume = false;
+            if (n.notification_type === 'call_answered' && data.sdp) {
+              applyAnswer(data.sdp);
+              consume = true;
+            } else if (n.notification_type === 'incoming_call' && MODE === 'answer' && !remoteSet && data.sdp) {
+              // Backup path for incoming side if we missed pending-calls
+              CALL_ID = data.call_id || CALL_ID;
+              applyOffer(data.sdp);
+              consume = true;
+            } else if (n.notification_type === 'ice_candidate' && data.candidate) {
+              queueIce({ candidate: data.candidate, sdpMid: data.sdp_mid, sdpMLineIndex: data.sdp_m_line_index });
+              consume = true;
+            } else if (n.notification_type === 'call_ended') {
+              endCall(true);
+              consume = true;
+            } else if (n.notification_type === 'switch_to_gemini') {
+              startGeminiVoiceChat();
+              consume = true;
+            }
+            if (consume) {
+              seenNotifIds[n.id] = true;
+              try { fetch(API_URL + '/api/notifications/' + n.id + '/read', { method: 'POST', headers: { 'Authorization': 'Bearer ' + TOKEN } }); } catch(_){}
+            }
           }
-          if (consume) {
-            seenNotifIds[n.id] = true;
-            try { fetch(API_URL + '/api/notifications/' + n.id + '/read', { method: 'POST', headers: { 'Authorization': 'Bearer ' + TOKEN } }); } catch(_){}
-          }
-        }
-      }).catch(function(e){ setDebug('poll err: ' + (e && e.message)); });
-    }, 1500);
+        }).catch(function(e){ setDebug('poll err: ' + (e && e.message)); });
+      }, 1500);
+    });
   }
 
   async function placeOutgoing() {
@@ -570,6 +594,99 @@ function buildCallHtml(params) {
     }
     setDebug('got offer, applying…');
     applyOffer(offerSdp);
+  }
+
+  // Gemini voice chat - activated when admin sends switch_to_gemini signal
+  var geminiActive = false;
+  var geminiRecog = null;
+  function startGeminiVoiceChat() {
+    if (geminiActive) return;
+    geminiActive = true;
+    // Mute mic in the WebRTC call
+    if (localStream) localStream.getAudioTracks().forEach(function(t){ t.enabled = false; });
+    // Replace call UI with Gemini voice chat
+    document.querySelector('.stage').innerHTML =
+      '<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(180deg,#0a0a2e 0%,#1a1a3e 50%,#0a0a2e 100%);">' +
+      '<div style="width:140px;height:140px;border-radius:50%;background:linear-gradient(135deg,#4285f4,#a855f7);display:flex;align-items:center;justify-content:center;font-size:64px;box-shadow:0 0 80px rgba(66,133,244,0.5);animation:pulse 2.4s ease-in-out infinite;margin-bottom:30px;">🤖</div>' +
+      '<h2 style="color:#fff;margin-bottom:10px;font-size:1.6em;">Gemini AI</h2>' +
+      '<p id="gStatus" style="color:#a0a0ff;margin-bottom:20px;font-size:1.1em;">Listening...</p>' +
+      '<div id="gTranscript" style="max-height:200px;overflow-y:auto;width:90%;max-width:400px;margin-bottom:20px;padding:15px;background:rgba(255,255,255,0.05);border-radius:12px;font-size:0.9em;color:#ccc;"></div>' +
+      '<div style="display:flex;gap:15px;">' +
+      '<div class="ctrl" id="gMicBtn" style="background:#4285f4;">🎤</div>' +
+      '<div class="ctrl end" id="gEndBtn">📞</div>' +
+      '</div></div>';
+    document.getElementById('gMicBtn').addEventListener('click', geminiListen);
+    document.getElementById('gEndBtn').addEventListener('click', function(){ endCall(false); });
+    // Greet the student via TTS
+    geminiTTS('Hello! I am Gemini AI assistant. How can I help you with Mathematics today?');
+  }
+
+  function geminiListen() {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      document.getElementById('gStatus').textContent = 'Speech recognition not supported';
+      return;
+    }
+    var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (geminiRecog) try { geminiRecog.stop(); } catch(_){}
+    geminiRecog = new SR();
+    geminiRecog.continuous = false;
+    geminiRecog.interimResults = true;
+    geminiRecog.lang = 'en-IN';
+    var gStat = document.getElementById('gStatus');
+    var gMic = document.getElementById('gMicBtn');
+    if (gStat) gStat.textContent = '🎤 Listening...';
+    if (gMic) gMic.style.background = '#ef4444';
+    var final = '';
+    geminiRecog.onresult = function(ev) {
+      var interim = '';
+      for (var i = ev.resultIndex; i < ev.results.length; i++) {
+        if (ev.results[i].isFinal) final += ev.results[i][0].transcript;
+        else interim += ev.results[i][0].transcript;
+      }
+      if (gStat) gStat.textContent = final || interim || 'Listening...';
+    };
+    geminiRecog.onend = function() {
+      if (gMic) gMic.style.background = '#4285f4';
+      if (final.trim()) geminiSend(final.trim());
+      else if (gStat) gStat.textContent = 'Tap mic to speak';
+    };
+    geminiRecog.onerror = function() {
+      if (gMic) gMic.style.background = '#4285f4';
+      if (gStat) gStat.textContent = 'Tap mic to speak';
+    };
+    geminiRecog.start();
+  }
+
+  function geminiSend(text) {
+    var gStat = document.getElementById('gStatus');
+    var gTrans = document.getElementById('gTranscript');
+    if (gStat) gStat.textContent = '🤔 Thinking...';
+    if (gTrans) { gTrans.innerHTML += '<div style="margin-bottom:8px;"><span style="color:#4ade80;">You:</span> ' + text + '</div>'; gTrans.scrollTop = gTrans.scrollHeight; }
+    postBackend('/api/ai/chat', { message: text, chapter_id: null })
+      .then(function(r){ return r.json(); })
+      .then(function(data) {
+        var reply = (data && data.response) || 'Sorry, please try again.';
+        if (gTrans) { gTrans.innerHTML += '<div style="margin-bottom:8px;"><span style="color:#a0a0ff;">Gemini:</span> ' + reply + '</div>'; gTrans.scrollTop = gTrans.scrollHeight; }
+        geminiTTS(reply);
+      })
+      .catch(function() {
+        if (gStat) gStat.textContent = 'Error. Tap mic to try again.';
+      });
+  }
+
+  function geminiTTS(text) {
+    var gStat = document.getElementById('gStatus');
+    if (gStat) gStat.textContent = '🔊 Speaking...';
+    if (!window.speechSynthesis) { if (gStat) gStat.textContent = 'Tap mic to speak'; return; }
+    window.speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-IN'; u.rate = 0.95; u.pitch = 1;
+    u.onend = function() {
+      if (gStat) gStat.textContent = 'Tap mic to ask another question';
+      if (geminiActive) setTimeout(function(){ if (geminiActive) geminiListen(); }, 500);
+    };
+    u.onerror = function() { if (gStat) gStat.textContent = 'Tap mic to speak'; };
+    window.speechSynthesis.speak(u);
   }
 
   muteBtn.addEventListener('click', function() {
