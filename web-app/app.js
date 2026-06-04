@@ -11177,6 +11177,8 @@ async function handleICECandidate(candidateData) {
 var callPollInterval = null;
 var _seenCallNotifIds = {};
 var _callStartTimestamp = 0;
+var _callStartMaxNotifId = 0;
+var _CALL_END_GRACE_MS = 5000;
 
 // Flush all stale call-related notifications before starting a new call's poll.
 // This prevents old call_ended / call_answered / ice_candidate notifications
@@ -11191,12 +11193,14 @@ async function flushStaleCallNotifications() {
             var callTypes = ['call_ended', 'call_answered', 'ice_candidate', 'incoming_call'];
             for (var i = 0; i < notifications.length; i++) {
                 var notif = notifications[i];
+                if (notif.id > _callStartMaxNotifId) _callStartMaxNotifId = notif.id;
                 if (callTypes.indexOf(notif.notification_type) !== -1) {
                     _seenCallNotifIds[notif.id] = true;
                     markNotificationRead(notif.id);
                 }
             }
         }
+        console.log('Flush done, maxNotifId=' + _callStartMaxNotifId);
     } catch(e) { console.log('Flush stale notifs error:', e); }
 }
 
@@ -11226,7 +11230,13 @@ function startPollingForCallUpdates() {
                             handleICECandidate(data);
                             markNotificationRead(notif.id);
                         } else if (notif.notification_type === 'call_ended') {
-                            cleanupCall();
+                            var elapsed = Date.now() - _callStartTimestamp;
+                            if (notif.id > _callStartMaxNotifId && elapsed > _CALL_END_GRACE_MS) {
+                                console.log('call_ended honoured, notif=' + notif.id + ', elapsed=' + elapsed);
+                                cleanupCall();
+                            } else {
+                                console.log('call_ended IGNORED (stale/early), notif=' + notif.id + ', maxId=' + _callStartMaxNotifId + ', elapsed=' + elapsed);
+                            }
                             markNotificationRead(notif.id);
                         } else if (notif.notification_type === 'switch_to_gemini') {
                             var gData = JSON.parse(notif.message);

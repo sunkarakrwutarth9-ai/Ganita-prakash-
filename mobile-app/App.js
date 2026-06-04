@@ -11077,6 +11077,9 @@ export default function App() {
     
     const pollForNotifications = async () => {
       if (!authToken || !isLoggedIn) return;
+      // Pause outer poll when call WebView is open to avoid concurrent
+      // notification reads that could interfere with the WebView's own poll
+      if (showCallWebView) return;
       
       try {
         // Poll for incoming calls
@@ -11124,7 +11127,7 @@ export default function App() {
         clearInterval(pollInterval);
       }
     };
-  }, [isLoggedIn, authToken]);
+  }, [isLoggedIn, authToken, showCallWebView]);
 
   // State for colorful festival wish modal
   const [showFestivalModal, setShowFestivalModal] = useState(false);

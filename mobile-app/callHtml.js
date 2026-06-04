@@ -194,6 +194,9 @@ function buildCallHtml(params) {
   var seenNotifIds = {};
   var connectStartAt = 0;     // when we kicked off signaling
   var didRelayFallback = false; // have we already retried with relay-only?
+  var callStartMaxNotifId = 0; // high-water-mark: max notification ID at call start
+  var callStartTime = 0;       // timestamp when call was initiated
+  var CALL_END_GRACE_MS = 5000; // ignore call_ended for this many ms after call start
 
   function setState(s) {
     if (stateEl) stateEl.textContent = s;
@@ -260,7 +263,13 @@ function buildCallHtml(params) {
           } else if (m.type === 'ice_candidate' && data.candidate) {
             queueIce({ candidate: data.candidate, sdpMid: data.sdp_mid, sdpMLineIndex: data.sdp_m_line_index });
           } else if (m.type === 'call_ended' || m.type === 'hangup') {
-            endCall(true);
+            // WS call_ended: honour only after grace period
+            var wsElapsed = Date.now() - callStartTime;
+            if (wsElapsed > CALL_END_GRACE_MS) {
+              endCall(true);
+            } else {
+              setDebug('ws call_ended IGNORED (early), elapsed=' + wsElapsed + 'ms');
+            }
           } else if (m.type === 'switch_to_gemini') {
             startGeminiVoiceChat();
           }
@@ -471,17 +480,24 @@ function buildCallHtml(params) {
   // Flush stale call notifications before starting poll to prevent old
   // call_ended notifications from a previous call from ending this one.
   function flushStaleNotifications() {
+    callStartTime = Date.now();
     return getBackend('/api/notifications').then(function(r){ return r.json(); }).then(function(notifications){
       if (!Array.isArray(notifications)) return;
-      var callTypes = ['call_ended', 'call_answered', 'ice_candidate', 'incoming_call'];
+      // Track the highest notification ID seen before this call started
       for (var i = 0; i < notifications.length; i++) {
         var n = notifications[i];
+        if (n.id > callStartMaxNotifId) callStartMaxNotifId = n.id;
+        // Mark ALL existing call-type notifications as seen
+        var callTypes = ['call_ended', 'call_answered', 'ice_candidate', 'incoming_call'];
         if (callTypes.indexOf(n.notification_type) !== -1) {
           seenNotifIds[n.id] = true;
           try { fetch(API_URL + '/api/notifications/' + n.id + '/read', { method: 'POST', headers: { 'Authorization': 'Bearer ' + TOKEN } }); } catch(_){}
         }
       }
-    }).catch(function(){});
+      setDebug('flush done, maxId=' + callStartMaxNotifId + ', seen=' + Object.keys(seenNotifIds).length);
+    }).catch(function(e){
+      setDebug('flush err: ' + (e && e.message));
+    });
   }
 
   // Notification poller — primary signaling channel (works even when WS doesn't).
@@ -511,7 +527,15 @@ function buildCallHtml(params) {
               queueIce({ candidate: data.candidate, sdpMid: data.sdp_mid, sdpMLineIndex: data.sdp_m_line_index });
               consume = true;
             } else if (n.notification_type === 'call_ended') {
-              endCall(true);
+              // Only honor call_ended if: (a) notification was created AFTER this call started
+              // (id > high-water-mark) AND (b) grace period has elapsed
+              var elapsed = Date.now() - callStartTime;
+              if (n.id > callStartMaxNotifId && elapsed > CALL_END_GRACE_MS) {
+                setDebug('call_ended honoured, notif=' + n.id + ', age=' + elapsed + 'ms');
+                endCall(true);
+              } else {
+                setDebug('call_ended IGNORED (stale/early), notif=' + n.id + ', maxId=' + callStartMaxNotifId + ', elapsed=' + elapsed + 'ms');
+              }
               consume = true;
             } else if (n.notification_type === 'switch_to_gemini') {
               startGeminiVoiceChat();
