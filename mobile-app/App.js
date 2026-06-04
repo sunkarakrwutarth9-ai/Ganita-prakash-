@@ -11139,6 +11139,8 @@ export default function App() {
   const [videoTitle, setVideoTitle] = useState('');
   const [videoUrl, setVideoUrl] = useState('');
   const [videoMinimized, setVideoMinimized] = useState(false);
+  const [videoControlsVisible, setVideoControlsVisible] = useState(true);
+  const videoControlsTimerRef = useRef(null);
   
   // In-app WebRTC calling state (using WebView)
   const [showCallWebView, setShowCallWebView] = useState(false);
@@ -13171,7 +13173,12 @@ export default function App() {
         visible={showVideoPlayer}
         transparent
         animationType={videoMinimized ? 'none' : 'slide'}
-        onShow={() => { if (!videoMinimized) ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE); }}
+        onShow={() => {
+          if (!videoMinimized) ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+          setVideoControlsVisible(true);
+          if (videoControlsTimerRef.current) clearTimeout(videoControlsTimerRef.current);
+          videoControlsTimerRef.current = setTimeout(() => setVideoControlsVisible(false), 4000);
+        }}
         onRequestClose={() => { ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP); setShowVideoPlayer(false); setVideoBase64(''); setVideoUrl(''); setVideoMinimized(false); }}
       >
         {videoMinimized ? (
@@ -13180,21 +13187,16 @@ export default function App() {
             <View style={{ flex: 1, backgroundColor: '#000' }}>
               {videoUrl ? (
                 <WebView
-                  source={{ html: generateDriveVideoPlayerHTML(videoUrl, videoTitle) }}
+                  source={{ uri: videoUrl }}
                   style={{ flex: 1 }}
                   javaScriptEnabled={true}
                   domStorageEnabled={true}
                   allowsInlineMediaPlayback={true}
                   mediaPlaybackRequiresUserAction={false}
+                  thirdPartyCookiesEnabled={true}
                   originWhitelist={['*']}
                   mixedContentMode="always"
-                  onMessage={(e) => {
-                    try {
-                      const msg = JSON.parse(e.nativeEvent.data || '{}');
-                      if (msg.type === 'close') { ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP); setShowVideoPlayer(false); setVideoBase64(''); setVideoUrl(''); setVideoMinimized(false); }
-                      else if (msg.type === 'fullscreen' || msg.type === 'minimize') { setVideoMinimized(false); ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE); }
-                    } catch (_) {}
-                  }}
+                  userAgent="Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
                 />
               ) : (
                 <WebView
@@ -13221,26 +13223,21 @@ export default function App() {
             </TouchableOpacity>
           </View>
         ) : (
-          /* Fullscreen YouTube-style player */
+          /* Fullscreen YouTube-style player — Drive URL loaded directly, controls are React Native overlays */
           <View style={{ flex: 1, backgroundColor: '#000' }}>
             {videoUrl ? (
               <WebView
-                source={{ html: generateDriveVideoPlayerHTML(videoUrl, videoTitle) }}
+                source={{ uri: videoUrl }}
                 style={{ flex: 1, backgroundColor: '#000' }}
                 javaScriptEnabled={true}
                 domStorageEnabled={true}
                 allowsInlineMediaPlayback={true}
                 mediaPlaybackRequiresUserAction={false}
+                thirdPartyCookiesEnabled={true}
                 originWhitelist={['*']}
                 mixedContentMode="always"
-                onMessage={(e) => {
-                  try {
-                    const msg = JSON.parse(e.nativeEvent.data || '{}');
-                    if (msg.type === 'close') { ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP); setShowVideoPlayer(false); setVideoBase64(''); setVideoUrl(''); setVideoMinimized(false); }
-                    else if (msg.type === 'minimize') { setVideoMinimized(true); ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP); }
-                    else if (msg.type === 'fullscreen') { ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE); }
-                  } catch (_) {}
-                }}
+                allowsFullscreenVideo={true}
+                userAgent="Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
               />
             ) : videoBase64 ? (
               <WebView
@@ -13259,6 +13256,35 @@ export default function App() {
                 <Text style={{ color: '#fff', marginTop: 10 }}>Loading Video...</Text>
               </View>
             )}
+            {/* React Native overlay controls — pass-through touches to WebView underneath */}
+            <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} pointerEvents="box-none">
+              {/* Top control bar */}
+              {videoControlsVisible && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingTop: 8, paddingBottom: 6, backgroundColor: 'rgba(0,0,0,0.6)' }}>
+                  <TouchableOpacity onPress={() => { setVideoMinimized(true); ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP); }} style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' }}>
+                    <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold', marginTop: -2 }}>—</Text>
+                  </TouchableOpacity>
+                  <Text style={{ flex: 1, color: '#fff', fontSize: 15, fontWeight: '600', marginHorizontal: 12 }} numberOfLines={1}>{videoTitle || 'Video'}</Text>
+                  <TouchableOpacity onPress={() => { ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP); setShowVideoPlayer(false); setVideoBase64(''); setVideoUrl(''); setVideoMinimized(false); }} style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' }}>
+                    <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+              {/* Tap area to toggle controls (transparent, doesn't block WebView scroll/pinch) */}
+              <TouchableOpacity activeOpacity={1} style={{ flex: 1 }} onPress={() => {
+                setVideoControlsVisible(v => !v);
+                if (videoControlsTimerRef.current) clearTimeout(videoControlsTimerRef.current);
+                videoControlsTimerRef.current = setTimeout(() => setVideoControlsVisible(false), 4000);
+              }} />
+              {/* Bottom control bar */}
+              {videoControlsVisible && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16, paddingVertical: 10, backgroundColor: 'rgba(0,0,0,0.6)' }}>
+                  <TouchableOpacity onPress={() => { ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE); }} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.12)', justifyContent: 'center', alignItems: 'center' }}>
+                    <Text style={{ color: '#fff', fontSize: 18 }}>⛶</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
           </View>
         )}
       </Modal>

@@ -9750,6 +9750,7 @@ async function initiateUserCallWithWebRTC(callType) {
         });
         
         if (response.ok || wsSent) {
+            _signalingDone = true;
             appState.inCall = true;
             showCallUI(callType);
             startPollingForCallUpdates();
@@ -9829,6 +9830,7 @@ async function initiateCallFromMobile(targetUserId, callType, existingCallId) {
         });
         
         if (response.ok || wsSent) {
+            _signalingDone = true;
             appState.inCall = true;
             showCallUI(callType);
             startPollingForCallUpdates();
@@ -9940,7 +9942,7 @@ async function answerCallFromMobile(callerId, callType, callId) {
                     body: JSON.stringify({ call_id: callId, caller_user_id: callerId, sdp: answer.sdp })
                 });
             } catch(e) {}
-            
+            _signalingDone = true;
             appState.inCall = true;
             showCallUI(callType);
             startPollingForCallUpdates();
@@ -11050,6 +11052,7 @@ async function acceptIncomingCall() {
                 body: JSON.stringify({ call_id: callData.call_id || '', caller_user_id: callerId, sdp: answer.sdp })
             });
         } catch(e) {}
+        _signalingDone = true;
         appState.inCall = true;
         showCallUI(currentCallType);
         startPollingForCallUpdates();
@@ -11119,6 +11122,7 @@ async function initWebRTCCall(userId, callType) {
             body: JSON.stringify({ target_user_id: userId, sdp: offer.sdp, call_type: callType })
         });
         if (response.ok || wsSent) {
+            _signalingDone = true;
             appState.inCall = true;
             showCallUI(callType);
             startPollingForCallUpdates();
@@ -11178,7 +11182,8 @@ var callPollInterval = null;
 var _seenCallNotifIds = {};
 var _callStartTimestamp = 0;
 var _callStartMaxNotifId = 0;
-var _CALL_END_GRACE_MS = 5000;
+var _CALL_END_GRACE_MS = 10000;
+var _signalingDone = false;
 
 // Flush all stale call-related notifications before starting a new call's poll.
 // This prevents old call_ended / call_answered / ice_candidate notifications
@@ -11200,14 +11205,18 @@ async function flushStaleCallNotifications() {
                 }
             }
         }
+        _callStartTimestamp = Date.now();
         console.log('Flush done, maxNotifId=' + _callStartMaxNotifId);
-    } catch(e) { console.log('Flush stale notifs error:', e); }
+    } catch(e) {
+        _callStartTimestamp = Date.now();
+        console.log('Flush stale notifs error:', e);
+    }
 }
 
 function startPollingForCallUpdates() {
     if (callPollInterval) clearInterval(callPollInterval);
     _seenCallNotifIds = {};
-    _callStartTimestamp = Date.now();
+    _signalingDone = false;
     // Flush stale notifications first, then start polling
     flushStaleCallNotifications().then(function() {
         callPollInterval = setInterval(async function() {
@@ -11231,11 +11240,11 @@ function startPollingForCallUpdates() {
                             markNotificationRead(notif.id);
                         } else if (notif.notification_type === 'call_ended') {
                             var elapsed = Date.now() - _callStartTimestamp;
-                            if (notif.id > _callStartMaxNotifId && elapsed > _CALL_END_GRACE_MS) {
+                            if (notif.id > _callStartMaxNotifId && elapsed > _CALL_END_GRACE_MS && _signalingDone) {
                                 console.log('call_ended honoured, notif=' + notif.id + ', elapsed=' + elapsed);
                                 cleanupCall();
                             } else {
-                                console.log('call_ended IGNORED (stale/early), notif=' + notif.id + ', maxId=' + _callStartMaxNotifId + ', elapsed=' + elapsed);
+                                console.log('call_ended IGNORED (stale/early/pre-signal), notif=' + notif.id + ', maxId=' + _callStartMaxNotifId + ', elapsed=' + elapsed + ', signaled=' + _signalingDone);
                             }
                             markNotificationRead(notif.id);
                         } else if (notif.notification_type === 'switch_to_gemini') {
