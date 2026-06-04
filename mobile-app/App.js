@@ -921,6 +921,96 @@ const generateVideoPlayerHTML = (base64Data, title) => {
   `;
 };
 
+// YouTube-style Drive video player wrapper HTML
+const generateDriveVideoPlayerHTML = (driveUrl, title) => {
+  return `<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; background: #000; overflow: hidden; font-family: -apple-system, sans-serif; }
+  .player-wrap { position: absolute; inset: 0; display: flex; flex-direction: column; }
+  .top-bar {
+    position: absolute; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px;
+    background: linear-gradient(180deg, rgba(0,0,0,0.7) 0%, transparent 100%);
+    opacity: 1; transition: opacity 0.3s;
+  }
+  .top-bar.hidden { opacity: 0; pointer-events: none; }
+  .top-title { color: #fff; font-size: 15px; font-weight: 600; flex: 1; margin: 0 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .top-btn { width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,0.15); border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .top-btn svg { width: 20px; height: 20px; fill: #fff; }
+  iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; z-index: 1; }
+  .bottom-bar {
+    position: absolute; bottom: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: center; gap: 24px;
+    padding: 14px 16px;
+    background: linear-gradient(0deg, rgba(0,0,0,0.7) 0%, transparent 100%);
+    opacity: 1; transition: opacity 0.3s;
+  }
+  .bottom-bar.hidden { opacity: 0; pointer-events: none; }
+  .bottom-btn { width: 44px; height: 44px; border-radius: 50%; background: rgba(255,255,255,0.12); border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .bottom-btn svg { width: 22px; height: 22px; fill: #fff; }
+  .bottom-btn.accent { background: rgba(233,69,96,0.8); }
+  .overlay-tap { position: absolute; inset: 0; z-index: 50; }
+</style>
+</head>
+<body>
+<div class="player-wrap">
+  <div class="overlay-tap" id="overlayTap"></div>
+  <div class="top-bar" id="topBar">
+    <button class="top-btn" id="minimizeBtn" title="Minimize">
+      <svg viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z"/></svg>
+    </button>
+    <div class="top-title">${(title || 'Video').replace(/[<>"'&]/g, c => ({'<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','&':'&amp;'})[c])}</div>
+    <button class="top-btn" id="closeBtn" title="Close">
+      <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+    </button>
+  </div>
+  <iframe src="${driveUrl}" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+  <div class="bottom-bar" id="bottomBar">
+    <button class="bottom-btn" id="fullscreenBtn" title="Fullscreen">
+      <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+    </button>
+  </div>
+</div>
+<script>
+  var barsVisible = true;
+  var hideTimer = null;
+  function showBars() {
+    barsVisible = true;
+    document.getElementById('topBar').classList.remove('hidden');
+    document.getElementById('bottomBar').classList.remove('hidden');
+    clearTimeout(hideTimer);
+    hideTimer = setTimeout(hideBars, 4000);
+  }
+  function hideBars() {
+    barsVisible = false;
+    document.getElementById('topBar').classList.add('hidden');
+    document.getElementById('bottomBar').classList.add('hidden');
+  }
+  document.getElementById('overlayTap').addEventListener('click', function() {
+    if (barsVisible) hideBars(); else showBars();
+  });
+  document.getElementById('minimizeBtn').addEventListener('click', function(e) {
+    e.stopPropagation();
+    if (window.ReactNativeWebView) window.ReactNativeWebView.postMessage(JSON.stringify({type:'minimize'}));
+  });
+  document.getElementById('closeBtn').addEventListener('click', function(e) {
+    e.stopPropagation();
+    if (window.ReactNativeWebView) window.ReactNativeWebView.postMessage(JSON.stringify({type:'close'}));
+  });
+  document.getElementById('fullscreenBtn').addEventListener('click', function(e) {
+    e.stopPropagation();
+    if (window.ReactNativeWebView) window.ReactNativeWebView.postMessage(JSON.stringify({type:'fullscreen'}));
+  });
+  hideTimer = setTimeout(hideBars, 4000);
+</script>
+</body></html>`;
+};
+
 // Global state for PDF viewer (will be set by App component)
 let globalSetShowPdfViewer = null;
 let globalSetPdfBase64 = null;
@@ -11048,6 +11138,7 @@ export default function App() {
   const [videoBase64, setVideoBase64] = useState('');
   const [videoTitle, setVideoTitle] = useState('');
   const [videoUrl, setVideoUrl] = useState('');
+  const [videoMinimized, setVideoMinimized] = useState(false);
   
   // In-app WebRTC calling state (using WebView)
   const [showCallWebView, setShowCallWebView] = useState(false);
@@ -13075,48 +13166,101 @@ export default function App() {
         </View>
       </Modal>
 
-      {/* Video Player Modal - INBUILT with HTML5 Video or Google Drive */}
-      <Modal visible={showVideoPlayer} transparent animationType="slide" onShow={() => ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE)}>
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modelViewerModal, { width: '100%', height: '100%', borderRadius: 0 }]}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{videoTitle}</Text>
-              <TouchableOpacity onPress={() => { ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP); setShowVideoPlayer(false); setVideoBase64(''); setVideoUrl(''); }}>
-                <Text style={styles.closeBtn}>X</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={{ flex: 1 }}>
+      {/* YouTube-style Video Player Modal with minimize & fullscreen */}
+      <Modal
+        visible={showVideoPlayer}
+        transparent
+        animationType={videoMinimized ? 'none' : 'slide'}
+        onShow={() => { if (!videoMinimized) ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE); }}
+        onRequestClose={() => { ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP); setShowVideoPlayer(false); setVideoBase64(''); setVideoUrl(''); setVideoMinimized(false); }}
+      >
+        {videoMinimized ? (
+          /* Minimized PIP-style floating player */
+          <View style={{ position: 'absolute', bottom: 80, right: 12, width: 200, height: 130, borderRadius: 12, overflow: 'hidden', elevation: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.5, shadowRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' }}>
+            <View style={{ flex: 1, backgroundColor: '#000' }}>
               {videoUrl ? (
                 <WebView
-                  source={{ uri: videoUrl }}
-                  style={{ flex: 1, backgroundColor: '#1A1A2E' }}
+                  source={{ html: generateDriveVideoPlayerHTML(videoUrl, videoTitle) }}
+                  style={{ flex: 1 }}
                   javaScriptEnabled={true}
                   domStorageEnabled={true}
                   allowsInlineMediaPlayback={true}
                   mediaPlaybackRequiresUserAction={false}
                   originWhitelist={['*']}
                   mixedContentMode="always"
-                />
-              ) : videoBase64 ? (
-                <WebView
-                  source={{ html: generateVideoPlayerHTML(videoBase64, videoTitle) }}
-                  style={{ flex: 1, backgroundColor: '#1A1A2E' }}
-                  javaScriptEnabled={true}
-                  domStorageEnabled={true}
-                  allowsInlineMediaPlayback={true}
-                  mediaPlaybackRequiresUserAction={false}
-                  originWhitelist={['*']}
-                  mixedContentMode="always"
+                  onMessage={(e) => {
+                    try {
+                      const msg = JSON.parse(e.nativeEvent.data || '{}');
+                      if (msg.type === 'close') { ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP); setShowVideoPlayer(false); setVideoBase64(''); setVideoUrl(''); setVideoMinimized(false); }
+                      else if (msg.type === 'fullscreen' || msg.type === 'minimize') { setVideoMinimized(false); ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE); }
+                    } catch (_) {}
+                  }}
                 />
               ) : (
-                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                  <ActivityIndicator size="large" color="#8B5CF6" />
-                  <Text style={{ color: '#fff', marginTop: 10 }}>Loading Video...</Text>
-                </View>
+                <WebView
+                  source={{ html: generateVideoPlayerHTML(videoBase64, videoTitle) }}
+                  style={{ flex: 1 }}
+                  javaScriptEnabled={true}
+                  domStorageEnabled={true}
+                  allowsInlineMediaPlayback={true}
+                  mediaPlaybackRequiresUserAction={false}
+                  originWhitelist={['*']}
+                  mixedContentMode="always"
+                />
               )}
             </View>
+            {/* Tap minimized player to maximize */}
+            <TouchableOpacity style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} activeOpacity={0.8} onPress={() => { setVideoMinimized(false); ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE); }}>
+              <View style={{ position: 'absolute', top: 4, right: 4 }}>
+                <TouchableOpacity onPress={() => { ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP); setShowVideoPlayer(false); setVideoBase64(''); setVideoUrl(''); setVideoMinimized(false); }}>
+                  <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' }}>
+                    <Text style={{ color: '#fff', fontSize: 12, fontWeight: 'bold' }}>X</Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
           </View>
-        </View>
+        ) : (
+          /* Fullscreen YouTube-style player */
+          <View style={{ flex: 1, backgroundColor: '#000' }}>
+            {videoUrl ? (
+              <WebView
+                source={{ html: generateDriveVideoPlayerHTML(videoUrl, videoTitle) }}
+                style={{ flex: 1, backgroundColor: '#000' }}
+                javaScriptEnabled={true}
+                domStorageEnabled={true}
+                allowsInlineMediaPlayback={true}
+                mediaPlaybackRequiresUserAction={false}
+                originWhitelist={['*']}
+                mixedContentMode="always"
+                onMessage={(e) => {
+                  try {
+                    const msg = JSON.parse(e.nativeEvent.data || '{}');
+                    if (msg.type === 'close') { ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP); setShowVideoPlayer(false); setVideoBase64(''); setVideoUrl(''); setVideoMinimized(false); }
+                    else if (msg.type === 'minimize') { setVideoMinimized(true); ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP); }
+                    else if (msg.type === 'fullscreen') { ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE); }
+                  } catch (_) {}
+                }}
+              />
+            ) : videoBase64 ? (
+              <WebView
+                source={{ html: generateVideoPlayerHTML(videoBase64, videoTitle) }}
+                style={{ flex: 1, backgroundColor: '#000' }}
+                javaScriptEnabled={true}
+                domStorageEnabled={true}
+                allowsInlineMediaPlayback={true}
+                mediaPlaybackRequiresUserAction={false}
+                originWhitelist={['*']}
+                mixedContentMode="always"
+              />
+            ) : (
+              <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                <ActivityIndicator size="large" color="#8B5CF6" />
+                <Text style={{ color: '#fff', marginTop: 10 }}>Loading Video...</Text>
+              </View>
+            )}
+          </View>
+        )}
       </Modal>
     </ScrollView>
   );
