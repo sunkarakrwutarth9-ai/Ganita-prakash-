@@ -1,91 +1,99 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ganita Prakash — NCERT Mathematics Made Fun</title>
-    <meta name="description" content="Interactive NCERT Class 6 & 7 Mathematics learning platform with AI tutoring, 3D models, live classes, and smart quizzes. Learn math the fun way.">
-    <link rel="icon" href="logo.png" type="image/png">
+    <title>CBSE MAKERS — Ganita Prakash | NCERT Mathematics Class 6 & 7</title>
+    <meta name="description" content="Interactive NCERT Class 6 & 7 Mathematics learning platform by CBSE MAKERS. AI tutoring, 3D models, live classes, smart quizzes. Learn math the fun way.">
+    <link rel="icon" href="brand-logo.png" type="image/png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
     <style>
+        /* ===== THEME VARIABLES ===== */
         :root {
-            --primary: #6C5CE7;
-            --primary-light: #A29BFE;
-            --secondary: #00CEC9;
-            --accent: #FD79A8;
-            --accent2: #FDCB6E;
-            --dark: #0A0A1A;
-            --dark2: #12122A;
-            --dark3: #1A1A3E;
-            --text: #E8E8F0;
-            --text-muted: #8888AA;
-            --glass: rgba(255, 255, 255, 0.05);
-            --glass-border: rgba(255, 255, 255, 0.08);
-            --gradient1: linear-gradient(135deg, #6C5CE7, #A29BFE);
-            --gradient2: linear-gradient(135deg, #00CEC9, #55EFC4);
-            --gradient3: linear-gradient(135deg, #FD79A8, #E84393);
-            --gradient4: linear-gradient(135deg, #FDCB6E, #F39C12);
+            --navy: #0F1E3D;
+            --navy-light: #1A2F54;
+            --navy-mid: #162847;
+            --gold: #C5993E;
+            --gold-light: #D4AF5A;
+            --gold-pale: #E8C97D;
+            --blue-accent: #2E6BC6;
+            --blue-light: #4A8BE0;
+            --transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        [data-theme="dark"] {
+            --bg: #0A1628;
+            --bg2: #0F1E3D;
+            --bg3: #162847;
+            --surface: rgba(22, 40, 71, 0.8);
+            --surface-border: rgba(197, 153, 62, 0.15);
+            --text-primary: #FFFFFF;
+            --text-secondary: #B8C4D6;
+            --text-muted: #7A8FA8;
+            --card-bg: rgba(15, 30, 61, 0.6);
+            --card-border: rgba(197, 153, 62, 0.12);
+            --card-hover-border: rgba(197, 153, 62, 0.3);
+            --nav-bg: rgba(10, 22, 40, 0.9);
+            --glow-color: rgba(197, 153, 62, 0.08);
+            --logo-filter: none;
+        }
+
+        [data-theme="light"] {
+            --bg: #F8F6F1;
+            --bg2: #FFFFFF;
+            --bg3: #EDE8DF;
+            --surface: rgba(255, 255, 255, 0.9);
+            --surface-border: rgba(15, 30, 61, 0.1);
+            --text-primary: #0F1E3D;
+            --text-secondary: #3D5070;
+            --text-muted: #6B7D94;
+            --card-bg: rgba(255, 255, 255, 0.8);
+            --card-border: rgba(15, 30, 61, 0.08);
+            --card-hover-border: rgba(46, 107, 198, 0.3);
+            --nav-bg: rgba(248, 246, 241, 0.95);
+            --glow-color: rgba(46, 107, 198, 0.05);
+            --logo-filter: none;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
-
         html { scroll-behavior: smooth; }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: var(--dark);
-            color: var(--text);
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text-primary);
             overflow-x: hidden;
             line-height: 1.6;
+            transition: background var(--transition), color var(--transition);
         }
 
-        /* ===== ANIMATED BACKGROUND ===== */
-        .bg-grid {
+        /* ===== BACKGROUND ===== */
+        .bg-pattern {
             position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
+            inset: 0;
             z-index: 0;
+            pointer-events: none;
+            opacity: 0.4;
             background-image:
-                linear-gradient(rgba(108, 92, 231, 0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(108, 92, 231, 0.03) 1px, transparent 1px);
-            background-size: 60px 60px;
-            pointer-events: none;
+                radial-gradient(circle at 20% 20%, var(--glow-color) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, var(--glow-color) 0%, transparent 50%);
         }
-
-        .bg-glow {
-            position: fixed;
-            width: 600px; height: 600px;
-            border-radius: 50%;
-            filter: blur(150px);
-            opacity: 0.15;
-            pointer-events: none;
-            z-index: 0;
-        }
-        .bg-glow.glow1 { top: -200px; left: -200px; background: var(--primary); }
-        .bg-glow.glow2 { top: 50%; right: -200px; background: var(--secondary); }
-        .bg-glow.glow3 { bottom: -200px; left: 30%; background: var(--accent); }
 
         /* ===== NAVBAR ===== */
         nav {
             position: fixed;
-            top: 0; left: 0;
-            width: 100%;
+            top: 0; left: 0; width: 100%;
             z-index: 1000;
-            padding: 16px 40px;
+            padding: 12px 40px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             backdrop-filter: blur(20px);
-            background: rgba(10, 10, 26, 0.8);
-            border-bottom: 1px solid var(--glass-border);
-            transition: all 0.3s ease;
-        }
-
-        nav.scrolled {
-            padding: 10px 40px;
-            background: rgba(10, 10, 26, 0.95);
+            background: var(--nav-bg);
+            border-bottom: 1px solid var(--surface-border);
+            transition: all var(--transition);
         }
 
         .nav-brand {
@@ -96,74 +104,98 @@
         }
 
         .nav-brand img {
-            width: 40px; height: 40px;
-            border-radius: 10px;
+            height: 44px;
+            width: auto;
+            filter: var(--logo-filter);
+            transition: filter var(--transition);
         }
 
-        .nav-brand span {
-            font-family: 'Space Grotesk', sans-serif;
-            font-weight: 700;
-            font-size: 1.3rem;
-            background: var(--gradient1);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .nav-links {
+        .nav-center {
             display: flex;
             align-items: center;
-            gap: 32px;
+            gap: 28px;
             list-style: none;
         }
 
-        .nav-links a {
+        .nav-center a {
             text-decoration: none;
             color: var(--text-muted);
             font-weight: 500;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             transition: color 0.3s;
         }
 
-        .nav-links a:hover { color: var(--text); }
+        .nav-center a:hover { color: var(--gold); }
+
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        /* Theme Toggle */
+        .theme-toggle {
+            width: 44px; height: 24px;
+            background: var(--bg3);
+            border: 1px solid var(--surface-border);
+            border-radius: 12px;
+            position: relative;
+            cursor: pointer;
+            transition: all var(--transition);
+        }
+
+        .theme-toggle::after {
+            content: '';
+            position: absolute;
+            top: 3px; left: 3px;
+            width: 16px; height: 16px;
+            border-radius: 50%;
+            background: var(--gold);
+            transition: transform var(--transition);
+        }
+
+        [data-theme="light"] .theme-toggle::after {
+            transform: translateX(20px);
+            background: var(--blue-accent);
+        }
+
+        .theme-toggle .icon-sun, .theme-toggle .icon-moon {
+            position: absolute;
+            top: 50%; transform: translateY(-50%);
+            font-size: 0.6rem;
+        }
+        .theme-toggle .icon-moon { left: 5px; }
+        .theme-toggle .icon-sun { right: 5px; }
 
         .nav-cta {
-            padding: 10px 24px;
-            background: var(--gradient1);
+            padding: 9px 22px;
+            background: linear-gradient(135deg, var(--gold), var(--gold-light));
             border: none;
-            border-radius: 10px;
-            color: #fff;
-            font-weight: 600;
-            font-size: 0.95rem;
+            border-radius: 8px;
+            color: #0F1E3D;
+            font-weight: 700;
+            font-size: 0.9rem;
             text-decoration: none;
-            transition: transform 0.2s, box-shadow 0.2s;
-            cursor: pointer;
+            transition: all 0.3s;
         }
 
         .nav-cta:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(108, 92, 231, 0.4);
+            box-shadow: 0 8px 20px rgba(197, 153, 62, 0.3);
         }
 
         .mobile-menu-btn {
             display: none;
             background: none;
             border: none;
-            color: var(--text);
+            color: var(--text-primary);
             font-size: 1.5rem;
             cursor: pointer;
         }
 
         /* ===== SECTIONS ===== */
-        section {
-            position: relative;
-            z-index: 1;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 24px;
-        }
+        section { position: relative; z-index: 1; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
 
         /* ===== HERO ===== */
         .hero {
@@ -185,346 +217,149 @@
             align-items: center;
             gap: 8px;
             padding: 6px 16px;
-            background: var(--glass);
-            border: 1px solid var(--glass-border);
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
             border-radius: 100px;
             font-size: 0.85rem;
-            color: var(--primary-light);
+            color: var(--gold);
             margin-bottom: 24px;
-        }
-
-        .hero-badge .dot {
-            width: 8px; height: 8px;
-            background: var(--secondary);
-            border-radius: 50%;
-            animation: pulse-dot 2s ease-in-out infinite;
-        }
-
-        @keyframes pulse-dot {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.5; transform: scale(0.8); }
+            font-weight: 500;
         }
 
         .hero h1 {
-            font-family: 'Space Grotesk', sans-serif;
-            font-size: 3.8rem;
+            font-family: 'Playfair Display', serif;
+            font-size: 3.5rem;
             font-weight: 800;
-            line-height: 1.1;
+            line-height: 1.15;
             margin-bottom: 20px;
+            color: var(--text-primary);
         }
 
-        .hero h1 .gradient-text {
-            background: var(--gradient1);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .hero h1 .gradient-text2 {
-            background: var(--gradient2);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
+        .hero h1 .gold { color: var(--gold); }
+        .hero h1 .blue { color: var(--blue-accent); }
 
         .hero-desc {
-            font-size: 1.15rem;
-            color: var(--text-muted);
-            max-width: 520px;
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            max-width: 500px;
             margin-bottom: 36px;
-            line-height: 1.7;
+            line-height: 1.75;
         }
 
-        .hero-buttons {
-            display: flex;
-            gap: 16px;
-            flex-wrap: wrap;
-        }
+        .hero-buttons { display: flex; gap: 14px; flex-wrap: wrap; }
 
-        .btn-primary {
+        .btn-gold {
             display: inline-flex;
             align-items: center;
             gap: 10px;
-            padding: 14px 32px;
-            background: var(--gradient1);
+            padding: 14px 30px;
+            background: linear-gradient(135deg, var(--gold), var(--gold-light));
             border: none;
-            border-radius: 12px;
-            color: #fff;
-            font-weight: 600;
-            font-size: 1rem;
+            border-radius: 10px;
+            color: #0F1E3D;
+            font-weight: 700;
+            font-size: 0.95rem;
             text-decoration: none;
             transition: all 0.3s;
-            cursor: pointer;
         }
 
-        .btn-primary:hover {
+        .btn-gold:hover {
             transform: translateY(-3px);
-            box-shadow: 0 12px 35px rgba(108, 92, 231, 0.4);
+            box-shadow: 0 12px 30px rgba(197, 153, 62, 0.35);
         }
 
-        .btn-secondary {
+        .btn-outline {
             display: inline-flex;
             align-items: center;
             gap: 10px;
-            padding: 14px 32px;
-            background: var(--glass);
-            border: 1px solid var(--glass-border);
-            border-radius: 12px;
-            color: var(--text);
+            padding: 14px 30px;
+            background: transparent;
+            border: 2px solid var(--blue-accent);
+            border-radius: 10px;
+            color: var(--blue-accent);
             font-weight: 600;
-            font-size: 1rem;
+            font-size: 0.95rem;
             text-decoration: none;
             transition: all 0.3s;
-            cursor: pointer;
-            backdrop-filter: blur(10px);
         }
 
-        .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.1);
+        .btn-outline:hover {
+            background: var(--blue-accent);
+            color: #fff;
             transform: translateY(-3px);
-            border-color: rgba(255, 255, 255, 0.15);
         }
 
         .hero-stats {
             display: flex;
-            gap: 40px;
-            margin-top: 48px;
+            gap: 36px;
+            margin-top: 44px;
         }
 
         .hero-stat h3 {
-            font-family: 'Space Grotesk', sans-serif;
-            font-size: 2rem;
-            font-weight: 700;
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--gold);
         }
 
         .hero-stat p {
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             color: var(--text-muted);
             margin-top: 2px;
         }
 
-        /* Hero Preview */
-        .hero-preview {
-            position: relative;
+        /* Hero Visual */
+        .hero-visual {
             display: flex;
             justify-content: center;
             align-items: center;
         }
 
-        .preview-card {
+        .hero-visual img {
+            max-width: 420px;
             width: 100%;
-            max-width: 520px;
-            border-radius: 20px;
-            overflow: hidden;
-            border: 1px solid var(--glass-border);
-            background: var(--dark2);
-            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.5), 0 0 60px rgba(108, 92, 231, 0.1);
+            border-radius: 16px;
+            filter: var(--logo-filter);
             animation: float 6s ease-in-out infinite;
-        }
-
-        .preview-topbar {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 12px 16px;
-            background: var(--dark3);
-            border-bottom: 1px solid var(--glass-border);
-        }
-
-        .preview-dot {
-            width: 10px; height: 10px;
-            border-radius: 50%;
-        }
-        .preview-dot.red { background: #FF6B6B; }
-        .preview-dot.yellow { background: #FDCB6E; }
-        .preview-dot.green { background: #55EFC4; }
-
-        .preview-topbar span {
-            margin-left: 8px;
-            font-size: 0.8rem;
-            color: var(--text-muted);
-        }
-
-        .preview-body {
-            padding: 24px;
-        }
-
-        .preview-header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 20px;
-        }
-
-        .preview-header img {
-            width: 36px; height: 36px;
-            border-radius: 8px;
-        }
-
-        .preview-header h4 {
-            font-family: 'Space Grotesk', sans-serif;
-            font-size: 0.95rem;
-            color: var(--primary-light);
-        }
-
-        .preview-header p {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-        }
-
-        .preview-chapters {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-        }
-
-        .preview-chip {
-            padding: 10px 14px;
-            background: var(--glass);
-            border: 1px solid var(--glass-border);
-            border-radius: 10px;
-            font-size: 0.8rem;
-            color: var(--text);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .preview-chip .emoji { font-size: 1.1rem; }
-
-        .preview-chip.active {
-            border-color: var(--primary);
-            background: rgba(108, 92, 231, 0.1);
-        }
-
-        .preview-progress {
-            margin-top: 16px;
-            padding: 14px;
-            background: rgba(108, 92, 231, 0.08);
-            border-radius: 12px;
-            border: 1px solid rgba(108, 92, 231, 0.15);
-        }
-
-        .preview-progress-label {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.8rem;
-            margin-bottom: 8px;
-        }
-
-        .preview-progress-label span:last-child {
-            color: var(--secondary);
-            font-weight: 600;
-        }
-
-        .preview-progress-bar {
-            height: 6px;
-            background: var(--dark);
-            border-radius: 3px;
-            overflow: hidden;
-        }
-
-        .preview-progress-fill {
-            width: 72%;
-            height: 100%;
-            background: var(--gradient2);
-            border-radius: 3px;
-            animation: progress-anim 2s ease-out forwards;
-        }
-
-        @keyframes progress-anim {
-            from { width: 0; }
-            to { width: 72%; }
         }
 
         @keyframes float {
             0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-15px); }
-        }
-
-        /* Floating badges around preview */
-        .float-badge {
-            position: absolute;
-            padding: 8px 16px;
-            background: var(--dark2);
-            border: 1px solid var(--glass-border);
-            border-radius: 12px;
-            font-size: 0.85rem;
-            color: var(--text);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-            backdrop-filter: blur(10px);
-            animation: float 5s ease-in-out infinite;
-            white-space: nowrap;
-        }
-
-        .float-badge.badge1 { top: 10%; left: -40px; animation-delay: -1s; }
-        .float-badge.badge2 { bottom: 20%; right: -30px; animation-delay: -3s; }
-        .float-badge.badge3 { top: 50%; left: -60px; animation-delay: -2s; }
-
-        /* ===== TRUSTED BY ===== */
-        .trusted {
-            padding: 40px 0 60px;
-            text-align: center;
-        }
-
-        .trusted p {
-            font-size: 0.9rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            font-weight: 600;
-            margin-bottom: 24px;
-        }
-
-        .trusted-logos {
-            display: flex;
-            justify-content: center;
-            gap: 48px;
-            align-items: center;
-            flex-wrap: wrap;
-            opacity: 0.5;
-        }
-
-        .trusted-logos span {
-            font-family: 'Space Grotesk', sans-serif;
-            font-size: 1.2rem;
-            font-weight: 700;
-            color: var(--text-muted);
+            50% { transform: translateY(-12px); }
         }
 
         /* ===== FEATURES ===== */
-        .features {
-            padding: 100px 0;
+        .features { padding: 100px 0; }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 60px;
         }
 
         .section-label {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
+            display: inline-block;
             padding: 6px 16px;
-            background: var(--glass);
-            border: 1px solid var(--glass-border);
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
             border-radius: 100px;
             font-size: 0.85rem;
-            color: var(--primary-light);
-            font-weight: 500;
+            color: var(--gold);
+            font-weight: 600;
             margin-bottom: 16px;
         }
 
         .section-title {
-            font-family: 'Space Grotesk', sans-serif;
-            font-size: 2.8rem;
+            font-family: 'Playfair Display', serif;
+            font-size: 2.6rem;
             font-weight: 700;
-            line-height: 1.2;
-            margin-bottom: 16px;
+            margin-bottom: 12px;
+            color: var(--text-primary);
         }
 
         .section-desc {
-            font-size: 1.1rem;
-            color: var(--text-muted);
+            font-size: 1.05rem;
+            color: var(--text-secondary);
             max-width: 600px;
-            margin-bottom: 56px;
+            margin: 0 auto;
         }
 
         .features-grid {
@@ -534,91 +369,140 @@
         }
 
         .feature-card {
-            padding: 32px;
-            background: var(--glass);
-            border: 1px solid var(--glass-border);
-            border-radius: 20px;
+            padding: 30px;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
             transition: all 0.4s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .feature-card::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 3px;
-            opacity: 0;
-            transition: opacity 0.4s;
+            backdrop-filter: blur(10px);
         }
 
         .feature-card:hover {
-            transform: translateY(-8px);
-            border-color: rgba(255, 255, 255, 0.12);
-            background: rgba(255, 255, 255, 0.07);
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+            transform: translateY(-6px);
+            border-color: var(--card-hover-border);
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.15);
         }
 
-        .feature-card:hover::before { opacity: 1; }
-
-        .feature-card:nth-child(1)::before { background: var(--gradient1); }
-        .feature-card:nth-child(2)::before { background: var(--gradient2); }
-        .feature-card:nth-child(3)::before { background: var(--gradient3); }
-        .feature-card:nth-child(4)::before { background: var(--gradient4); }
-        .feature-card:nth-child(5)::before { background: var(--gradient1); }
-        .feature-card:nth-child(6)::before { background: var(--gradient2); }
-
         .feature-icon {
-            width: 56px; height: 56px;
-            border-radius: 14px;
+            width: 52px; height: 52px;
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.6rem;
-            margin-bottom: 20px;
+            font-size: 1.5rem;
+            margin-bottom: 18px;
+            background: linear-gradient(135deg, rgba(197, 153, 62, 0.15), rgba(46, 107, 198, 0.1));
+            border: 1px solid rgba(197, 153, 62, 0.2);
         }
 
-        .feature-icon.purple { background: rgba(108, 92, 231, 0.15); }
-        .feature-icon.teal { background: rgba(0, 206, 201, 0.15); }
-        .feature-icon.pink { background: rgba(253, 121, 168, 0.15); }
-        .feature-icon.yellow { background: rgba(253, 203, 110, 0.15); }
-
         .feature-card h3 {
-            font-family: 'Space Grotesk', sans-serif;
-            font-size: 1.25rem;
-            font-weight: 600;
-            margin-bottom: 10px;
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: var(--text-primary);
         }
 
         .feature-card p {
-            font-size: 0.95rem;
-            color: var(--text-muted);
+            font-size: 0.9rem;
+            color: var(--text-secondary);
             line-height: 1.6;
         }
 
         .feature-tag {
             display: inline-block;
-            padding: 4px 12px;
-            border-radius: 6px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            margin-top: 16px;
+            padding: 3px 10px;
+            border-radius: 5px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            margin-top: 14px;
+            background: rgba(197, 153, 62, 0.12);
+            color: var(--gold);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
-        .feature-tag.new { background: rgba(0, 206, 201, 0.15); color: var(--secondary); }
-        .feature-tag.popular { background: rgba(253, 121, 168, 0.15); color: var(--accent); }
-        .feature-tag.ai { background: rgba(108, 92, 231, 0.15); color: var(--primary-light); }
+        /* ===== CLASS TABS ===== */
+        .classes { padding: 100px 0; }
+
+        .class-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 48px;
+        }
+
+        .class-tab {
+            padding: 10px 28px;
+            border: 2px solid var(--card-border);
+            border-radius: 10px;
+            background: var(--card-bg);
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .class-tab.active, .class-tab:hover {
+            border-color: var(--gold);
+            color: var(--gold);
+            background: rgba(197, 153, 62, 0.08);
+        }
+
+        .chapters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 16px;
+        }
+
+        .chapter-chip {
+            padding: 14px 18px;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            font-size: 0.88rem;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .chapter-chip:hover {
+            border-color: var(--gold);
+            background: rgba(197, 153, 62, 0.05);
+        }
+
+        .chapter-chip .num {
+            width: 28px; height: 28px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, var(--navy), var(--navy-light));
+            color: var(--gold);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        [data-theme="light"] .chapter-chip .num {
+            background: linear-gradient(135deg, var(--blue-accent), var(--blue-light));
+            color: #fff;
+        }
+
+        .class-content { display: none; }
+        .class-content.active { display: block; }
 
         /* ===== HOW IT WORKS ===== */
-        .how-it-works {
-            padding: 100px 0;
-        }
+        .how-it-works { padding: 100px 0; }
 
         .steps {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 32px;
-            margin-top: 56px;
+            gap: 28px;
+            margin-top: 48px;
         }
 
         .step {
@@ -626,381 +510,279 @@
             position: relative;
         }
 
-        .step::after {
-            content: '';
-            position: absolute;
-            top: 35px;
-            right: -16px;
-            width: 32px;
-            height: 2px;
-            background: var(--glass-border);
-        }
-
-        .step:last-child::after { display: none; }
-
-        .step-number {
-            width: 70px; height: 70px;
-            border-radius: 20px;
+        .step-num {
+            width: 60px; height: 60px;
+            border-radius: 16px;
+            margin: 0 auto 18px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-family: 'Space Grotesk', sans-serif;
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin: 0 auto 20px;
-            position: relative;
+            font-size: 1.3rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--gold), var(--gold-light));
+            color: #0F1E3D;
         }
 
-        .step:nth-child(1) .step-number { background: rgba(108, 92, 231, 0.15); color: var(--primary-light); border: 1px solid rgba(108, 92, 231, 0.3); }
-        .step:nth-child(2) .step-number { background: rgba(0, 206, 201, 0.15); color: var(--secondary); border: 1px solid rgba(0, 206, 201, 0.3); }
-        .step:nth-child(3) .step-number { background: rgba(253, 121, 168, 0.15); color: var(--accent); border: 1px solid rgba(253, 121, 168, 0.3); }
-        .step:nth-child(4) .step-number { background: rgba(253, 203, 110, 0.15); color: var(--accent2); border: 1px solid rgba(253, 203, 110, 0.3); }
-
         .step h3 {
-            font-family: 'Space Grotesk', sans-serif;
-            font-size: 1.15rem;
+            font-size: 1.05rem;
+            font-weight: 700;
             margin-bottom: 8px;
+            color: var(--text-primary);
         }
 
         .step p {
-            font-size: 0.9rem;
-            color: var(--text-muted);
+            font-size: 0.88rem;
+            color: var(--text-secondary);
             line-height: 1.6;
         }
 
-        /* ===== SHOWCASE ===== */
-        .showcase {
-            padding: 100px 0;
-        }
+        /* ===== AI SHOWCASE ===== */
+        .ai-showcase { padding: 100px 0; }
 
-        .showcase .container {
+        .ai-showcase .container {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 80px;
+            gap: 60px;
             align-items: center;
         }
 
-        .showcase-visual {
-            position: relative;
-        }
-
-        .showcase-mockup {
+        .ai-phone {
             width: 280px;
             margin: 0 auto;
-            background: var(--dark2);
-            border-radius: 32px;
-            border: 3px solid var(--dark3);
+            background: var(--bg2);
+            border-radius: 28px;
+            border: 2px solid var(--card-border);
             overflow: hidden;
-            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.3);
         }
 
-        .mockup-notch {
-            width: 120px;
-            height: 24px;
-            background: var(--dark);
-            border-radius: 0 0 16px 16px;
+        .ai-phone-notch {
+            width: 100px; height: 20px;
+            background: var(--bg);
+            border-radius: 0 0 12px 12px;
             margin: 0 auto;
         }
 
-        .mockup-screen {
-            padding: 16px;
-            min-height: 480px;
-            background: linear-gradient(180deg, #0A0A2E, #141438);
+        .ai-phone-screen {
+            padding: 14px;
+            min-height: 380px;
         }
 
-        .mockup-header {
+        .ai-phone-header {
             display: flex;
             align-items: center;
             gap: 8px;
-            margin-bottom: 16px;
+            margin-bottom: 14px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--card-border);
         }
 
-        .mockup-header .avatar {
+        .ai-phone-header .dot {
             width: 32px; height: 32px;
             border-radius: 50%;
-            background: var(--gradient1);
+            background: linear-gradient(135deg, var(--gold), var(--gold-light));
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.8rem;
+            font-size: 0.9rem;
         }
 
-        .mockup-header h5 {
+        .ai-phone-header h5 {
             font-size: 0.85rem;
-            font-weight: 600;
+            color: var(--text-primary);
         }
 
-        .mockup-header p {
+        .ai-phone-header p {
             font-size: 0.7rem;
             color: var(--text-muted);
         }
 
-        .mockup-chat {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .chat-bubble {
+        .chat-msg {
             max-width: 85%;
-            padding: 10px 14px;
-            border-radius: 14px;
-            font-size: 0.8rem;
+            padding: 10px 13px;
+            border-radius: 12px;
+            font-size: 0.78rem;
             line-height: 1.5;
+            margin-bottom: 8px;
         }
 
-        .chat-bubble.user {
-            align-self: flex-end;
-            background: var(--primary);
+        .chat-msg.user {
+            margin-left: auto;
+            background: var(--blue-accent);
+            color: #fff;
             border-bottom-right-radius: 4px;
         }
 
-        .chat-bubble.ai {
-            align-self: flex-start;
-            background: var(--dark3);
-            border: 1px solid var(--glass-border);
+        .chat-msg.bot {
+            background: var(--bg3);
+            color: var(--text-primary);
+            border: 1px solid var(--card-border);
             border-bottom-left-radius: 4px;
         }
 
-        .chat-bubble .label {
-            font-size: 0.65rem;
-            color: rgba(255, 255, 255, 0.5);
-            margin-bottom: 4px;
-            font-weight: 600;
-        }
-
-        .mockup-input {
-            display: flex;
-            gap: 8px;
-            margin-top: 16px;
-            padding: 10px;
-            background: var(--dark);
-            border-radius: 12px;
-            border: 1px solid var(--glass-border);
-        }
-
-        .mockup-input span {
-            flex: 1;
-            font-size: 0.75rem;
-            color: var(--text-muted);
-        }
-
-        .mockup-input .send {
-            width: 28px; height: 28px;
-            background: var(--gradient1);
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.8rem;
-        }
-
-        .showcase-content h3 {
-            font-family: 'Space Grotesk', sans-serif;
-            font-size: 2.2rem;
+        .ai-content h3 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
             font-weight: 700;
-            margin-bottom: 16px;
+            margin-bottom: 14px;
+            color: var(--text-primary);
             line-height: 1.2;
         }
 
-        .showcase-content > p {
-            color: var(--text-muted);
-            font-size: 1.05rem;
-            margin-bottom: 32px;
+        .ai-content > p {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            margin-bottom: 28px;
             line-height: 1.7;
         }
 
-        .showcase-list {
+        .ai-list {
             list-style: none;
             display: flex;
             flex-direction: column;
-            gap: 16px;
+            gap: 14px;
         }
 
-        .showcase-list li {
+        .ai-list li {
             display: flex;
             align-items: flex-start;
-            gap: 14px;
-            font-size: 0.95rem;
+            gap: 12px;
+            font-size: 0.92rem;
+            color: var(--text-secondary);
         }
 
-        .showcase-list .check {
-            width: 24px; height: 24px;
-            min-width: 24px;
-            border-radius: 8px;
-            background: rgba(0, 206, 201, 0.15);
+        .ai-list .check {
+            width: 22px; height: 22px;
+            min-width: 22px;
+            border-radius: 6px;
+            background: rgba(197, 153, 62, 0.15);
             display: flex;
             align-items: center;
             justify-content: center;
-            color: var(--secondary);
-            font-size: 0.8rem;
+            color: var(--gold);
+            font-size: 0.7rem;
+            font-weight: 700;
             margin-top: 2px;
         }
 
-        /* ===== STATS BANNER ===== */
-        .stats-banner {
-            padding: 80px 0;
-            background: linear-gradient(135deg, rgba(108, 92, 231, 0.08), rgba(0, 206, 201, 0.08));
-            border-top: 1px solid var(--glass-border);
-            border-bottom: 1px solid var(--glass-border);
+        /* ===== STATS ===== */
+        .stats {
+            padding: 70px 0;
+            border-top: 1px solid var(--surface-border);
+            border-bottom: 1px solid var(--surface-border);
+            background: var(--glow-color);
         }
 
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 32px;
+            gap: 28px;
             text-align: center;
         }
 
-        .stat-item h3 {
-            font-family: 'Space Grotesk', sans-serif;
-            font-size: 2.8rem;
-            font-weight: 700;
-            margin-bottom: 8px;
+        .stat h3 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--gold);
+            margin-bottom: 4px;
         }
 
-        .stat-item h3 .color-purple { color: var(--primary-light); }
-        .stat-item h3 .color-teal { color: var(--secondary); }
-        .stat-item h3 .color-pink { color: var(--accent); }
-        .stat-item h3 .color-yellow { color: var(--accent2); }
-
-        .stat-item p {
+        .stat p {
+            font-size: 0.9rem;
             color: var(--text-muted);
-            font-size: 0.95rem;
         }
 
         /* ===== CTA ===== */
-        .cta-section {
-            padding: 120px 0;
-            text-align: center;
-        }
+        .cta { padding: 120px 0; text-align: center; }
 
         .cta-box {
-            max-width: 700px;
+            max-width: 680px;
             margin: 0 auto;
-            padding: 60px;
-            background: linear-gradient(135deg, rgba(108, 92, 231, 0.1), rgba(0, 206, 201, 0.05));
-            border: 1px solid var(--glass-border);
-            border-radius: 28px;
-            position: relative;
-            overflow: hidden;
+            padding: 56px;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            backdrop-filter: blur(10px);
         }
-
-        .cta-box::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: conic-gradient(from 0deg, transparent, rgba(108, 92, 231, 0.05), transparent, rgba(0, 206, 201, 0.05), transparent);
-            animation: cta-rotate 20s linear infinite;
-        }
-
-        @keyframes cta-rotate {
-            to { transform: rotate(360deg); }
-        }
-
-        .cta-box > * { position: relative; z-index: 1; }
 
         .cta-box h2 {
-            font-family: 'Space Grotesk', sans-serif;
-            font-size: 2.5rem;
+            font-family: 'Playfair Display', serif;
+            font-size: 2.3rem;
             font-weight: 700;
-            margin-bottom: 16px;
+            margin-bottom: 14px;
+            color: var(--text-primary);
         }
 
         .cta-box p {
-            color: var(--text-muted);
-            font-size: 1.1rem;
-            margin-bottom: 36px;
-            max-width: 500px;
+            color: var(--text-secondary);
+            font-size: 1.05rem;
+            margin-bottom: 32px;
+            max-width: 480px;
             margin-left: auto;
             margin-right: auto;
         }
 
-        .cta-buttons {
-            display: flex;
-            gap: 16px;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
+        .cta-buttons { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
 
         /* ===== FOOTER ===== */
         footer {
-            padding: 60px 0 30px;
-            border-top: 1px solid var(--glass-border);
+            padding: 50px 0 24px;
+            border-top: 1px solid var(--surface-border);
         }
 
-        .footer-top {
+        .footer-grid {
             display: grid;
             grid-template-columns: 2fr 1fr 1fr 1fr;
             gap: 40px;
-            margin-bottom: 48px;
+            margin-bottom: 40px;
+        }
+
+        .footer-brand img {
+            height: 40px;
+            margin-bottom: 12px;
+            filter: var(--logo-filter);
         }
 
         .footer-brand p {
             color: var(--text-muted);
-            font-size: 0.9rem;
-            margin-top: 12px;
-            max-width: 300px;
+            font-size: 0.88rem;
             line-height: 1.6;
+            max-width: 280px;
         }
 
         .footer-col h4 {
-            font-family: 'Space Grotesk', sans-serif;
-            font-size: 1rem;
-            font-weight: 600;
-            margin-bottom: 16px;
-            color: var(--text);
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 14px;
         }
 
         .footer-col a {
             display: block;
             color: var(--text-muted);
             text-decoration: none;
-            font-size: 0.9rem;
-            padding: 4px 0;
+            font-size: 0.88rem;
+            padding: 3px 0;
             transition: color 0.2s;
         }
 
-        .footer-col a:hover { color: var(--primary-light); }
+        .footer-col a:hover { color: var(--gold); }
 
         .footer-bottom {
-            padding-top: 24px;
-            border-top: 1px solid var(--glass-border);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 0.85rem;
+            padding-top: 20px;
+            border-top: 1px solid var(--surface-border);
+            text-align: center;
+            font-size: 0.82rem;
             color: var(--text-muted);
         }
 
-        .footer-bottom .socials {
-            display: flex;
-            gap: 16px;
-        }
-
-        .footer-bottom .socials a {
-            color: var(--text-muted);
-            text-decoration: none;
-            transition: color 0.2s;
-            font-size: 1.1rem;
-        }
-
-        .footer-bottom .socials a:hover { color: var(--primary-light); }
-
-        /* ===== ANIMATIONS ===== */
+        /* ===== FADE IN ===== */
         .fade-in {
             opacity: 0;
-            transform: translateY(30px);
-            transition: opacity 0.8s ease, transform 0.8s ease;
+            transform: translateY(24px);
+            transition: opacity 0.7s ease, transform 0.7s ease;
         }
-
-        .fade-in.visible {
-            opacity: 1;
-            transform: translateY(0);
-        }
+        .fade-in.visible { opacity: 1; transform: translateY(0); }
 
         /* ===== RESPONSIVE ===== */
         @media (max-width: 1024px) {
@@ -1008,168 +790,96 @@
             .hero-desc { margin: 0 auto 36px; }
             .hero-buttons { justify-content: center; }
             .hero-stats { justify-content: center; }
-            .hero-preview { margin-top: 40px; }
+            .hero-visual { margin-top: 40px; }
             .features-grid { grid-template-columns: repeat(2, 1fr); }
             .steps { grid-template-columns: repeat(2, 1fr); }
-            .step::after { display: none; }
-            .showcase .container { grid-template-columns: 1fr; }
-            .showcase-visual { order: -1; }
-            .showcase-content { text-align: center; }
-            .showcase-list { align-items: center; }
+            .ai-showcase .container { grid-template-columns: 1fr; }
+            .ai-phone { order: -1; }
+            .ai-content { text-align: center; }
+            .ai-list { align-items: center; }
             .stats-grid { grid-template-columns: repeat(2, 1fr); }
-            .footer-top { grid-template-columns: 1fr 1fr; }
+            .footer-grid { grid-template-columns: 1fr 1fr; }
         }
 
         @media (max-width: 768px) {
-            .hero h1 { font-size: 2.5rem; }
+            .hero h1 { font-size: 2.3rem; }
             .section-title { font-size: 2rem; }
             .features-grid { grid-template-columns: 1fr; }
             .steps { grid-template-columns: 1fr; }
-            .nav-links { display: none; }
+            .nav-center { display: none; }
             .mobile-menu-btn { display: block; }
+            nav { padding: 10px 20px; }
             .hero-stats { flex-direction: column; gap: 16px; align-items: center; }
-            .footer-top { grid-template-columns: 1fr; }
-            .footer-bottom { flex-direction: column; gap: 16px; text-align: center; }
-            .cta-box { padding: 40px 24px; }
-            .cta-box h2 { font-size: 1.8rem; }
-            nav { padding: 12px 20px; }
-            .float-badge { display: none; }
+            .footer-grid { grid-template-columns: 1fr; }
+            .cta-box { padding: 36px 20px; }
+            .cta-box h2 { font-size: 1.7rem; }
+            .chapters-grid { grid-template-columns: 1fr 1fr; }
         }
 
         @media (max-width: 480px) {
-            .hero h1 { font-size: 2rem; }
+            .hero h1 { font-size: 1.9rem; }
             .hero-buttons { flex-direction: column; align-items: center; }
             .stats-grid { grid-template-columns: 1fr; }
+            .chapters-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
 
-<!-- Background Effects -->
-<div class="bg-grid"></div>
-<div class="bg-glow glow1"></div>
-<div class="bg-glow glow2"></div>
-<div class="bg-glow glow3"></div>
+<div class="bg-pattern"></div>
 
 <!-- Navbar -->
-<nav id="navbar">
+<nav>
     <a href="#" class="nav-brand">
-        <img src="logo.png" alt="Ganita Prakash Logo">
-        <span>Ganita Prakash</span>
+        <img src="brand-logo.png" alt="CBSE MAKERS">
     </a>
-    <ul class="nav-links">
+    <ul class="nav-center">
         <li><a href="#features">Features</a></li>
+        <li><a href="#classes">Classes</a></li>
         <li><a href="#how-it-works">How It Works</a></li>
         <li><a href="#ai-tutor">AI Tutor</a></li>
         <li><a href="#download">Download</a></li>
     </ul>
-    <a href="https://ganitaprakash-math.web.app" class="nav-cta" target="_blank">Open App</a>
-    <button class="mobile-menu-btn" onclick="document.querySelector('.nav-links').style.display = document.querySelector('.nav-links').style.display === 'flex' ? 'none' : 'flex';">&#9776;</button>
+    <div class="nav-right">
+        <div class="theme-toggle" onclick="toggleTheme()" title="Switch theme">
+            <span class="icon-moon">&#127769;</span>
+            <span class="icon-sun">&#9728;&#65039;</span>
+        </div>
+        <a href="https://ganitaprakash-math.web.app" class="nav-cta" target="_blank">Open App</a>
+    </div>
+    <button class="mobile-menu-btn" onclick="document.querySelector('.nav-center').style.display = document.querySelector('.nav-center').style.display === 'flex' ? 'none' : 'flex';">&#9776;</button>
 </nav>
 
-<!-- Hero Section -->
+<!-- Hero -->
 <section class="hero">
     <div class="container">
         <div class="hero-text">
-            <div class="hero-badge">
-                <span class="dot"></span>
-                NCERT Aligned &bull; Class 6 &amp; 7
-            </div>
+            <div class="hero-badge">&#9733; NCERT Aligned &bull; CBSE Class 6 &amp; 7</div>
             <h1>
-                Learn Mathematics<br>
-                the <span class="gradient-text">Smart Way</span><br>
-                with <span class="gradient-text2">AI</span>
+                Master Mathematics<br>
+                the <span class="gold">Smart Way</span><br>
+                with <span class="blue">AI Tutoring</span>
             </h1>
             <p class="hero-desc">
-                Interactive NCERT math learning with AI-powered tutoring, live 1-on-1 classes,
-                3D geometric models, smart quizzes, and real-time progress tracking.
-                Math has never been this fun.
+                Interactive NCERT math platform with AI-powered tutoring, live 1-on-1 classes,
+                3D geometric models, smart quizzes, and video lessons. Built by CBSE MAKERS.
             </p>
             <div class="hero-buttons">
-                <a href="https://ganitaprakash-math.web.app" class="btn-primary" target="_blank">
-                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
-                    Open Web App
+                <a href="https://ganitaprakash-math.web.app" class="btn-gold" target="_blank">
+                    &#127760; Open Web App
                 </a>
-                <a href="https://github.com/sunkarakrwutarth9-ai/Ganita-prakash-/releases/latest/download/GanitaPrakash-latest.apk" class="btn-secondary">
-                    <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M17.523 2.224a.4.4 0 00-.7 0l-1.6 2.76a.2.2 0 01-.35 0L13.277 2.22a.4.4 0 00-.7 0L11.1 4.85a.2.2 0 01-.35 0L9.154 2.088a.4.4 0 00-.7 0L6.862 4.85a.2.2 0 01-.35 0L4.923 2.224a.4.4 0 00-.7 0L2 6h20zM5 8v13a1 1 0 001 1h12a1 1 0 001-1V8z"/></svg>
-                    Download APK
+                <a href="https://github.com/sunkarakrwutarth9-ai/Ganita-prakash-/releases/latest/download/GanitaPrakash-latest.apk" class="btn-outline">
+                    &#128229; Download APK
                 </a>
             </div>
             <div class="hero-stats">
-                <div class="hero-stat">
-                    <h3>25</h3>
-                    <p>Chapters</p>
-                </div>
-                <div class="hero-stat">
-                    <h3>1000+</h3>
-                    <p>Quiz Questions</p>
-                </div>
-                <div class="hero-stat">
-                    <h3>125</h3>
-                    <p>3D Models</p>
-                </div>
+                <div class="hero-stat"><h3>25</h3><p>Chapters</p></div>
+                <div class="hero-stat"><h3>1000+</h3><p>Quiz Questions</p></div>
+                <div class="hero-stat"><h3>125</h3><p>3D Models</p></div>
             </div>
         </div>
-
-        <div class="hero-preview">
-            <div class="float-badge badge1">
-                <span>&#129302;</span> AI Tutor Active
-            </div>
-            <div class="float-badge badge2">
-                <span>&#127942;</span> 100% Score!
-            </div>
-            <div class="float-badge badge3">
-                <span>&#127909;</span> Live Class
-            </div>
-
-            <div class="preview-card">
-                <div class="preview-topbar">
-                    <span class="preview-dot red"></span>
-                    <span class="preview-dot yellow"></span>
-                    <span class="preview-dot green"></span>
-                    <span>ganitaprakash-math.web.app</span>
-                </div>
-                <div class="preview-body">
-                    <div class="preview-header">
-                        <img src="logo.png" alt="Logo">
-                        <div>
-                            <h4>GANITA PRAKASH</h4>
-                            <p>NCERT Class VI Mathematics</p>
-                        </div>
-                    </div>
-                    <div class="preview-chapters">
-                        <div class="preview-chip active"><span class="emoji">&#128200;</span> Patterns</div>
-                        <div class="preview-chip"><span class="emoji">&#128208;</span> Lines &amp; Angles</div>
-                        <div class="preview-chip"><span class="emoji">&#127922;</span> Number Play</div>
-                        <div class="preview-chip"><span class="emoji">&#128202;</span> Data Handling</div>
-                        <div class="preview-chip"><span class="emoji">&#9889;</span> Prime Time</div>
-                        <div class="preview-chip"><span class="emoji">&#128209;</span> Perimeter</div>
-                    </div>
-                    <div class="preview-progress">
-                        <div class="preview-progress-label">
-                            <span>Overall Progress</span>
-                            <span>72%</span>
-                        </div>
-                        <div class="preview-progress-bar">
-                            <div class="preview-progress-fill"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- Trusted By -->
-<section class="trusted">
-    <div class="container">
-        <p>Built for NCERT Curriculum</p>
-        <div class="trusted-logos">
-            <span>&#128218; NCERT</span>
-            <span>&#127979; CBSE</span>
-            <span>&#129302; Google Gemini AI</span>
-            <span>&#128241; Android + Web</span>
-            <span>&#128274; Firebase Auth</span>
+        <div class="hero-visual">
+            <img src="brand-logo.png" alt="CBSE MAKERS - Ganita Prakash">
         </div>
     </div>
 </section>
@@ -1177,49 +887,116 @@
 <!-- Features -->
 <section class="features" id="features">
     <div class="container">
-        <div class="section-label">&#10024; Features</div>
-        <h2 class="section-title">Everything you need to<br>master mathematics</h2>
-        <p class="section-desc">From interactive 3D models to AI-powered doubt clearing, Ganita Prakash makes math learning engaging, effective, and fun.</p>
-
+        <div class="section-header fade-in">
+            <div class="section-label">&#10024; Features</div>
+            <h2 class="section-title">Everything for NCERT Mathematics</h2>
+            <p class="section-desc">From AI doubt-clearing to interactive 3D geometry, every tool a student needs to master math.</p>
+        </div>
         <div class="features-grid">
             <div class="feature-card fade-in">
-                <div class="feature-icon purple">&#129302;</div>
+                <div class="feature-icon">&#129302;</div>
                 <h3>AI Tutor (Gemini)</h3>
-                <p>Ask any math doubt and get instant step-by-step explanations powered by Google Gemini AI. Supports English, Hindi, and Hinglish.</p>
-                <span class="feature-tag ai">AI Powered</span>
+                <p>Ask any doubt — get instant step-by-step explanations in English, Hindi, or Hinglish. Powered by Google Gemini AI.</p>
+                <span class="feature-tag">AI Powered</span>
             </div>
-
             <div class="feature-card fade-in">
-                <div class="feature-icon teal">&#127909;</div>
+                <div class="feature-icon">&#127909;</div>
                 <h3>Live 1-on-1 Classes</h3>
-                <p>Connect with your teacher through real-time audio and video calls using WebRTC. Get personal attention and instant feedback.</p>
-                <span class="feature-tag new">WebRTC</span>
+                <p>Real-time audio/video calls with your teacher via WebRTC. Get personal attention and instant feedback.</p>
+                <span class="feature-tag">WebRTC</span>
             </div>
-
             <div class="feature-card fade-in">
-                <div class="feature-icon pink">&#127922;</div>
+                <div class="feature-icon">&#127922;</div>
                 <h3>Smart Quiz System</h3>
-                <p>40 questions per chapter: MCQs, case-based questions, and pen-and-paper tasks with photo upload. Track scores and improve.</p>
-                <span class="feature-tag popular">40 x 25 Chapters</span>
+                <p>40 questions per chapter: 25 MCQs + 10 case-based + 5 pen-and-paper with photo upload. Track scores.</p>
+                <span class="feature-tag">1000 Questions</span>
             </div>
-
             <div class="feature-card fade-in">
-                <div class="feature-icon yellow">&#128302;</div>
+                <div class="feature-icon">&#128302;</div>
                 <h3>3D Geometric Models</h3>
-                <p>Explore 125 interactive Three.js 3D models — cubes, pyramids, coordinate planes, tessellations, and more. Rotate, zoom, learn.</p>
-                <span class="feature-tag new">Interactive</span>
+                <p>125 interactive Three.js models — cubes, pyramids, coordinate planes, tessellations. Rotate, zoom, explore.</p>
+                <span class="feature-tag">Interactive</span>
             </div>
-
             <div class="feature-card fade-in">
-                <div class="feature-icon purple">&#127916;</div>
+                <div class="feature-icon">&#127916;</div>
                 <h3>Video Lessons</h3>
-                <p>Watch curated video lectures for every chapter with a built-in YouTube-style player. Fullscreen, minimize, download — all supported.</p>
+                <p>Curated video lectures for every chapter. Fullscreen player with minimize, download, and controls.</p>
+                <span class="feature-tag">HD Video</span>
             </div>
-
             <div class="feature-card fade-in">
-                <div class="feature-icon teal">&#128200;</div>
-                <h3>Progress &amp; Certificates</h3>
-                <p>Track your learning journey with detailed progress analytics. Earn certificates as you complete chapters and master concepts.</p>
+                <div class="feature-icon">&#128200;</div>
+                <h3>Progress Tracking</h3>
+                <p>Detailed analytics, chapter completion, quiz scores, and certificates. Gamified learning with XP &amp; energy.</p>
+                <span class="feature-tag">Gamified</span>
+            </div>
+            <div class="feature-card fade-in">
+                <div class="feature-icon">&#128172;</div>
+                <h3>Chat with Teacher</h3>
+                <p>Text messaging, voice messages, and file sharing with your teacher. Get help anytime through Command Link.</p>
+                <span class="feature-tag">Real-time</span>
+            </div>
+            <div class="feature-card fade-in">
+                <div class="feature-icon">&#128736;</div>
+                <h3>Admin Dashboard</h3>
+                <p>Teachers manage students, track progress, view analytics, moderate chat, and initiate calls from one place.</p>
+                <span class="feature-tag">Management</span>
+            </div>
+            <div class="feature-card fade-in">
+                <div class="feature-icon">&#128274;</div>
+                <h3>Secure Auth</h3>
+                <p>Google Sign-In via Firebase Authentication. Safe, fast, and no passwords to remember.</p>
+                <span class="feature-tag">Firebase</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Classes -->
+<section class="classes" id="classes">
+    <div class="container">
+        <div class="section-header fade-in">
+            <div class="section-label">&#128218; Curriculum</div>
+            <h2 class="section-title">NCERT Chapters Covered</h2>
+            <p class="section-desc">Complete coverage of Class 6 and Class 7 mathematics following NCERT syllabus.</p>
+        </div>
+
+        <div class="class-tabs">
+            <button class="class-tab active" onclick="switchClass('class6')">Class 6 (10 Chapters)</button>
+            <button class="class-tab" onclick="switchClass('class7')">Class 7 (15 Chapters)</button>
+        </div>
+
+        <div class="class-content active" id="class6">
+            <div class="chapters-grid">
+                <div class="chapter-chip"><span class="num">1</span> Patterns in Mathematics</div>
+                <div class="chapter-chip"><span class="num">2</span> Lines and Angles</div>
+                <div class="chapter-chip"><span class="num">3</span> Number Play</div>
+                <div class="chapter-chip"><span class="num">4</span> Data Handling and Presentation</div>
+                <div class="chapter-chip"><span class="num">5</span> Prime Time</div>
+                <div class="chapter-chip"><span class="num">6</span> Perimeter and Area</div>
+                <div class="chapter-chip"><span class="num">7</span> Fractions</div>
+                <div class="chapter-chip"><span class="num">8</span> Playing with Constructions</div>
+                <div class="chapter-chip"><span class="num">9</span> Symmetry</div>
+                <div class="chapter-chip"><span class="num">10</span> The Other Side of Zero</div>
+            </div>
+        </div>
+
+        <div class="class-content" id="class7">
+            <div class="chapters-grid">
+                <div class="chapter-chip"><span class="num">1</span> Integers</div>
+                <div class="chapter-chip"><span class="num">2</span> Fractions and Decimals</div>
+                <div class="chapter-chip"><span class="num">3</span> Data Handling</div>
+                <div class="chapter-chip"><span class="num">4</span> Simple Equations</div>
+                <div class="chapter-chip"><span class="num">5</span> Lines and Angles</div>
+                <div class="chapter-chip"><span class="num">6</span> The Triangle and Its Properties</div>
+                <div class="chapter-chip"><span class="num">7</span> Comparing Quantities</div>
+                <div class="chapter-chip"><span class="num">8</span> Rational Numbers</div>
+                <div class="chapter-chip"><span class="num">9</span> Perimeter and Area</div>
+                <div class="chapter-chip"><span class="num">10</span> Algebraic Expressions</div>
+                <div class="chapter-chip"><span class="num">11</span> Exponents and Powers</div>
+                <div class="chapter-chip"><span class="num">12</span> Symmetry</div>
+                <div class="chapter-chip"><span class="num">13</span> Visualising Solid Shapes</div>
+                <div class="chapter-chip"><span class="num">14</span> Practical Geometry</div>
+                <div class="chapter-chip"><span class="num">15</span> Congruence of Triangles</div>
             </div>
         </div>
     </div>
@@ -1228,150 +1005,92 @@
 <!-- How It Works -->
 <section class="how-it-works" id="how-it-works">
     <div class="container">
-        <div style="text-align: center;">
+        <div class="section-header fade-in">
             <div class="section-label">&#128640; Getting Started</div>
-            <h2 class="section-title">Start learning in minutes</h2>
-            <p class="section-desc" style="margin: 0 auto 0;">No complicated setup. Just sign in and start your math journey.</p>
+            <h2 class="section-title">Start Learning in Minutes</h2>
+            <p class="section-desc">No complicated setup. Sign in and begin your math journey.</p>
         </div>
-
         <div class="steps">
             <div class="step fade-in">
-                <div class="step-number">1</div>
+                <div class="step-num">1</div>
                 <h3>Sign Up</h3>
-                <p>Create your account with Google Sign-In or register with email. Takes just 10 seconds.</p>
+                <p>Create your account with Google Sign-In. Takes 10 seconds.</p>
             </div>
-
             <div class="step fade-in">
-                <div class="step-number">2</div>
-                <h3>Pick Your Chapter</h3>
-                <p>Choose from 25 NCERT chapters across Class 6 and Class 7. Each chapter has topics, videos, and quizzes.</p>
+                <div class="step-num">2</div>
+                <h3>Choose Chapter</h3>
+                <p>Pick from 25 NCERT chapters across Class 6 &amp; 7. Each has videos, quizzes, and 3D models.</p>
             </div>
-
             <div class="step fade-in">
-                <div class="step-number">3</div>
+                <div class="step-num">3</div>
                 <h3>Learn &amp; Practice</h3>
-                <p>Read explanations, watch videos, explore 3D models, and ask the AI tutor when stuck. Take quizzes to test yourself.</p>
+                <p>Watch videos, explore 3D models, ask the AI tutor, and take quizzes to test your knowledge.</p>
             </div>
-
             <div class="step fade-in">
-                <div class="step-number">4</div>
-                <h3>Track &amp; Excel</h3>
-                <p>Monitor your progress, earn certificates, and connect with your teacher for personalized guidance.</p>
+                <div class="step-num">4</div>
+                <h3>Track Progress</h3>
+                <p>Monitor scores, earn certificates, and connect with your teacher for personal guidance.</p>
             </div>
         </div>
     </div>
 </section>
 
-<!-- AI Tutor Showcase -->
-<section class="showcase" id="ai-tutor">
+<!-- AI Showcase -->
+<section class="ai-showcase" id="ai-tutor">
     <div class="container">
-        <div class="showcase-visual">
-            <div class="showcase-mockup">
-                <div class="mockup-notch"></div>
-                <div class="mockup-screen">
-                    <div class="mockup-header">
-                        <div class="avatar">&#129302;</div>
-                        <div>
-                            <h5>AI Math Tutor</h5>
-                            <p>Powered by Gemini</p>
-                        </div>
-                    </div>
-                    <div class="mockup-chat">
-                        <div class="chat-bubble user">
-                            What is the area of a triangle with base 8cm and height 5cm?
-                        </div>
-                        <div class="chat-bubble ai">
-                            <div class="label">Gemini AI</div>
-                            Great question! The formula for the area of a triangle is:<br><br>
-                            <strong>Area = &frac12; &times; base &times; height</strong><br><br>
-                            So: &frac12; &times; 8 &times; 5 = <strong>20 cm&sup2;</strong> &#127881;
-                        </div>
-                        <div class="chat-bubble user">
-                            Can you explain it in Hindi?
-                        </div>
-                        <div class="chat-bubble ai">
-                            <div class="label">Gemini AI</div>
-                            &#2340;&#2381;&#2352;&#2367;&#2349;&#2369;&#2332; &#2325;&#2366; &#2325;&#2381;&#2359;&#2375;&#2340;&#2381;&#2352;&#2347;&#2354; = &frac12; &times; &#2310;&#2343;&#2366;&#2352; &times; &#2314;&#2306;&#2330;&#2366;&#2312;<br>
-                            = &frac12; &times; 8 &times; 5 = <strong>20 &#2360;&#2375;&#2350;&#2368;&sup2;</strong> &#128079;
-                        </div>
-                    </div>
-                    <div class="mockup-input">
-                        <span>Ask a math question...</span>
-                        <div class="send">&#10148;</div>
+        <div class="ai-phone">
+            <div class="ai-phone-notch"></div>
+            <div class="ai-phone-screen">
+                <div class="ai-phone-header">
+                    <div class="dot">&#129302;</div>
+                    <div>
+                        <h5>AI Math Tutor</h5>
+                        <p>Powered by Gemini</p>
                     </div>
                 </div>
+                <div class="chat-msg user">What is the area of a triangle with base 8cm and height 5cm?</div>
+                <div class="chat-msg bot"><strong>Area = &frac12; &times; base &times; height</strong><br>= &frac12; &times; 8 &times; 5 = <strong>20 cm&sup2;</strong></div>
+                <div class="chat-msg user">Explain in Hindi?</div>
+                <div class="chat-msg bot">&#2340;&#2381;&#2352;&#2367;&#2349;&#2369;&#2332; &#2325;&#2366; &#2325;&#2381;&#2359;&#2375;&#2340;&#2381;&#2352;&#2347;&#2354; = &frac12; &times; &#2310;&#2343;&#2366;&#2352; &times; &#2314;&#2306;&#2330;&#2366;&#2312;<br>= &frac12; &times; 8 &times; 5 = <strong>20 &#2360;&#2375;&#2350;&#2368;&sup2;</strong></div>
             </div>
         </div>
 
-        <div class="showcase-content fade-in">
+        <div class="ai-content fade-in">
             <div class="section-label">&#129302; AI-Powered</div>
-            <h3>Your personal math tutor,<br>available 24/7</h3>
-            <p>Stuck on a problem? The AI tutor powered by Google Gemini explains every concept step-by-step. Ask in English, Hindi, or Hinglish.</p>
-            <ul class="showcase-list">
-                <li>
-                    <span class="check">&#10003;</span>
-                    <span><strong>Instant answers</strong> — no waiting for a teacher to be free</span>
-                </li>
-                <li>
-                    <span class="check">&#10003;</span>
-                    <span><strong>Multi-language</strong> — ask in English, Hindi, or Hinglish</span>
-                </li>
-                <li>
-                    <span class="check">&#10003;</span>
-                    <span><strong>Chapter-aware</strong> — AI knows which topic you're studying</span>
-                </li>
-                <li>
-                    <span class="check">&#10003;</span>
-                    <span><strong>Step-by-step</strong> — not just answers, but full explanations with formulas</span>
-                </li>
-                <li>
-                    <span class="check">&#10003;</span>
-                    <span><strong>Switch to Gemini Live</strong> — during a call, the admin can hand off to AI for real-time voice chat</span>
-                </li>
+            <h3>Your Personal Math Tutor, Available 24/7</h3>
+            <p>Stuck on a problem? The AI tutor powered by Google Gemini explains every concept step-by-step. During live calls, the teacher can switch to Gemini for real-time AI voice chat.</p>
+            <ul class="ai-list">
+                <li><span class="check">&#10003;</span><span><strong>Instant answers</strong> — no waiting for a teacher</span></li>
+                <li><span class="check">&#10003;</span><span><strong>Multi-language</strong> — English, Hindi, Hinglish</span></li>
+                <li><span class="check">&#10003;</span><span><strong>Chapter-aware</strong> — AI knows your current topic</span></li>
+                <li><span class="check">&#10003;</span><span><strong>Step-by-step</strong> — full explanations with formulas</span></li>
+                <li><span class="check">&#10003;</span><span><strong>Switch to Gemini Live</strong> — real-time AI voice during calls</span></li>
             </ul>
         </div>
     </div>
 </section>
 
-<!-- Stats Banner -->
-<section class="stats-banner">
+<!-- Stats -->
+<section class="stats">
     <div class="container">
         <div class="stats-grid">
-            <div class="stat-item fade-in">
-                <h3><span class="color-purple">25</span></h3>
-                <p>NCERT Chapters</p>
-            </div>
-            <div class="stat-item fade-in">
-                <h3><span class="color-teal">1000+</span></h3>
-                <p>Quiz Questions</p>
-            </div>
-            <div class="stat-item fade-in">
-                <h3><span class="color-pink">125</span></h3>
-                <p>3D Interactive Models</p>
-            </div>
-            <div class="stat-item fade-in">
-                <h3><span class="color-yellow">24/7</span></h3>
-                <p>AI Tutor Available</p>
-            </div>
+            <div class="stat fade-in"><h3>25</h3><p>NCERT Chapters</p></div>
+            <div class="stat fade-in"><h3>1000+</h3><p>Quiz Questions</p></div>
+            <div class="stat fade-in"><h3>125</h3><p>3D Models</p></div>
+            <div class="stat fade-in"><h3>24/7</h3><p>AI Tutor</p></div>
         </div>
     </div>
 </section>
 
-<!-- CTA Section -->
-<section class="cta-section" id="download">
+<!-- CTA -->
+<section class="cta" id="download">
     <div class="container">
         <div class="cta-box fade-in">
-            <h2>Ready to make math<br>your superpower?</h2>
-            <p>Join thousands of students learning NCERT mathematics the smart way. Free to use, forever.</p>
+            <h2>Ready to Master Mathematics?</h2>
+            <p>Join students learning NCERT math the smart way. Free to use, forever.</p>
             <div class="cta-buttons">
-                <a href="https://ganitaprakash-math.web.app" class="btn-primary" target="_blank">
-                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
-                    Launch Web App
-                </a>
-                <a href="https://github.com/sunkarakrwutarth9-ai/Ganita-prakash-/releases/latest/download/GanitaPrakash-latest.apk" class="btn-secondary">
-                    <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M13 5v6h1.17L12 13.17 9.83 11H11V5h2m2-2H9v6H5l7 7 7-7h-4V3zm4 15H5v2h14v-2z"/></svg>
-                    Download Android APK
-                </a>
+                <a href="https://ganitaprakash-math.web.app" class="btn-gold" target="_blank">&#127760; Launch Web App</a>
+                <a href="https://github.com/sunkarakrwutarth9-ai/Ganita-prakash-/releases/latest/download/GanitaPrakash-latest.apk" class="btn-outline">&#128229; Download Android APK</a>
             </div>
         </div>
     </div>
@@ -1380,13 +1099,10 @@
 <!-- Footer -->
 <footer>
     <div class="container">
-        <div class="footer-top">
+        <div class="footer-grid">
             <div class="footer-brand">
-                <a href="#" class="nav-brand">
-                    <img src="logo.png" alt="Ganita Prakash Logo">
-                    <span>Ganita Prakash</span>
-                </a>
-                <p>Making NCERT mathematics interactive, fun, and accessible for every student. Built with AI, designed with love.</p>
+                <img src="brand-logo.png" alt="CBSE MAKERS">
+                <p>Making NCERT mathematics interactive, fun, and accessible for every student. Built with AI, designed with love by CBSE MAKERS.</p>
             </div>
             <div class="footer-col">
                 <h4>Product</h4>
@@ -1397,8 +1113,8 @@
             </div>
             <div class="footer-col">
                 <h4>Learning</h4>
-                <a href="https://ganitaprakash-math.web.app" target="_blank">Class 6 Chapters</a>
-                <a href="https://ganitaprakash-math.web.app" target="_blank">Class 7 Chapters</a>
+                <a href="#classes">Class 6 Chapters</a>
+                <a href="#classes">Class 7 Chapters</a>
                 <a href="https://ganitaprakash-math.web.app" target="_blank">3D Models</a>
                 <a href="https://ganitaprakash-math.web.app" target="_blank">Quiz System</a>
             </div>
@@ -1411,39 +1127,54 @@
             </div>
         </div>
         <div class="footer-bottom">
-            <span>&copy; 2026 Ganita Prakash. All rights reserved.</span>
-            <div class="socials">
-                <a href="https://github.com/sunkarakrwutarth9-ai/Ganita-prakash-" target="_blank" title="GitHub">&#128187;</a>
-            </div>
+            &copy; 2026 CBSE MAKERS. All rights reserved. | Ganita Prakash — NCERT Mathematics
         </div>
     </div>
 </footer>
 
 <script>
-    // Navbar scroll effect
-    window.addEventListener('scroll', () => {
-        const nav = document.getElementById('navbar');
-        nav.classList.toggle('scrolled', window.scrollY > 50);
-    });
+    // Theme toggle
+    function toggleTheme() {
+        const html = document.documentElement;
+        const current = html.getAttribute('data-theme');
+        const next = current === 'dark' ? 'light' : 'dark';
+        html.setAttribute('data-theme', next);
+        localStorage.setItem('theme', next);
+    }
 
-    // Scroll-triggered fade-in animations
+    // Load saved theme
+    const saved = localStorage.getItem('theme');
+    if (saved) document.documentElement.setAttribute('data-theme', saved);
+
+    // Class tabs
+    function switchClass(id) {
+        document.querySelectorAll('.class-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.class-tab').forEach(el => el.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        event.target.classList.add('active');
+    }
+
+    // Scroll animations
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('visible');
-            }
+            if (entry.isIntersecting) entry.target.classList.add('visible');
         });
-    }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+    }, { threshold: 0.1 });
 
     document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
 
-    // Smooth scroll for nav links
+    // Smooth scroll
     document.querySelectorAll('a[href^="#"]').forEach(link => {
         link.addEventListener('click', e => {
             e.preventDefault();
             const target = document.querySelector(link.getAttribute('href'));
-            if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            if (target) target.scrollIntoView({ behavior: 'smooth' });
         });
+    });
+
+    // Navbar scroll
+    window.addEventListener('scroll', () => {
+        document.querySelector('nav').classList.toggle('scrolled', window.scrollY > 50);
     });
 </script>
 
