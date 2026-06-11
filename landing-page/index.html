@@ -3,57 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CBSE MAKERS — Ganita Prakash | NCERT Mathematics Class 6 & 7</title>
+    <title>Ganita Prakash — NCERT Mathematics Class 6 & 7 | CBSE MAKERS</title>
     <meta name="description" content="Interactive NCERT Class 6 & 7 Mathematics learning platform by CBSE MAKERS. AI tutoring, 3D models, live classes, smart quizzes. Learn math the fun way.">
-    <link rel="icon" href="brand-logo.png" type="image/png">
+    <link rel="icon" href="app-logo.png" type="image/png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
     <style>
         /* ===== THEME VARIABLES ===== */
         :root {
-            --navy: #0F1E3D;
-            --navy-light: #1A2F54;
-            --navy-mid: #162847;
-            --gold: #C5993E;
-            --gold-light: #D4AF5A;
-            --gold-pale: #E8C97D;
-            --blue-accent: #2E6BC6;
-            --blue-light: #4A8BE0;
+            --navy: #0B1628;
+            --navy-light: #122240;
+            --navy-mid: #0E1D35;
+            --cyan: #00D4FF;
+            --cyan-light: #5CE0D8;
+            --cyan-pale: #A0F0EA;
+            --blue-accent: #4FC3F7;
+            --blue-light: #81D4FA;
+            --teal: #00BCD4;
             --transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         [data-theme="dark"] {
-            --bg: #0A1628;
-            --bg2: #0F1E3D;
-            --bg3: #162847;
-            --surface: rgba(22, 40, 71, 0.8);
-            --surface-border: rgba(197, 153, 62, 0.15);
+            --bg: #0B1628;
+            --bg2: #0E1D35;
+            --bg3: #122240;
+            --surface: rgba(14, 29, 53, 0.8);
+            --surface-border: rgba(0, 212, 255, 0.12);
             --text-primary: #FFFFFF;
-            --text-secondary: #B8C4D6;
-            --text-muted: #7A8FA8;
-            --card-bg: rgba(15, 30, 61, 0.6);
-            --card-border: rgba(197, 153, 62, 0.12);
-            --card-hover-border: rgba(197, 153, 62, 0.3);
-            --nav-bg: rgba(10, 22, 40, 0.9);
-            --glow-color: rgba(197, 153, 62, 0.08);
+            --text-secondary: #B8D4E8;
+            --text-muted: #7AACCC;
+            --card-bg: rgba(11, 22, 40, 0.7);
+            --card-border: rgba(0, 212, 255, 0.1);
+            --card-hover-border: rgba(0, 212, 255, 0.3);
+            --nav-bg: rgba(11, 22, 40, 0.92);
+            --glow-color: rgba(0, 212, 255, 0.06);
             --logo-filter: none;
         }
 
         [data-theme="light"] {
-            --bg: #F8F6F1;
+            --bg: #F0F8FF;
             --bg2: #FFFFFF;
-            --bg3: #EDE8DF;
+            --bg3: #E8F4FD;
             --surface: rgba(255, 255, 255, 0.9);
-            --surface-border: rgba(15, 30, 61, 0.1);
-            --text-primary: #0F1E3D;
-            --text-secondary: #3D5070;
-            --text-muted: #6B7D94;
-            --card-bg: rgba(255, 255, 255, 0.8);
-            --card-border: rgba(15, 30, 61, 0.08);
-            --card-hover-border: rgba(46, 107, 198, 0.3);
-            --nav-bg: rgba(248, 246, 241, 0.95);
-            --glow-color: rgba(46, 107, 198, 0.05);
+            --surface-border: rgba(0, 188, 212, 0.15);
+            --text-primary: #0B1628;
+            --text-secondary: #2C4A6B;
+            --text-muted: #5A7A99;
+            --card-bg: rgba(255, 255, 255, 0.85);
+            --card-border: rgba(0, 188, 212, 0.1);
+            --card-hover-border: rgba(0, 212, 255, 0.35);
+            --nav-bg: rgba(240, 248, 255, 0.95);
+            --glow-color: rgba(0, 188, 212, 0.05);
             --logo-filter: none;
         }
 
@@ -125,7 +126,7 @@
             transition: color 0.3s;
         }
 
-        .nav-center a:hover { color: var(--gold); }
+        .nav-center a:hover { color: var(--cyan); }
 
         .nav-right {
             display: flex;
@@ -150,13 +151,13 @@
             top: 3px; left: 3px;
             width: 16px; height: 16px;
             border-radius: 50%;
-            background: var(--gold);
+            background: var(--cyan);
             transition: transform var(--transition);
         }
 
         [data-theme="light"] .theme-toggle::after {
             transform: translateX(20px);
-            background: var(--blue-accent);
+            background: var(--teal);
         }
 
         .theme-toggle .icon-sun, .theme-toggle .icon-moon {
@@ -169,10 +170,10 @@
 
         .nav-cta {
             padding: 9px 22px;
-            background: linear-gradient(135deg, var(--gold), var(--gold-light));
+            background: linear-gradient(135deg, var(--cyan), var(--teal));
             border: none;
             border-radius: 8px;
-            color: #0F1E3D;
+            color: #0B1628;
             font-weight: 700;
             font-size: 0.9rem;
             text-decoration: none;
@@ -181,7 +182,7 @@
 
         .nav-cta:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(197, 153, 62, 0.3);
+            box-shadow: 0 8px 20px rgba(0, 212, 255, 0.3);
         }
 
         .mobile-menu-btn {
@@ -221,7 +222,7 @@
             border: 1px solid var(--card-border);
             border-radius: 100px;
             font-size: 0.85rem;
-            color: var(--gold);
+            color: var(--cyan);
             margin-bottom: 24px;
             font-weight: 500;
         }
@@ -235,8 +236,8 @@
             color: var(--text-primary);
         }
 
-        .hero h1 .gold { color: var(--gold); }
-        .hero h1 .blue { color: var(--blue-accent); }
+        .hero h1 .gold { color: var(--cyan); }
+        .hero h1 .blue { color: var(--cyan-light); }
 
         .hero-desc {
             font-size: 1.1rem;
@@ -253,10 +254,10 @@
             align-items: center;
             gap: 10px;
             padding: 14px 30px;
-            background: linear-gradient(135deg, var(--gold), var(--gold-light));
+            background: linear-gradient(135deg, var(--cyan), var(--teal));
             border: none;
             border-radius: 10px;
-            color: #0F1E3D;
+            color: #0B1628;
             font-weight: 700;
             font-size: 0.95rem;
             text-decoration: none;
@@ -265,7 +266,7 @@
 
         .btn-gold:hover {
             transform: translateY(-3px);
-            box-shadow: 0 12px 30px rgba(197, 153, 62, 0.35);
+            box-shadow: 0 12px 30px rgba(0, 212, 255, 0.35);
         }
 
         .btn-outline {
@@ -274,9 +275,9 @@
             gap: 10px;
             padding: 14px 30px;
             background: transparent;
-            border: 2px solid var(--blue-accent);
+            border: 2px solid var(--cyan-light);
             border-radius: 10px;
-            color: var(--blue-accent);
+            color: var(--cyan-light);
             font-weight: 600;
             font-size: 0.95rem;
             text-decoration: none;
@@ -284,8 +285,8 @@
         }
 
         .btn-outline:hover {
-            background: var(--blue-accent);
-            color: #fff;
+            background: var(--cyan-light);
+            color: #0B1628;
             transform: translateY(-3px);
         }
 
@@ -298,7 +299,7 @@
         .hero-stat h3 {
             font-size: 1.8rem;
             font-weight: 800;
-            color: var(--gold);
+            color: var(--cyan);
         }
 
         .hero-stat p {
@@ -342,7 +343,7 @@
             border: 1px solid var(--card-border);
             border-radius: 100px;
             font-size: 0.85rem;
-            color: var(--gold);
+            color: var(--cyan);
             font-weight: 600;
             margin-bottom: 16px;
         }
@@ -391,8 +392,8 @@
             justify-content: center;
             font-size: 1.5rem;
             margin-bottom: 18px;
-            background: linear-gradient(135deg, rgba(197, 153, 62, 0.15), rgba(46, 107, 198, 0.1));
-            border: 1px solid rgba(197, 153, 62, 0.2);
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(0, 188, 212, 0.08));
+            border: 1px solid rgba(0, 212, 255, 0.15);
         }
 
         .feature-card h3 {
@@ -415,8 +416,8 @@
             font-size: 0.7rem;
             font-weight: 700;
             margin-top: 14px;
-            background: rgba(197, 153, 62, 0.12);
-            color: var(--gold);
+            background: rgba(0, 212, 255, 0.1);
+            color: var(--cyan);
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
@@ -444,9 +445,9 @@
         }
 
         .class-tab.active, .class-tab:hover {
-            border-color: var(--gold);
-            color: var(--gold);
-            background: rgba(197, 153, 62, 0.08);
+            border-color: var(--cyan);
+            color: var(--cyan);
+            background: rgba(0, 212, 255, 0.06);
         }
 
         .chapters-grid {
@@ -470,15 +471,15 @@
         }
 
         .chapter-chip:hover {
-            border-color: var(--gold);
-            background: rgba(197, 153, 62, 0.05);
+            border-color: var(--cyan);
+            background: rgba(0, 212, 255, 0.04);
         }
 
         .chapter-chip .num {
             width: 28px; height: 28px;
             border-radius: 8px;
             background: linear-gradient(135deg, var(--navy), var(--navy-light));
-            color: var(--gold);
+            color: var(--cyan);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -488,7 +489,7 @@
         }
 
         [data-theme="light"] .chapter-chip .num {
-            background: linear-gradient(135deg, var(--blue-accent), var(--blue-light));
+            background: linear-gradient(135deg, var(--teal), var(--blue-accent));
             color: #fff;
         }
 
@@ -519,8 +520,8 @@
             justify-content: center;
             font-size: 1.3rem;
             font-weight: 800;
-            background: linear-gradient(135deg, var(--gold), var(--gold-light));
-            color: #0F1E3D;
+            background: linear-gradient(135deg, var(--cyan), var(--teal));
+            color: #0B1628;
         }
 
         .step h3 {
@@ -580,7 +581,7 @@
         .ai-phone-header .dot {
             width: 32px; height: 32px;
             border-radius: 50%;
-            background: linear-gradient(135deg, var(--gold), var(--gold-light));
+            background: linear-gradient(135deg, var(--cyan), var(--teal));
             display: flex;
             align-items: center;
             justify-content: center;
@@ -608,8 +609,8 @@
 
         .chat-msg.user {
             margin-left: auto;
-            background: var(--blue-accent);
-            color: #fff;
+            background: linear-gradient(135deg, var(--cyan), var(--teal));
+            color: #0B1628;
             border-bottom-right-radius: 4px;
         }
 
@@ -655,11 +656,11 @@
             width: 22px; height: 22px;
             min-width: 22px;
             border-radius: 6px;
-            background: rgba(197, 153, 62, 0.15);
+            background: rgba(0, 212, 255, 0.12);
             display: flex;
             align-items: center;
             justify-content: center;
-            color: var(--gold);
+            color: var(--cyan);
             font-size: 0.7rem;
             font-weight: 700;
             margin-top: 2px;
@@ -683,7 +684,7 @@
         .stat h3 {
             font-size: 2.5rem;
             font-weight: 800;
-            color: var(--gold);
+            color: var(--cyan);
             margin-bottom: 4px;
         }
 
@@ -831,7 +832,8 @@
 <!-- Navbar -->
 <nav>
     <a href="#" class="nav-brand">
-        <img src="brand-logo.png" alt="CBSE MAKERS">
+        <img src="app-logo.png" alt="Ganita Prakash">
+        <span style="font-family:'Playfair Display',serif;font-weight:700;font-size:1.15rem;color:var(--text-primary)">Ganita Prakash</span>
     </a>
     <ul class="nav-center">
         <li><a href="#features">Features</a></li>
@@ -862,7 +864,7 @@
             </h1>
             <p class="hero-desc">
                 Interactive NCERT math platform with AI-powered tutoring, live 1-on-1 classes,
-                3D geometric models, smart quizzes, and video lessons. Built by CBSE MAKERS.
+                3D geometric models, smart quizzes, and video lessons. Built by CBSE MAKERS for every student.
             </p>
             <div class="hero-buttons">
                 <a href="https://ganitaprakash-math.web.app" class="btn-gold" target="_blank">
@@ -879,7 +881,7 @@
             </div>
         </div>
         <div class="hero-visual">
-            <img src="brand-logo.png" alt="CBSE MAKERS - Ganita Prakash">
+            <img src="app-logo.png" alt="Ganita Prakash" style="border-radius:24px;">
         </div>
     </div>
 </section>
@@ -1101,8 +1103,15 @@
     <div class="container">
         <div class="footer-grid">
             <div class="footer-brand">
-                <img src="brand-logo.png" alt="CBSE MAKERS">
-                <p>Making NCERT mathematics interactive, fun, and accessible for every student. Built with AI, designed with love by CBSE MAKERS.</p>
+                <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+                    <img src="app-logo.png" alt="Ganita Prakash" style="height:40px;border-radius:10px">
+                    <span style="font-family:'Playfair Display',serif;font-weight:700;font-size:1.1rem;color:var(--text-primary)">Ganita Prakash</span>
+                </div>
+                <p>Making NCERT mathematics interactive, fun, and accessible for every student. Built with AI, designed with love.</p>
+                <div style="margin-top:14px">
+                    <img src="brand-logo.png" alt="CBSE MAKERS" style="height:28px;opacity:0.7">
+                    <p style="font-size:0.75rem;margin-top:4px">A product by CBSE MAKERS</p>
+                </div>
             </div>
             <div class="footer-col">
                 <h4>Product</h4>
@@ -1127,7 +1136,7 @@
             </div>
         </div>
         <div class="footer-bottom">
-            &copy; 2026 CBSE MAKERS. All rights reserved. | Ganita Prakash — NCERT Mathematics
+            &copy; 2026 CBSE MAKERS. All rights reserved. | Ganita Prakash — NCERT Mathematics Class 6 &amp; 7
         </div>
     </div>
 </footer>
