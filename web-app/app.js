@@ -12809,6 +12809,11 @@ function closeVideoPlayer() {
         if (video) video.pause();
         modal.remove();
     }
+    var overlay = document.getElementById('video-player-overlay');
+    if (overlay) {
+        overlay.remove();
+        document.body.style.overflow = '';
+    }
 }
 
 function togglePlayPause() {

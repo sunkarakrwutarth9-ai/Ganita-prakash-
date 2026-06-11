@@ -954,12 +954,13 @@ const generateDriveVideoPlayerHTML = (driveUrl, title) => {
   .bottom-btn { width: 44px; height: 44px; border-radius: 50%; background: rgba(255,255,255,0.12); border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; }
   .bottom-btn svg { width: 22px; height: 22px; fill: #fff; }
   .bottom-btn.accent { background: rgba(233,69,96,0.8); }
-  .overlay-tap { position: absolute; inset: 0; z-index: 50; }
+  .toggle-btn { position: absolute; top: 8px; right: 8px; z-index: 200; width: 36px; height: 36px; border-radius: 50%; background: rgba(0,0,0,0.5); border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #fff; font-size: 18px; }
+  .toggle-btn.hidden { display: none; }
 </style>
 </head>
 <body>
 <div class="player-wrap">
-  <div class="overlay-tap" id="overlayTap"></div>
+  <button class="toggle-btn hidden" id="toggleBtn">&#8942;</button>
   <div class="top-bar" id="topBar">
     <button class="top-btn" id="minimizeBtn" title="Minimize">
       <svg viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z"/></svg>
@@ -983,6 +984,7 @@ const generateDriveVideoPlayerHTML = (driveUrl, title) => {
     barsVisible = true;
     document.getElementById('topBar').classList.remove('hidden');
     document.getElementById('bottomBar').classList.remove('hidden');
+    document.getElementById('toggleBtn').classList.add('hidden');
     clearTimeout(hideTimer);
     hideTimer = setTimeout(hideBars, 4000);
   }
@@ -990,9 +992,11 @@ const generateDriveVideoPlayerHTML = (driveUrl, title) => {
     barsVisible = false;
     document.getElementById('topBar').classList.add('hidden');
     document.getElementById('bottomBar').classList.add('hidden');
+    document.getElementById('toggleBtn').classList.remove('hidden');
   }
-  document.getElementById('overlayTap').addEventListener('click', function() {
-    if (barsVisible) hideBars(); else showBars();
+  document.getElementById('toggleBtn').addEventListener('click', function(e) {
+    e.stopPropagation();
+    showBars();
   });
   document.getElementById('minimizeBtn').addEventListener('click', function(e) {
     e.stopPropagation();
@@ -13256,7 +13260,7 @@ export default function App() {
                 <Text style={{ color: '#fff', marginTop: 10 }}>Loading Video...</Text>
               </View>
             )}
-            {/* React Native overlay controls — pass-through touches to WebView underneath */}
+            {/* React Native overlay controls — only bars + small toggle, video area is fully interactive */}
             <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} pointerEvents="box-none">
               {/* Top control bar */}
               {videoControlsVisible && (
@@ -13270,12 +13274,8 @@ export default function App() {
                   </TouchableOpacity>
                 </View>
               )}
-              {/* Tap area to toggle controls (transparent, doesn't block WebView scroll/pinch) */}
-              <TouchableOpacity activeOpacity={1} style={{ flex: 1 }} onPress={() => {
-                setVideoControlsVisible(v => !v);
-                if (videoControlsTimerRef.current) clearTimeout(videoControlsTimerRef.current);
-                videoControlsTimerRef.current = setTimeout(() => setVideoControlsVisible(false), 4000);
-              }} />
+              {/* Middle area: pass all touches through to the WebView so Drive controls work */}
+              <View style={{ flex: 1 }} pointerEvents="none" />
               {/* Bottom control bar */}
               {videoControlsVisible && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16, paddingVertical: 10, backgroundColor: 'rgba(0,0,0,0.6)' }}>
@@ -13283,6 +13283,19 @@ export default function App() {
                     <Text style={{ color: '#fff', fontSize: 18 }}>⛶</Text>
                   </TouchableOpacity>
                 </View>
+              )}
+              {/* Small floating toggle button to show/hide controls (doesn't block video) */}
+              {!videoControlsVisible && (
+                <TouchableOpacity
+                  onPress={() => {
+                    setVideoControlsVisible(true);
+                    if (videoControlsTimerRef.current) clearTimeout(videoControlsTimerRef.current);
+                    videoControlsTimerRef.current = setTimeout(() => setVideoControlsVisible(false), 4000);
+                  }}
+                  style={{ position: 'absolute', top: 8, right: 8, width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}
+                >
+                  <Text style={{ color: '#fff', fontSize: 16 }}>⋮</Text>
+                </TouchableOpacity>
               )}
             </View>
           </View>
