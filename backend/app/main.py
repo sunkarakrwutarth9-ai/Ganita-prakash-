@@ -38,6 +38,7 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 DB_PATH = "/data/app.db" if os.path.exists("/data") else "app.db"
 ADMIN_EMAIL = "admin@ganitaprakash.com"
 
@@ -426,33 +427,63 @@ async def ai_chat(chat_data: AIChat, user: dict = Depends(get_optional_user)):
         
         ai_response = None
         
-        # Try Groq API first
-        try:
-            async with httpx.AsyncClient() as client:
-                groq_response = await client.post(
-                    "https://api.groq.com/openai/v1/chat/completions",
-                    headers={
-                        "Authorization": f"Bearer {GROQ_API_KEY}",
-                        "Content-Type": "application/json"
-                    },
-                    json={
-                        "model": "llama-3.3-70b-versatile",
-                        "messages": [
-                            {"role": "system", "content": system_prompt},
-                            {"role": "user", "content": chat_data.message}
-                        ],
-                        "max_tokens": 1024,
-                        "temperature": 0.7
-                    },
-                    timeout=30.0
-                )
-                if groq_response.status_code == 200:
-                    groq_data = groq_response.json()
-                    ai_response = groq_data["choices"][0]["message"]["content"]
-        except Exception as groq_error:
-            print(f"Groq API error: {groq_error}")
+        # Try OpenRouter API first (primary)
+        if OPENROUTER_API_KEY:
+            try:
+                async with httpx.AsyncClient() as client:
+                    or_response = await client.post(
+                        "https://openrouter.ai/api/v1/chat/completions",
+                        headers={
+                            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                            "Content-Type": "application/json",
+                            "HTTP-Referer": "https://ganitaprakash.com",
+                            "X-Title": "GANITA PRAKASH"
+                        },
+                        json={
+                            "model": "meta-llama/llama-3.3-70b-instruct",
+                            "messages": [
+                                {"role": "system", "content": system_prompt},
+                                {"role": "user", "content": chat_data.message}
+                            ],
+                            "max_tokens": 1024,
+                            "temperature": 0.7
+                        },
+                        timeout=30.0
+                    )
+                    if or_response.status_code == 200:
+                        or_data = or_response.json()
+                        ai_response = or_data["choices"][0]["message"]["content"]
+            except Exception as or_error:
+                print(f"OpenRouter API error: {or_error}")
         
-        # Fallback to Gemini if Groq fails
+        # Fallback to Groq API
+        if not ai_response and GROQ_API_KEY:
+            try:
+                async with httpx.AsyncClient() as client:
+                    groq_response = await client.post(
+                        "https://api.groq.com/openai/v1/chat/completions",
+                        headers={
+                            "Authorization": f"Bearer {GROQ_API_KEY}",
+                            "Content-Type": "application/json"
+                        },
+                        json={
+                            "model": "llama-3.3-70b-versatile",
+                            "messages": [
+                                {"role": "system", "content": system_prompt},
+                                {"role": "user", "content": chat_data.message}
+                            ],
+                            "max_tokens": 1024,
+                            "temperature": 0.7
+                        },
+                        timeout=30.0
+                    )
+                    if groq_response.status_code == 200:
+                        groq_data = groq_response.json()
+                        ai_response = groq_data["choices"][0]["message"]["content"]
+            except Exception as groq_error:
+                print(f"Groq API error: {groq_error}")
+        
+        # Fallback to Gemini if both fail
         if not ai_response:
             response = gemini_model.generate_content(f"{system_prompt}\n\nStudent's question: {chat_data.message}")
             ai_response = response.text
@@ -616,8 +647,43 @@ async def ai_chat_with_language(chat_data: GeminiChatWithLanguage, user: dict = 
             5: "Prime Time", 6: "Perimeter and Area", 7: "Fractions", 8: "Playing with Constructions", 9: "Symmetry", 10: "The Other Side of Zero"}
         if chat_data.chapter_id:
             system_prompt += f"\nCurrent chapter: {chapter_topics.get(chat_data.chapter_id, '')}"
-        response = gemini_model.generate_content(f"{system_prompt}\n\nStudent's question: {chat_data.message}")
-        ai_response = response.text
+        
+        ai_response = None
+        
+        # Try OpenRouter first
+        if OPENROUTER_API_KEY:
+            try:
+                async with httpx.AsyncClient() as client:
+                    or_response = await client.post(
+                        "https://openrouter.ai/api/v1/chat/completions",
+                        headers={
+                            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                            "Content-Type": "application/json",
+                            "HTTP-Referer": "https://ganitaprakash.com",
+                            "X-Title": "GANITA PRAKASH"
+                        },
+                        json={
+                            "model": "meta-llama/llama-3.3-70b-instruct",
+                            "messages": [
+                                {"role": "system", "content": system_prompt},
+                                {"role": "user", "content": chat_data.message}
+                            ],
+                            "max_tokens": 1024,
+                            "temperature": 0.7
+                        },
+                        timeout=30.0
+                    )
+                    if or_response.status_code == 200:
+                        or_data = or_response.json()
+                        ai_response = or_data["choices"][0]["message"]["content"]
+            except Exception as or_error:
+                print(f"OpenRouter API error (language): {or_error}")
+        
+        # Fallback to Gemini
+        if not ai_response:
+            response = gemini_model.generate_content(f"{system_prompt}\n\nStudent's question: {chat_data.message}")
+            ai_response = response.text
+        
         async with aiosqlite.connect(DB_PATH) as db:
             await db.execute("INSERT INTO ai_conversations (user_id, user_message, ai_response, chapter_id) VALUES (?, ?, ?, ?)",
                 (user["id"], chat_data.message, ai_response, chat_data.chapter_id))
