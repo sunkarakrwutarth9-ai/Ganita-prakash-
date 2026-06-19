@@ -9,6 +9,15 @@ ios/build/
 *.aab
 *.ipa
 
+# Generated native projects (recreated by `expo prebuild`)
+mobile-app/android/
+mobile-app/ios/
+
+# Signing keys and local release artifacts (never commit secrets)
+*.keystore
+*.jks
+release/
+
 # Environment
 .env
 .env.local
