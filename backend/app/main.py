@@ -439,6 +439,32 @@ async def get_optional_user(credentials: Optional[HTTPAuthorizationCredentials] 
 async def healthz():
     return {"status": "ok"}
 
+@app.get("/api/ice-servers")
+async def ice_servers():
+    """STUN/TURN servers for WebRTC calls.
+
+    A TURN relay is required for calls between devices on different
+    networks/NATs. Configure a dedicated relay (e.g. Metered/ExpressTURN)
+    without a code change by setting env vars on the backend:
+      TURN_URLS        comma-separated, e.g.
+                       "turn:relay.example.com:80,turns:relay.example.com:443"
+      TURN_USERNAME    relay username
+      TURN_CREDENTIAL  relay credential
+    """
+    servers = [
+        {"urls": "stun:stun.l.google.com:19302"},
+        {"urls": "stun:stun1.l.google.com:19302"},
+    ]
+    turn_urls = os.getenv("TURN_URLS", "").strip()
+    turn_user = os.getenv("TURN_USERNAME", "").strip()
+    turn_cred = os.getenv("TURN_CREDENTIAL", "").strip()
+    if turn_urls and turn_user and turn_cred:
+        for u in turn_urls.split(","):
+            u = u.strip()
+            if u:
+                servers.append({"urls": u, "username": turn_user, "credential": turn_cred})
+    return {"ice_servers": servers}
+
 @app.post("/api/auth/register", response_model=Token)
 async def register(user_data: UserCreate):
     async with aiosqlite.connect(DB_PATH) as db:
