@@ -15,6 +15,7 @@ import {
   ActivityIndicator,
   Dimensions,
   Platform,
+  KeyboardAvoidingView,
   Linking,
   BackHandler,
   Vibration,
@@ -12725,11 +12726,15 @@ export default function App() {
         {/* Header - Command Bridge Style */}
         <View style={styles.homeHeader}>
           <TouchableOpacity style={styles.headerLeft} onPress={() => { setProfileNameInput(studentName || ''); setShowProfileModal(true); }}>
-            <View style={styles.userAvatarCircle}>
-              <Text style={styles.userAvatarText}>
-                {studentName ? studentName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'GP'}
-              </Text>
-            </View>
+            {profilePicture ? (
+              <Image source={{ uri: profilePicture }} style={styles.userAvatarCircle} resizeMode="cover" />
+            ) : (
+              <View style={styles.userAvatarCircle}>
+                <Text style={styles.userAvatarText}>
+                  {studentName ? studentName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'GP'}
+                </Text>
+              </View>
+            )}
             <View>
               <Text style={styles.welcomeText}>WELCOME</Text>
               <Text style={styles.userName}>{studentName || 'Student'}</Text>
@@ -14049,7 +14054,10 @@ export default function App() {
   }, [screen, isLoggedIn, authToken]);
 
   const renderChat = () => (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
       {/* Header */}
       <View style={styles.chatHeader}>
         <TouchableOpacity style={styles.backBtn} onPress={() => setScreen('home')}>
@@ -14206,7 +14214,7 @@ export default function App() {
           )}
         </View>
       )}
-    </View>
+    </KeyboardAvoidingView>
   );
 
   // AI Assistant Screen with Language Selection
@@ -14797,8 +14805,9 @@ export default function App() {
       </Modal>
 
       <Modal visible={showProfileModal} transparent animationType="fade" onRequestClose={() => setShowProfileModal(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { maxWidth: 420 }]}>
+        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <View style={[styles.modalContent, { maxWidth: 420, maxHeight: '88%' }]}>
+            <ScrollView style={{ width: '100%' }} contentContainerStyle={{ alignItems: 'center' }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
             <Text style={styles.modalTitle}>Profile</Text>
 
             {/* Profile picture: avatar with Gallery/Camera buttons. Tapping
@@ -14957,8 +14966,9 @@ export default function App() {
             <TouchableOpacity style={{ marginTop: 10, alignItems: 'center' }} onPress={() => setShowProfileModal(false)}>
               <Text style={{ color: 'rgba(255,255,255,0.6)' }}>Cancel</Text>
             </TouchableOpacity>
+            </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       <Modal visible={showResult} transparent animationType="fade">
