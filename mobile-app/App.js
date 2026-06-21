@@ -12011,9 +12011,22 @@ export default function App() {
 
       // voiceSrc may be either a full data URI / http URL (preferred) or a raw
       // base64 string from the legacy voice_data field. Normalize to a URI.
-      const uri = (typeof voiceSrc === 'string' && (voiceSrc.startsWith('data:') || voiceSrc.startsWith('http')))
+      let uri = (typeof voiceSrc === 'string' && (voiceSrc.startsWith('data:') || voiceSrc.startsWith('http')))
         ? voiceSrc
         : `data:audio/m4a;base64,${voiceSrc}`;
+
+      // expo-av on Android cannot reliably stream a base64 `data:` URI, so the
+      // play button silently did nothing. Write the audio to a cache file and
+      // play from that file URI instead.
+      if (uri.startsWith('data:')) {
+        const base64 = uri.substring(uri.indexOf(',') + 1);
+        const fileUri = `${FileSystem.cacheDirectory}voice-${messageId}-${Date.now()}.m4a`;
+        await FileSystem.writeAsStringAsync(fileUri, base64, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+        uri = fileUri;
+      }
+
       const { sound } = await Audio.Sound.createAsync(
         { uri },
         { shouldPlay: true }
@@ -14436,7 +14449,7 @@ export default function App() {
     setCallingUser(user);
     setCallStatus('Initiating call...');
     try {
-      const response = await fetch(`${API_URL}/admin/gemini-call`, {
+      const response = await fetch(`${API_URL}/api/admin/gemini-call`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
         body: JSON.stringify({ user_id: user.id, action: 'initiate_call' })
