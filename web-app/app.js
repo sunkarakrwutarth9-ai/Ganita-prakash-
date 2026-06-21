@@ -12096,6 +12096,7 @@ init = function() {
 // Override showSection to include formula-videos and all features
 var originalShowSection = showSection;
 showSection = function(section) {
+    if (typeof closeAdminChat === 'function') closeAdminChat();
     document.querySelectorAll('.content-section').forEach(function(s) { s.classList.remove('active'); });
     document.querySelectorAll('.nav-tab').forEach(function(t) { t.classList.remove('active'); });
     var sectionMap = { 
@@ -12164,12 +12165,24 @@ function selectChatUser(userId, userName) {
     // Update chat header
     var chatHeader = document.getElementById('chat-header');
     if (chatHeader) {
-        chatHeader.innerHTML = '<span style="color: #00ffff; font-family: \'Orbitron\', monospace;">' + userName + '</span>' +
+        chatHeader.innerHTML = '<div style="display: flex; align-items: center; gap: 8px; min-width: 0;">' +
+            '<button id="admin-chat-back" onclick="closeAdminChat()" title="Back" style="display:none; align-items:center; justify-content:center; padding: 6px 12px; background: rgba(0,255,255,0.15); border: 1px solid rgba(0,255,255,0.4); border-radius: 20px; color: #00ffff; cursor: pointer; font-size: 16px;">&#8592;</button>' +
+            '<span style="color: #00ffff; font-family: \'Orbitron\', monospace; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + userName + '</span>' +
+            '</div>' +
             '<div style="display: flex; gap: 10px;">' +
             '<button onclick="adminVoiceCall()" style="padding: 8px 15px; background: linear-gradient(135deg, #00ff00, #008800); border: none; border-radius: 20px; color: #fff; cursor: pointer; font-size: 12px;">AUDIO</button>' +
             '<button onclick="adminVideoCall()" style="padding: 8px 15px; background: linear-gradient(135deg, #ff6600, #cc3300); border: none; border-radius: 20px; color: #fff; cursor: pointer; font-size: 12px;">VIDEO</button>' +
             '</div>';
     }
+
+    // Promote chat to full-screen panel (input pinned at bottom) so it is always
+    // reachable on phones.
+    document.body.classList.add('admin-chat-active');
+    enableAdminChatKeyboardFit();
+    setTimeout(function() {
+        var inp = document.getElementById('admin-message');
+        if (inp) inp.scrollIntoView({ block: 'nearest' });
+    }, 100);
     
     // Highlight selected user in list
     var userItems = document.querySelectorAll('.chat-user-item');
@@ -12185,6 +12198,37 @@ function selectChatUser(userId, userName) {
     chatRefreshInterval = setInterval(function() {
         if (selectedUserId) loadChatHistory(selectedUserId);
     }, 3000);
+}
+
+// Close the full-screen chat panel and go back to the student list (phones).
+function closeAdminChat() {
+    document.body.classList.remove('admin-chat-active');
+    var grid = document.getElementById('admin-chat-grid');
+    if (grid) grid.style.height = '';
+    disableAdminChatKeyboardFit();
+}
+
+// Keep the input visible above the on-screen keyboard while the full-screen
+// chat is open by sizing the panel to the visual viewport.
+var _adminVVHandler = null;
+function enableAdminChatKeyboardFit() {
+    if (!window.visualViewport || _adminVVHandler) return;
+    _adminVVHandler = function() {
+        if (!document.body.classList.contains('admin-chat-active')) return;
+        var grid = document.getElementById('admin-chat-grid');
+        if (grid) grid.style.height = window.visualViewport.height + 'px';
+        var msgs = document.getElementById('admin-chat-messages');
+        if (msgs) msgs.scrollTop = msgs.scrollHeight;
+    };
+    window.visualViewport.addEventListener('resize', _adminVVHandler);
+    window.visualViewport.addEventListener('scroll', _adminVVHandler);
+}
+function disableAdminChatKeyboardFit() {
+    if (window.visualViewport && _adminVVHandler) {
+        window.visualViewport.removeEventListener('resize', _adminVVHandler);
+        window.visualViewport.removeEventListener('scroll', _adminVVHandler);
+    }
+    _adminVVHandler = null;
 }
 
 // Load chat history for a specific user

@@ -11136,6 +11136,16 @@ export default function App() {
   // Language selection for AI
   const [showLanguageSelector, setShowLanguageSelector] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState('en');
+
+  // Real-time voice Gemini ("Customer Care") call state
+  const [geminiCall, setGeminiCall] = useState(null);        // incoming gemini call notice
+  const [showGeminiCall, setShowGeminiCall] = useState(false); // active voice call screen
+  const [geminiCallLang, setGeminiCallLang] = useState('en');
+  const [geminiListening, setGeminiListening] = useState(false); // mic recording
+  const [geminiThinking, setGeminiThinking] = useState(false);   // waiting on Gemini
+  const [geminiSpeaking, setGeminiSpeaking] = useState(false);   // TTS playing
+  const [geminiTurns, setGeminiTurns] = useState([]);            // [{role, text}]
+  const geminiRecordingRef = useRef(null);
   
   // Video Player state (inbuilt)
   const [showVideoPlayer, setShowVideoPlayer] = useState(false);
@@ -11206,6 +11216,19 @@ export default function App() {
                   headers: { 'Authorization': `Bearer ${authToken}` },
                 });
               } catch (e) {}
+            } else if (notif.notification_type === 'gemini_call') {
+              // Customer Care (Gemini AI) is calling. Show the incoming-call UI
+              // unless a Gemini call is already showing/active.
+              if (!showGeminiCall) {
+                setGeminiCall({ id: notif.id, message: notif.message });
+                Vibration.vibrate([0, 500, 200, 500, 200, 500], true);
+              }
+              try {
+                await fetch(`${API_URL}/api/notifications/${notif.id}/read`, {
+                  method: 'POST',
+                  headers: { 'Authorization': `Bearer ${authToken}` },
+                });
+              } catch (e) {}
             }
           }
         }
@@ -11225,7 +11248,7 @@ export default function App() {
         clearInterval(pollInterval);
       }
     };
-  }, [isLoggedIn, authToken, showCallWebView]);
+  }, [isLoggedIn, authToken, showCallWebView, showGeminiCall]);
 
   // State for colorful festival wish modal
   const [showFestivalModal, setShowFestivalModal] = useState(false);
@@ -11482,6 +11505,139 @@ export default function App() {
       }
       setIncomingCall(null);
     }
+  };
+
+  // ===== Real-time voice Gemini ("Customer Care") call =====
+  const GEMINI_SPEECH_LANG = {
+    en: 'en-US', hi: 'hi-IN', te: 'te-IN', ta: 'ta-IN', kn: 'kn-IN',
+    ml: 'ml-IN', mr: 'mr-IN', bn: 'bn-IN', gu: 'gu-IN', pa: 'pa-IN',
+  };
+
+  const geminiSpeak = (text, langCode) => {
+    if (!text) return;
+    try { Speech.stop(); } catch (_) {}
+    setGeminiSpeaking(true);
+    Speech.speak(text, {
+      language: GEMINI_SPEECH_LANG[langCode] || 'en-US',
+      rate: 0.95,
+      onDone: () => setGeminiSpeaking(false),
+      onStopped: () => setGeminiSpeaking(false),
+      onError: () => setGeminiSpeaking(false),
+    });
+  };
+
+  const answerGeminiCall = async () => {
+    Vibration.cancel();
+    try {
+      const micPerm = await Audio.requestPermissionsAsync();
+      if (!micPerm || micPerm.status !== 'granted') {
+        Alert.alert('Microphone permission required', 'Please allow the microphone so Customer Care can hear you.');
+        return;
+      }
+    } catch (_) {}
+    const lang = selectedLanguage || 'en';
+    setGeminiCallLang(lang);
+    setGeminiTurns([]);
+    setGeminiCall(null);
+    setShowGeminiCall(true);
+    // Greet the student in their language.
+    const greet = {
+      en: 'Hello! This is Customer Care. Tap the microphone and ask your question.',
+      hi: 'नमस्ते! मैं कस्टमर केयर हूँ। माइक दबाएँ और अपना सवाल पूछें।',
+      te: 'నమస్తే! నేను కస్టమర్ కేర్. మైక్ నొక్కి మీ ప్రశ్న అడగండి.',
+    };
+    setGeminiTurns([{ role: 'gemini', text: greet[lang] || greet.en }]);
+    setTimeout(() => geminiSpeak(greet[lang] || greet.en, lang), 400);
+  };
+
+  const declineGeminiCall = () => {
+    Vibration.cancel();
+    setGeminiCall(null);
+  };
+
+  const geminiStartListening = async () => {
+    if (geminiListening || geminiThinking) return;
+    try { Speech.stop(); } catch (_) {}
+    setGeminiSpeaking(false);
+    try {
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
+      const { recording } = await Audio.Recording.createAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+      geminiRecordingRef.current = recording;
+      setGeminiListening(true);
+      Vibration.vibrate(40);
+    } catch (e) {
+      console.log('gemini record start error:', e);
+      Alert.alert('Microphone error', 'Could not start listening. Please try again.');
+    }
+  };
+
+  const geminiStopListeningAndSend = async () => {
+    const recording = geminiRecordingRef.current;
+    if (!recording) { setGeminiListening(false); return; }
+    setGeminiListening(false);
+    geminiRecordingRef.current = null;
+    let uri = null;
+    try {
+      await recording.stopAndUnloadAsync();
+      uri = recording.getURI();
+    } catch (e) {
+      console.log('gemini record stop error:', e);
+    }
+    // Restore playback audio mode so TTS is audible.
+    try { await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true }); } catch (_) {}
+    if (!uri) { Alert.alert('No audio', 'Did not catch that. Please try again.'); return; }
+    setGeminiThinking(true);
+    try {
+      const base64Audio = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
+      if (!base64Audio) { setGeminiThinking(false); Alert.alert('No audio', 'Recording was empty.'); return; }
+      const resp = await fetch(`${API_URL}/api/gemini-voice`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+        body: JSON.stringify({
+          audio_base64: base64Audio,
+          mime_type: 'audio/mp4',
+          language: geminiCallLang || 'en',
+          chapter_id: currentChapter?.id || null,
+        }),
+      });
+      if (!resp.ok) {
+        let detail = '';
+        try { detail = (await resp.json()).detail || ''; } catch (_) {}
+        setGeminiThinking(false);
+        Alert.alert('Customer Care', detail || 'Could not process your voice. Please try again.');
+        return;
+      }
+      const data = await resp.json();
+      const transcript = (data.transcript || '').trim();
+      const reply = (data.reply || '').trim();
+      setGeminiTurns(prev => {
+        const next = [...prev];
+        if (transcript) next.push({ role: 'you', text: transcript });
+        if (reply) next.push({ role: 'gemini', text: reply });
+        return next;
+      });
+      setGeminiThinking(false);
+      if (reply) geminiSpeak(reply, geminiCallLang || 'en');
+    } catch (e) {
+      console.log('gemini-voice error:', e);
+      setGeminiThinking(false);
+      Alert.alert('Customer Care', 'Network error. Please try again.');
+    }
+  };
+
+  const endGeminiCall = async () => {
+    try { Speech.stop(); } catch (_) {}
+    setGeminiSpeaking(false);
+    const recording = geminiRecordingRef.current;
+    if (recording) {
+      try { await recording.stopAndUnloadAsync(); } catch (_) {}
+      geminiRecordingRef.current = null;
+    }
+    try { await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true }); } catch (_) {}
+    setGeminiListening(false);
+    setGeminiThinking(false);
+    setShowGeminiCall(false);
+    setGeminiTurns([]);
   };
 
   // Function to auto-submit exam and log AI violation
@@ -15358,6 +15514,85 @@ export default function App() {
               </View>
             </Modal>
           )}
+
+          {/* Incoming Gemini (Customer Care) Call Modal */}
+          {geminiCall && !showGeminiCall && (
+            <Modal visible={true} transparent animationType="fade">
+              <View style={styles.incomingCallOverlay}>
+                <View style={styles.incomingCallCard}>
+                  <Text style={styles.incomingCallIcon}>🎧</Text>
+                  <Text style={styles.incomingCallTitle}>Customer Care is calling</Text>
+                  <Text style={styles.incomingCallName}>Gemini AI Assistant</Text>
+                  <Text style={styles.incomingCallSubtitle}>Talk to get instant help in your language</Text>
+
+                  <View style={styles.incomingCallButtons}>
+                    <TouchableOpacity style={styles.declineCallBtn} onPress={declineGeminiCall}>
+                      <Text style={styles.declineCallIcon}>✕</Text>
+                      <Text style={styles.declineCallText}>Decline</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.answerCallBtn} onPress={answerGeminiCall}>
+                      <Text style={styles.answerCallIcon}>✓</Text>
+                      <Text style={styles.answerCallText}>Answer</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            </Modal>
+          )}
+
+          {/* Active Gemini Voice Call Screen */}
+          {showGeminiCall && (
+            <Modal visible={true} transparent={false} animationType="slide" onRequestClose={endGeminiCall}>
+              <SafeAreaView style={styles.geminiCallScreen}>
+                <View style={styles.geminiCallHeader}>
+                  <Text style={styles.geminiCallTitle}>🎧 Customer Care (Gemini)</Text>
+                  <Text style={styles.geminiCallLangBadge}>
+                    {SUPPORTED_LANGUAGES.find(l => l.code === geminiCallLang)?.name || 'English'}
+                  </Text>
+                </View>
+
+                <FlatList
+                  data={geminiTurns}
+                  keyExtractor={(_, i) => 'gturn-' + i}
+                  style={styles.geminiTurnsList}
+                  contentContainerStyle={{ padding: 16 }}
+                  renderItem={({ item }) => (
+                    <View style={[styles.geminiBubble, item.role === 'you' ? styles.geminiBubbleYou : styles.geminiBubbleAI]}>
+                      <Text style={styles.geminiBubbleRole}>{item.role === 'you' ? 'You' : 'Customer Care'}</Text>
+                      <Text style={styles.geminiBubbleText}>{item.text}</Text>
+                    </View>
+                  )}
+                />
+
+                <View style={styles.geminiStatusRow}>
+                  {geminiThinking ? (
+                    <Text style={styles.geminiStatusText}>Thinking…</Text>
+                  ) : geminiSpeaking ? (
+                    <Text style={styles.geminiStatusText}>Speaking… 🔊</Text>
+                  ) : geminiListening ? (
+                    <Text style={[styles.geminiStatusText, { color: '#EF4444' }]}>Listening… release to send</Text>
+                  ) : (
+                    <Text style={styles.geminiStatusText}>Hold the mic and speak</Text>
+                  )}
+                </View>
+
+                <View style={styles.geminiControls}>
+                  <TouchableOpacity
+                    style={[styles.geminiMicBtn, geminiListening && styles.geminiMicBtnActive, (geminiThinking) && { opacity: 0.5 }]}
+                    onPressIn={geminiStartListening}
+                    onPressOut={geminiStopListeningAndSend}
+                    disabled={geminiThinking}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.geminiMicIcon}>{geminiListening ? '🔴' : '🎤'}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.geminiEndBtn} onPress={endGeminiCall}>
+                    <Text style={styles.geminiEndBtnText}>End Call</Text>
+                  </TouchableOpacity>
+                </View>
+              </SafeAreaView>
+            </Modal>
+          )}
         </SafeAreaView>
   );
 }
@@ -15748,4 +15983,24 @@ const styles = StyleSheet.create({
   answerCallBtn: { backgroundColor: '#22C55E', width: 70, height: 70, borderRadius: 35, justifyContent: 'center', alignItems: 'center' },
   answerCallIcon: { fontSize: 28, color: '#fff', fontWeight: 'bold' },
   answerCallText: { fontSize: 12, color: '#fff', marginTop: 4 },
+
+  // Gemini voice call screen
+  geminiCallScreen: { flex: 1, backgroundColor: '#05070D' },
+  geminiCallHeader: { paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(0,229,255,0.25)', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  geminiCallTitle: { color: '#00E5FF', fontSize: 16, fontWeight: 'bold' },
+  geminiCallLangBadge: { color: '#fff', fontSize: 12, backgroundColor: 'rgba(0,229,255,0.15)', borderWidth: 1, borderColor: 'rgba(0,229,255,0.4)', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4 },
+  geminiTurnsList: { flex: 1 },
+  geminiBubble: { borderRadius: 14, padding: 12, marginBottom: 10, maxWidth: '90%' },
+  geminiBubbleYou: { alignSelf: 'flex-end', backgroundColor: 'rgba(41,121,255,0.25)', borderWidth: 1, borderColor: 'rgba(41,121,255,0.5)' },
+  geminiBubbleAI: { alignSelf: 'flex-start', backgroundColor: 'rgba(0,229,255,0.12)', borderWidth: 1, borderColor: 'rgba(0,229,255,0.35)' },
+  geminiBubbleRole: { color: '#8B5CF6', fontSize: 11, fontWeight: 'bold', marginBottom: 3 },
+  geminiBubbleText: { color: '#fff', fontSize: 15, lineHeight: 21 },
+  geminiStatusRow: { alignItems: 'center', paddingVertical: 8 },
+  geminiStatusText: { color: '#9CA3AF', fontSize: 14 },
+  geminiControls: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 24, paddingVertical: 20, paddingBottom: 32 },
+  geminiMicBtn: { width: 84, height: 84, borderRadius: 42, backgroundColor: 'rgba(0,229,255,0.15)', borderWidth: 2, borderColor: '#00E5FF', justifyContent: 'center', alignItems: 'center' },
+  geminiMicBtnActive: { backgroundColor: 'rgba(239,68,68,0.25)', borderColor: '#EF4444' },
+  geminiMicIcon: { fontSize: 36 },
+  geminiEndBtn: { backgroundColor: '#EF4444', borderRadius: 24, paddingHorizontal: 22, paddingVertical: 14 },
+  geminiEndBtnText: { color: '#fff', fontSize: 15, fontWeight: 'bold' },
 });

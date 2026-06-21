@@ -16,6 +16,7 @@ import google.generativeai as genai
 import aiosqlite
 import os
 import json
+import base64
 import httpx
 import smtplib
 from email.mime.text import MIMEText
@@ -229,7 +230,8 @@ gemini_model = None
 if GEMINI_API_KEY:
     try:
         genai.configure(api_key=GEMINI_API_KEY)
-        gemini_model = genai.GenerativeModel('gemini-pro')
+        # gemini-2.5-flash handles both text and audio (needed for voice calls).
+        gemini_model = genai.GenerativeModel('gemini-2.5-flash')
     except Exception as e:
         print(f"Gemini init error: {e}")
 
@@ -927,6 +929,15 @@ class GeminiChatWithLanguage(BaseModel):
     language: str = "en"
     chapter_id: Optional[int] = None
 
+class GeminiVoice(BaseModel):
+    audio_base64: str
+    mime_type: str = "audio/mp4"  # Expo records .m4a (AAC in MP4); Gemini accepts audio/mp4
+    language: str = "en"
+    chapter_id: Optional[int] = None
+
+LANGUAGE_NAMES = {"en": "English", "hi": "Hindi", "te": "Telugu", "ta": "Tamil", "kn": "Kannada",
+    "ml": "Malayalam", "mr": "Marathi", "bn": "Bengali", "gu": "Gujarati", "pa": "Punjabi"}
+
 @app.post("/api/admin/notify")
 async def admin_notify(notify_data: AdminNotify, admin: dict = Depends(get_admin_user)):
     async with aiosqlite.connect(DB_PATH) as db:
@@ -942,6 +953,66 @@ async def admin_gemini_call(call_data: GeminiCall, admin: dict = Depends(get_adm
             (call_data.user_id, "gemini_call", "Customer care is calling. Gemini AI wants to help you!"))
         await db.commit()
         return {"status": "success", "message": "Gemini AI call initiated"}
+
+@app.post("/api/gemini-voice")
+async def gemini_voice(data: GeminiVoice, user: dict = Depends(get_current_user)):
+    """Real-time voice 'customer care': accepts the student's recorded speech,
+    uses Gemini to understand it and reply in the chosen language. The app then
+    speaks the reply aloud."""
+    if gemini_model is None:
+        raise HTTPException(status_code=503, detail="Gemini is not configured. Add GEMINI_API_KEY on the server.")
+    try:
+        audio_bytes = base64.b64decode(data.audio_base64)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid audio data")
+    if not audio_bytes:
+        raise HTTPException(status_code=400, detail="Empty audio")
+
+    lang_name = LANGUAGE_NAMES.get(data.language, "English")
+    chapter_topics = {1: "Patterns in Mathematics", 2: "Lines and Angles", 3: "Number Play", 4: "Data Handling",
+        5: "Prime Time", 6: "Perimeter and Area", 7: "Fractions", 8: "Playing with Constructions", 9: "Symmetry", 10: "The Other Side of Zero"}
+    topic = chapter_topics.get(data.chapter_id, "")
+    prompt = (
+        "You are 'Customer Care', a warm, friendly support agent and Class 6 NCERT maths tutor for the GANITA PRAKASH app. "
+        "The attached audio is a student speaking to you. Listen, understand what they asked, then answer helpfully. "
+        f"You MUST reply ONLY in {lang_name}. Keep the reply short and natural to be spoken aloud (1-4 sentences). "
+        + (f"The student is studying the chapter '{topic}'. " if topic else "")
+        + 'Return STRICT JSON only, no markdown, in the form: '
+        + '{"transcript": "<what the student said, original words>", "reply": "<your spoken reply in '
+        + lang_name + '>"}'
+    )
+
+    def _call():
+        return gemini_model.generate_content(
+            [prompt, {"mime_type": data.mime_type, "data": audio_bytes}],
+            generation_config={"response_mime_type": "application/json"},
+        )
+
+    transcript, reply = "", ""
+    try:
+        resp = await asyncio.to_thread(_call)
+        raw = (resp.text or "").strip()
+        try:
+            parsed = json.loads(raw)
+            transcript = (parsed.get("transcript") or "").strip()
+            reply = (parsed.get("reply") or "").strip()
+        except Exception:
+            reply = raw
+    except Exception as e:
+        print(f"gemini-voice error: {e}")
+        raise HTTPException(status_code=502, detail="Gemini could not process the audio. Please try again.")
+
+    if not reply:
+        reply = "Sorry, I couldn't catch that. Could you say it again?"
+
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute("INSERT INTO ai_conversations (user_id, user_message, ai_response, chapter_id) VALUES (?, ?, ?, ?)",
+                (user["id"], transcript or "[voice]", reply, data.chapter_id))
+            await db.commit()
+    except Exception:
+        pass
+    return {"transcript": transcript, "reply": reply, "language": data.language, "status": "success"}
 
 @app.get("/api/notifications")
 async def get_notifications(user: dict = Depends(get_current_user)):

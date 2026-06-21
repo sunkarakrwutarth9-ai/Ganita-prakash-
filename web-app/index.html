@@ -1069,7 +1069,7 @@
             #admin-chat-grid {
                 grid-template-columns: minmax(0, 1fr) !important;
                 gap: 0 !important;
-                height: 70vh !important;
+                height: 60vh !important;
                 width: 100% !important;
                 box-sizing: border-box;
             }
@@ -1080,7 +1080,6 @@
                 height: auto !important;
             }
             #admin-chat-userpanel {
-                max-height: 110px;
                 border-right: none !important;
                 border-bottom: 1px solid rgba(0,255,255,0.3);
             }
@@ -1095,6 +1094,31 @@
                 flex: 1 1 0 !important;
                 min-width: 0 !important;
             }
+            /* When a student is opened, promote the chat to a full-screen panel
+               with the input pinned at the bottom. The old layout left the chat
+               at the bottom of a long page where the inner message list trapped
+               touch-scroll, so the input was unreachable on phones. */
+            body.admin-chat-active { overflow: hidden; }
+            body.admin-chat-active #admin-chat-grid {
+                position: fixed !important;
+                inset: 0 !important;
+                height: 100vh !important;
+                height: 100dvh !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                margin: 0 !important;
+                border-radius: 0 !important;
+                border: none !important;
+                z-index: 100000 !important;
+                grid-template-columns: 1fr !important;
+                overflow: hidden !important;
+            }
+            body.admin-chat-active #admin-chat-grid > div { min-width: 0 !important; max-width: 100% !important; box-sizing: border-box !important; }
+            body.admin-chat-active #chat-header,
+            body.admin-chat-active #admin-chat-messages { box-sizing: border-box !important; max-width: 100% !important; }
+            body.admin-chat-active #admin-chat-userpanel { display: none !important; }
+            #admin-chat-back { display: none; }
+            body.admin-chat-active #admin-chat-back { display: inline-flex !important; }
         }
     </style>
 </head>
@@ -1449,6 +1473,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <script src="config.js"></script>
-    <script src="app.js?v=20260518-v1912"></script>
+    <script src="app.js?v=20260621-voicegemini"></script>
 </body>
 </html>
