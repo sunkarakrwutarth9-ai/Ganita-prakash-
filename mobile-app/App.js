@@ -11555,6 +11555,33 @@ export default function App() {
     setGeminiCall(null);
   };
 
+  // Admin shifted an active WebRTC call to Gemini. Close the call WebView and
+  // open the native voice screen (records via expo-av -> /api/gemini-voice ->
+  // speaks the reply), because the in-WebView speech recognition doesn't work
+  // on Android.
+  const startGeminiFromCallShift = async () => {
+    setShowCallWebView(false);
+    setCallWebViewHtml('');
+    setCallWebViewUrl('');
+    try {
+      const micPerm = await Audio.requestPermissionsAsync();
+      if (!micPerm || micPerm.status !== 'granted') {
+        Alert.alert('Microphone permission required', 'Please allow the microphone so Customer Care can hear you.');
+      }
+    } catch (_) {}
+    const lang = selectedLanguage || 'en';
+    setGeminiCallLang(lang);
+    setGeminiCall(null);
+    const greet = {
+      en: 'Hello! This is Customer Care. Tap the microphone and ask your question.',
+      hi: 'नमस्ते! मैं कस्टमर केयर हूँ। माइक दबाएँ और अपना सवाल पूछें।',
+      te: 'నమస్తే! నేను కస్టమర్ కేర్. మైక్ నొక్కి మీ ప్రశ్న అడగండి.',
+    };
+    setGeminiTurns([{ role: 'gemini', text: greet[lang] || greet.en }]);
+    setShowGeminiCall(true);
+    setTimeout(() => geminiSpeak(greet[lang] || greet.en, lang), 600);
+  };
+
   const geminiStartListening = async () => {
     if (geminiListening || geminiThinking) return;
     try { Speech.stop(); } catch (_) {}
@@ -15270,6 +15297,8 @@ export default function App() {
                         setShowCallWebView(false);
                         setCallWebViewHtml('');
                         setCallWebViewUrl('');
+                      } else if (msg && msg.type === 'switch_to_gemini') {
+                        startGeminiFromCallShift();
                       }
                     } catch (_) {}
                   }}

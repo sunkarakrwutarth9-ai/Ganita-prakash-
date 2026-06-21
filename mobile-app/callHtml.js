@@ -631,6 +631,13 @@ function buildCallHtml(params) {
     geminiActive = true;
     // Mute mic in the WebRTC call
     if (localStream) localStream.getAudioTracks().forEach(function(t){ t.enabled = false; });
+    // Android System WebView has no Web Speech API (SpeechRecognition), so the
+    // in-page Gemini chat could never actually listen. Hand off to the native
+    // shell, which records via expo-av and uses the backend /api/gemini-voice.
+    if (window.ReactNativeWebView) {
+      try { window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'switch_to_gemini' })); } catch (_) {}
+      return;
+    }
     // Replace call UI with Gemini voice chat
     document.querySelector('.stage').innerHTML =
       '<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(180deg,#0a0a2e 0%,#1a1a3e 50%,#0a0a2e 100%);">' +
