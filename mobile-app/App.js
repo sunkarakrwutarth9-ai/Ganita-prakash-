@@ -15,10 +15,12 @@ import {
   ActivityIndicator,
   Dimensions,
   Platform,
+  KeyboardAvoidingView,
   Linking,
   BackHandler,
   Vibration,
   AppState,
+  PermissionsAndroid,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Sharing from 'expo-sharing';
@@ -35,6 +37,11 @@ import { Audio } from 'expo-av';
 import { captureRef } from 'react-native-view-shot';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import auth from '@react-native-firebase/auth';
+import * as ImagePicker from 'expo-image-picker';
+const WHITEBOARD_HTML = require('./whiteboardHtml');
+const { buildFundamentalsHtml } = require('./fundamentalsHtml');
+const { buildFormulaVideosHtml } = require('./formulaVideosHtml');
+const { buildCallHtml } = require('./callHtml');
 
 // Configure notifications
 Notifications.setNotificationHandler({
@@ -186,6 +193,132 @@ const generate3DModelHTML = (modelType, modelName) => {
       const plane = new THREE.Mesh(planeGeom, planeMat);
       scene.add(plane);
     `,
+    'numberline': `
+      const nlLine = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-3, 0, 0), new THREE.Vector3(3, 0, 0)]);
+      scene.add(new THREE.Line(nlLine, new THREE.LineBasicMaterial({ color: 0x00ffff })));
+      for (let ni = -3; ni <= 3; ni++) {
+        const tick = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(ni, -0.2, 0), new THREE.Vector3(ni, 0.2, 0)]);
+        scene.add(new THREE.Line(tick, new THREE.LineBasicMaterial({ color: 0xffffff })));
+        const dot = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 16), new THREE.MeshPhongMaterial({ color: ni < 0 ? 0xEF4444 : ni === 0 ? 0xFFD700 : 0x4CAF50, shininess: 100 }));
+        dot.position.set(ni, 0, 0);
+        scene.add(dot);
+      }
+      const arrowR = new THREE.Mesh(new THREE.ConeGeometry(0.15, 0.4, 8), new THREE.MeshPhongMaterial({ color: 0x00ffff }));
+      arrowR.position.set(3.2, 0, 0); arrowR.rotation.z = -Math.PI / 2;
+      scene.add(arrowR);
+      const arrowL = new THREE.Mesh(new THREE.ConeGeometry(0.15, 0.4, 8), new THREE.MeshPhongMaterial({ color: 0x00ffff }));
+      arrowL.position.set(-3.2, 0, 0); arrowL.rotation.z = Math.PI / 2;
+      scene.add(arrowL);
+    `,
+    'bargraph': `
+      const barColors = [0xE94560, 0x2196F3, 0x4CAF50, 0xFFC107, 0x9C27B0];
+      for (let bi = 0; bi < 5; bi++) {
+        const h = 0.5 + Math.random() * 2;
+        const bar = new THREE.Mesh(new THREE.BoxGeometry(0.5, h, 0.5), new THREE.MeshPhongMaterial({ color: barColors[bi], shininess: 100 }));
+        bar.position.set(bi * 0.7 - 1.4, h / 2 - 1, 0);
+        scene.add(bar);
+      }
+    `,
+    'piechart': `
+      const slices = 8;
+      const pieColors = [0xE94560, 0x2196F3, 0x4CAF50, 0xFFC107, 0x9C27B0, 0xFF5722, 0x00BCD4, 0x8BC34A];
+      for (let i = 0; i < slices; i++) {
+        const sliceGeom = new THREE.CylinderGeometry(1, 1, 0.3, 32, 1, false, i * Math.PI * 2 / slices, Math.PI * 2 / slices - 0.03);
+        const sliceMat = new THREE.MeshPhongMaterial({ color: pieColors[i], shininess: 100 });
+        const sliceMesh = new THREE.Mesh(sliceGeom, sliceMat);
+        sliceMesh.rotation.x = Math.PI / 2;
+        scene.add(sliceMesh);
+      }
+    `,
+    'lines': `
+      const l1 = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-2, 0, 0), new THREE.Vector3(2, 0, 0)]);
+      scene.add(new THREE.Line(l1, new THREE.LineBasicMaterial({ color: 0x00ffff })));
+      const l2 = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-2, 1, 0), new THREE.Vector3(2, 1, 0)]);
+      scene.add(new THREE.Line(l2, new THREE.LineBasicMaterial({ color: 0xff00ff })));
+      const dot = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 16), new THREE.MeshPhongMaterial({ color: 0xE94560, shininess: 100 }));
+      scene.add(dot);
+    `,
+    'perpendicular': `
+      const pl1 = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-2, 0, 0), new THREE.Vector3(2, 0, 0)]);
+      scene.add(new THREE.Line(pl1, new THREE.LineBasicMaterial({ color: 0x00ffff })));
+      const pl2 = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, -2, 0), new THREE.Vector3(0, 2, 0)]);
+      scene.add(new THREE.Line(pl2, new THREE.LineBasicMaterial({ color: 0xff00ff })));
+      const pdot = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 16), new THREE.MeshPhongMaterial({ color: 0xE94560, shininess: 100 }));
+      scene.add(pdot);
+    `,
+    'angles': `
+      const semicircle = new THREE.Mesh(new THREE.CircleGeometry(1.5, 64, 0, Math.PI), new THREE.MeshPhongMaterial({ color: 0xFFC107, side: THREE.DoubleSide, shininess: 100 }));
+      scene.add(semicircle);
+      for (let ai = 0; ai <= 180; ai += 30) {
+        const ang = ai * Math.PI / 180;
+        const lineG = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0.01), new THREE.Vector3(Math.cos(ang) * 1.4, Math.sin(ang) * 1.4, 0.01)]);
+        scene.add(new THREE.Line(lineG, new THREE.LineBasicMaterial({ color: 0x333333 })));
+      }
+    `,
+    'rectangle': `
+      const rectGeom = new THREE.BoxGeometry(2.5, 1.5, 0.2);
+      const rectMesh = new THREE.Mesh(rectGeom, new THREE.MeshPhongMaterial({ color: 0x2196F3, shininess: 100 }));
+      scene.add(rectMesh);
+      const rectEdges = new THREE.EdgesGeometry(rectGeom);
+      scene.add(new THREE.LineSegments(rectEdges, new THREE.LineBasicMaterial({ color: 0xffffff })));
+    `,
+    'coordinate': `
+      const xAxis = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-3, 0, 0), new THREE.Vector3(3, 0, 0)]);
+      scene.add(new THREE.Line(xAxis, new THREE.LineBasicMaterial({ color: 0xEF4444 })));
+      const yAxis = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, -3, 0), new THREE.Vector3(0, 3, 0)]);
+      scene.add(new THREE.Line(yAxis, new THREE.LineBasicMaterial({ color: 0x4CAF50 })));
+      [[1,2],[2,1],[-1,1],[1,-1],[-2,-1]].forEach(p => {
+        const cDot = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), new THREE.MeshPhongMaterial({ color: 0x00ffff, shininess: 100 }));
+        cDot.position.set(p[0], p[1], 0);
+        scene.add(cDot);
+      });
+    `,
+    'balance': `
+      const balBase = new THREE.Mesh(new THREE.ConeGeometry(0.5, 1.2, 3), new THREE.MeshPhongMaterial({ color: 0xFFD700, shininess: 100 }));
+      balBase.position.y = -1.4;
+      scene.add(balBase);
+      const beam = new THREE.Mesh(new THREE.BoxGeometry(4, 0.15, 0.3), new THREE.MeshPhongMaterial({ color: 0x9C27B0, shininess: 100 }));
+      beam.position.y = -0.7;
+      scene.add(beam);
+      const leftPan = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 0.1, 32), new THREE.MeshPhongMaterial({ color: 0x2196F3, shininess: 100 }));
+      leftPan.position.set(-1.7, -0.9, 0);
+      scene.add(leftPan);
+      const rightPan = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 0.1, 32), new THREE.MeshPhongMaterial({ color: 0xEF4444, shininess: 100 }));
+      rightPan.position.set(1.7, -0.9, 0);
+      scene.add(rightPan);
+    `,
+    'nets': `
+      const sq = 0.8;
+      [[0,0],[0,1],[0,-1],[0,-2],[-1,0],[1,0]].forEach(pos => {
+        const face = new THREE.Mesh(new THREE.BoxGeometry(sq, sq, 0.05), new THREE.MeshPhongMaterial({ color: 0x2196F3, shininess: 100 }));
+        face.position.set(pos[0] * (sq + 0.05), pos[1] * (sq + 0.05), 0);
+        scene.add(face);
+        const edges = new THREE.EdgesGeometry(new THREE.BoxGeometry(sq, sq, 0.05));
+        const edgeMesh = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xffffff }));
+        edgeMesh.position.copy(face.position);
+        scene.add(edgeMesh);
+      });
+    `,
+    'tessellation': `
+      const hr = 0.5;
+      const hexColors = [0xE94560, 0x2196F3, 0x4CAF50, 0xFFD700, 0x9C27B0, 0xFF5722];
+      let hi = 0;
+      for (let hrow = -2; hrow <= 2; hrow++) {
+        for (let hcol = -2; hcol <= 2; hcol++) {
+          const hex = new THREE.Mesh(new THREE.CircleGeometry(hr, 6), new THREE.MeshPhongMaterial({ color: hexColors[hi % hexColors.length], side: THREE.DoubleSide, shininess: 100 }));
+          hex.position.set(hcol * hr * 1.75, hrow * hr * 1.52 + (hcol % 2 !== 0 ? hr * 0.76 : 0), 0);
+          scene.add(hex);
+          hi++;
+        }
+      }
+    `,
+    'cone': `
+      const coneGeom = new THREE.ConeGeometry(1.2, 2.5, 32);
+      const coneMesh = new THREE.Mesh(coneGeom, new THREE.MeshPhongMaterial({ color: 0xFF5722, shininess: 100 }));
+      scene.add(coneMesh);
+      const coneEdges = new THREE.EdgesGeometry(coneGeom);
+      scene.add(new THREE.LineSegments(coneEdges, new THREE.LineBasicMaterial({ color: 0xffffff })));
+    `,
   };
 
   const shapeCode = shapes[modelType] || shapes['cube'];
@@ -276,7 +409,7 @@ const generate3DModelHTML = (modelType, modelName) => {
   `;
 };
 
-const API_URL = "https://app-zmatwbmr.fly.dev";
+const API_URL = "https://ganita-prakash-production.up.railway.app";
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // Admin email for Google OAuth
@@ -302,6 +435,9 @@ const indianFestivals2026 = [
     { date: "04-03", name: "Good Friday", wish: "Blessed Good Friday! May peace be with you!", emoji: "✝️", color: "#8B4513" },
     { date: "04-05", name: "Easter Sunday", wish: "Happy Easter! May joy and hope fill your heart!", emoji: "🐣", color: "#FFB6C1" },
     { date: "04-14", name: "Baisakhi / Ambedkar Jayanti", wish: "Happy Baisakhi! Happy Ambedkar Jayanti!", emoji: "🌾", color: "#F1C40F" },
+    { date: "04-18", name: "Akshaya Tritiya", wish: "Happy Akshaya Tritiya! May endless prosperity and knowledge be yours!", emoji: "🪙", color: "#FFD700" },
+    { date: "04-19", name: "Akshaya Tritiya", wish: "Happy Akshaya Tritiya! May endless prosperity and knowledge be yours!", emoji: "🪙", color: "#FFD700" },
+    { date: "04-20", name: "Akshaya Tritiya", wish: "Happy Akshaya Tritiya! May endless prosperity and knowledge be yours!", emoji: "🪙", color: "#FFD700" },
     { date: "05-01", name: "Buddha Purnima", wish: "Happy Buddha Purnima! May wisdom light your way!", emoji: "🪷", color: "#9B59B6" },
     { date: "05-28", name: "Eid ul-Adha", wish: "Eid Mubarak! Wishing you joy and prosperity!", emoji: "🌙", color: "#2ECC71" },
     { date: "07-16", name: "Jagannath Rath Yatra", wish: "Happy Rath Yatra! Jai Jagannath!", emoji: "🛕", color: "#E67E22" },
@@ -354,17 +490,41 @@ const SUPPORTED_LANGUAGES = [
 
 // Chapter Media (Videos and PPTs from NotebookLM)
 const chapterMedia = {
-    1: { title: "Patterns in numbers", videoUrl: "https://drive.google.com/file/d/1G-gWjUd8hrmxyV-meLn6igquy5zTqx-i/preview", videoSummary: "Learn about number patterns and sequences.", pptUrl: "https://drive.google.com/file/d/1WbHMprNLt5JMQo0vVaC7_P7sTrR9Sxcd/preview", pptTitle: "The Hidden Architecture of Patterns", tbUrl: "https://drive.google.com/file/d/1fvKOqgxNrZFeqn5330REbgZoIcTgdyGi/preview", tbTitle: "Chapter 1 - Patterns in Mathematics" },
-    2: { title: "Lines and Angles", videoUrl: "https://drive.google.com/file/d/10NfjD3znlbJbcKo50R9AD5vLNuLCOB5H/preview", videoSummary: "Understanding lines, rays, and angles.", pptUrl: "https://drive.google.com/file/d/1fCIki-yVVW33e5_yQabafq8Sn7-Ue5Eu/preview", pptTitle: "From Point to Degree", tbUrl: "https://drive.google.com/file/d/1fvKOqgxNrZFeqn5330REbgZoIcTgdyGi/preview", tbTitle: "Chapter 2 - Lines and Angles" },
-    3: { title: "Number Play", videoUrl: "https://drive.google.com/file/d/1voVejm6eO6BtXm9AMIfLCPikVwGnHU8i/preview", videoSummary: "Explore number puzzles and patterns.", pptUrl: "https://drive.google.com/file/d/1KgJx2nQdc9t-xHsBjYzt11JgFzyeGQmm/preview", pptTitle: "The Secret Life of Numbers", tbUrl: "https://drive.google.com/file/d/1fvKOqgxNrZFeqn5330REbgZoIcTgdyGi/preview", tbTitle: "Chapter 3 - Number Play" },
-    4: { title: "Data Handling", videoUrl: "https://drive.google.com/file/d/1uWy_U2NrHjx1Riv0Z2NIANPj5XkMxmYD/preview", videoSummary: "Learn to collect and present data.", pptUrl: "https://drive.google.com/file/d/1vAHyCGcFtcdjTIzvasaCvOGYMblfujGg/preview", pptTitle: "Data Structure Visualize Integrity", tbUrl: "https://drive.google.com/file/d/1fvKOqgxNrZFeqn5330REbgZoIcTgdyGi/preview", tbTitle: "Chapter 4 - Data Handling and Presentation" },
-    5: { title: "Prime Time", videoUrl: "https://drive.google.com/file/d/1CJTbvE5vTVPJiFvt-_l1cv5mHr5g7JD2/preview", videoSummary: "Discover prime numbers and factors.", pptUrl: "https://drive.google.com/file/d/1-94wWynj-KJN4uU-1DzjSGtLPKO3Y32m/preview", pptTitle: "Prime Time A Game of Numbers", tbUrl: "https://drive.google.com/file/d/1fvKOqgxNrZFeqn5330REbgZoIcTgdyGi/preview", tbTitle: "Chapter 5 - Prime Time" },
-    6: { title: "Perimeter and Area", videoUrl: "https://drive.google.com/file/d/1rAjBngeOMaEiZ_tE4OM8Okviyqhbxkpo/preview", videoSummary: "Calculate perimeter and area.", pptUrl: "https://drive.google.com/file/d/11z7anMHhrCoG2309wuKuYhMXADdKlxbj/preview", pptTitle: "The Architect's Toolkit Mastering Space", tbUrl: "https://drive.google.com/file/d/1fvKOqgxNrZFeqn5330REbgZoIcTgdyGi/preview", tbTitle: "Chapter 6 - Perimeter and Area" },
-    7: { title: "Fractions", videoUrl: "https://drive.google.com/file/d/1HLz1i1ZzddZdnpsoyv7Zhoot_P80oaYm/preview", videoSummary: "Understanding fractions.", pptUrl: "https://drive.google.com/file/d/1ll8jPIypxn1Z_ISDHHSNxoMFQ0BqBodA/preview", pptTitle: "The Language of Parts", tbUrl: "https://drive.google.com/file/d/1fvKOqgxNrZFeqn5330REbgZoIcTgdyGi/preview", tbTitle: "Chapter 7 - Fractions" },
-    8: { title: "Playing with Constructions", videoUrl: "https://drive.google.com/file/d/1YuU0Cmx4CoeL2IgM6dsjS1zBCXoNG8cQ/preview", videoSummary: "Geometric constructions.", pptUrl: "https://drive.google.com/file/d/18oH6_9fkoIS2yCZ28qBTyGSW4-TkJlL_/preview", pptTitle: "The Geometer's Quest Precision and Art", tbUrl: "https://drive.google.com/file/d/1fvKOqgxNrZFeqn5330REbgZoIcTgdyGi/preview", tbTitle: "Chapter 8 - Playing with Constructions" },
-    9: { title: "Symmetry", videoUrl: "https://drive.google.com/file/d/14X50UAcCKYxgTmTxFxXtwUI74lK1YLOh/preview", videoSummary: "Line and rotational symmetry.", pptUrl: "https://drive.google.com/file/d/1YDvhdUNJ3nmUJilCex2uqIcsQ3-I0cnT/preview", pptTitle: "The Universal Blueprint of Symmetry", tbUrl: "https://drive.google.com/file/d/1fvKOqgxNrZFeqn5330REbgZoIcTgdyGi/preview", tbTitle: "Chapter 9 - Symmetry" },
-    10: { title: "The Other Side of Zero", videoUrl: "https://drive.google.com/file/d/1FN9nkTnWCOTYF6El54AEtWtd-NKsUiBD/preview", videoSummary: "Introduction to integers.", pptUrl: "https://drive.google.com/file/d/18dQvLG_a1EOM5uz3JZKehQ-yOgtkzsJD/preview", pptTitle: "The Other Side of Zero", tbUrl: "https://drive.google.com/file/d/1fvKOqgxNrZFeqn5330REbgZoIcTgdyGi/preview", tbTitle: "Chapter 10 - The Other Side of Zero" },
+    1: { title: "Patterns in numbers", videoUrl: "https://drive.google.com/file/d/1G-gWjUd8hrmxyV-meLn6igquy5zTqx-i/preview", videoSummary: "Learn about number patterns and sequences.", pptUrl: "https://drive.google.com/file/d/1WbHMprNLt5JMQo0vVaC7_P7sTrR9Sxcd/preview", pptTitle: "The Hidden Architecture of Patterns", tbUrl: "https://drive.google.com/file/d/1MdSzsXsFNUjYw8cxTiBFd7-T6qvH40Sp/preview", tbTitle: "Chapter 1 - Maths T.B." },
+    2: { title: "Lines and Angles", videoUrl: "https://drive.google.com/file/d/10NfjD3znlbJbcKo50R9AD5vLNuLCOB5H/preview", videoSummary: "Understanding lines, rays, and angles.", pptUrl: "https://drive.google.com/file/d/1fCIki-yVVW33e5_yQabafq8Sn7-Ue5Eu/preview", pptTitle: "From Point to Degree", tbUrl: "https://drive.google.com/file/d/1P7GyBa-N0d5fXL0iMaWZriEVxsHf4ISG/preview", tbTitle: "Chapter 2 - Maths T.B." },
+    3: { title: "Number Play", videoUrl: "https://drive.google.com/file/d/1voVejm6eO6BtXm9AMIfLCPikVwGnHU8i/preview", videoSummary: "Explore number puzzles and patterns.", pptUrl: "https://drive.google.com/file/d/1KgJx2nQdc9t-xHsBjYzt11JgFzyeGQmm/preview", pptTitle: "The Secret Life of Numbers", tbUrl: "https://drive.google.com/file/d/145VeF9E3B3XbiAS5XGwNoGRNiCY1Kkxn/preview", tbTitle: "Chapter 3 - Maths T.B." },
+    4: { title: "Data Handling", videoUrl: "https://drive.google.com/file/d/1uWy_U2NrHjx1Riv0Z2NIANPj5XkMxmYD/preview", videoSummary: "Learn to collect and present data.", pptUrl: "https://drive.google.com/file/d/1vAHyCGcFtcdjTIzvasaCvOGYMblfujGg/preview", pptTitle: "Data Structure Visualize Integrity", tbUrl: "https://drive.google.com/file/d/1h9k3rGFz8sXidIitfspCmQ6g0pCzZKCY/preview", tbTitle: "Chapter 4 - Maths T.B." },
+    5: { title: "Prime Time", videoUrl: "https://drive.google.com/file/d/1CJTbvE5vTVPJiFvt-_l1cv5mHr5g7JD2/preview", videoSummary: "Discover prime numbers and factors.", pptUrl: "https://drive.google.com/file/d/1-94wWynj-KJN4uU-1DzjSGtLPKO3Y32m/preview", pptTitle: "Prime Time A Game of Numbers", tbUrl: "https://drive.google.com/file/d/1OHpaiu9dF71fK4bRp0BO7ok8_QKIq2MJ/preview", tbTitle: "Chapter 5 - Maths T.B." },
+    6: { title: "Perimeter and Area", videoUrl: "https://drive.google.com/file/d/1rAjBngeOMaEiZ_tE4OM8Okviyqhbxkpo/preview", videoSummary: "Calculate perimeter and area.", pptUrl: "https://drive.google.com/file/d/11z7anMHhrCoG2309wuKuYhMXADdKlxbj/preview", pptTitle: "The Architect", tbUrl: "https://drive.google.com/file/d/1-XCGMLfG-e05qa2Pfvd8q-WxRUxtgIRG/preview", tbTitle: "Chapter 6 - Maths T.B." },
+    7: { title: "Fractions", videoUrl: "https://drive.google.com/file/d/1HLz1i1ZzddZdnpsoyv7Zhoot_P80oaYm/preview", videoSummary: "Understanding fractions.", pptUrl: "https://drive.google.com/file/d/1ll8jPIypxn1Z_ISDHHSNxoMFQ0BqBodA/preview", pptTitle: "The Language of Parts", tbUrl: "https://drive.google.com/file/d/13kc5mx6p3jWThUIHKEoRYoYRkNkvnHCV/preview", tbTitle: "Chapter 7 - Maths T.B." },
+    8: { title: "Playing with Constructions", videoUrl: "https://drive.google.com/file/d/1YuU0Cmx4CoeL2IgM6dsjS1zBCXoNG8cQ/preview", videoSummary: "Geometric constructions.", pptUrl: "https://drive.google.com/file/d/18oH6_9fkoIS2yCZ28qBTyGSW4-TkJlL_/preview", pptTitle: "The Geometer", tbUrl: "https://drive.google.com/file/d/1agsSZgajY4NPMyaWcFnYZ9slQpvfhb5Z/preview", tbTitle: "Chapter 8 - Maths T.B." },
+    9: { title: "Symmetry", videoUrl: "https://drive.google.com/file/d/14X50UAcCKYxgTmTxFxXtwUI74lK1YLOh/preview", videoSummary: "Line and rotational symmetry.", pptUrl: "https://drive.google.com/file/d/1YDvhdUNJ3nmUJilCex2uqIcsQ3-I0cnT/preview", pptTitle: "The Universal Blueprint of Symmetry", tbUrl: "https://drive.google.com/file/d/1-PWg2U1ZOkU-jXUIQ3W5f0ClNtYGWWTU/preview", tbTitle: "Chapter 9 - Maths T.B." },
+    10: { title: "The Other Side of Zero", videoUrl: "https://drive.google.com/file/d/1FN9nkTnWCOTYF6El54AEtWtd-NKsUiBD/preview", videoSummary: "Introduction to integers.", pptUrl: "https://drive.google.com/file/d/18dQvLG_a1EOM5uz3JZKehQ-yOgtkzsJD/preview", pptTitle: "The Other Side of Zero", tbUrl: "https://drive.google.com/file/d/1pJf73SW7rhNGsCSMKGy6gnypRGI41L65/preview", tbTitle: "Chapter 10 - Maths T.B." },
 };
+
+// Chapter Media for Class 7 (NCERT Class 7 Mathematics)
+const chapterMedia7 = {
+    1: { title: "Large Numbers Around Us", pptUrl: "https://drive.google.com/file/d/1PnUzI9fqvDRy8FKpOmAA9EDaUfhuf4Z-/preview", pptTitle: "Large Numbers Around Us PPT", videoUrl: "https://drive.google.com/file/d/1X7QzHm27NN-6nBobfxXZa1Nm4G6CQcZd/preview", videoSummary: "Learn about large numbers and place value.", tbUrl: "https://drive.google.com/file/d/1x-pA5k71rU-2r8b2Jt3ItcKY3h4KJjKe/preview", tbTitle: "Chapter 1 - Maths T.B. (Class 7)" },
+    2: { title: "Arithmetic Expressions", pptUrl: "https://drive.google.com/file/d/1xvTFAdLyOyDoAo01nbWieKU0R2qdM7_8/preview", pptTitle: "Arithmetic Expressions PPT", videoUrl: "https://drive.google.com/file/d/1sK1GMp-_N6Go9Q1vZgQ9V3yOxBY6cpsz/preview", videoSummary: "Understanding arithmetic expressions and operations.", tbUrl: "https://drive.google.com/file/d/1AhOQJqrQbqhC2UTbxV7vQWhWWeBR-OvN/preview", tbTitle: "Chapter 2 - Maths T.B. (Class 7)" },
+    3: { title: "A Peek Beyond the Point", pptUrl: "https://drive.google.com/file/d/1-P9rU0YORr6i8TMbMZ-EP5Z8DSjitDsA/preview", pptTitle: "A Peek Beyond the Point PPT", videoUrl: "https://drive.google.com/file/d/1ZAMjdzhld2m1at4RBIF2fxEVAoiQS4Yg/preview", videoSummary: "Explore decimals and their applications.", tbUrl: "https://drive.google.com/file/d/1IC1e1lS2m_VEZymRFPidj976pqywcK5f/preview", tbTitle: "Chapter 3 - Maths T.B. (Class 7)" },
+    4: { title: "Expressions Using Letter-Numbers", pptUrl: "https://drive.google.com/file/d/15h1y4eUr9rAcxmik2GCvohoEsdZkJQ7m/preview", pptTitle: "Expressions Using Letter-Numbers PPT", videoUrl: "https://drive.google.com/file/d/1JpHN1xoAfCTAxCFZFsw8G1xnTgbo_IAd/preview", videoSummary: "Learn algebraic expressions with variables.", tbUrl: "https://drive.google.com/file/d/1gRtW2dURYE06R0hCLWsLR7jUCLo2CxC6/preview", tbTitle: "Chapter 4 - Maths T.B. (Class 7)" },
+    5: { title: "Parallel and Intersecting Lines", pptUrl: "https://drive.google.com/file/d/1gCrQ0eCdReQJBkO_4th0bHMF06pThPNM/preview", pptTitle: "Parallel and Intersecting Lines PPT", videoUrl: "https://drive.google.com/file/d/1QoMI50p2Up32KlQE2_Um4EiAZeurIGXf/preview", videoSummary: "Understanding parallel and intersecting lines.", tbUrl: "https://drive.google.com/file/d/1Ea6oZ7Datt3f7dRJHlCRTGjhsUFcD6bs/preview", tbTitle: "Chapter 5 - Maths T.B. (Class 7)" },
+    6: { title: "Number Play", pptUrl: "https://drive.google.com/file/d/1zHAnSrervSBRu30HrHIzhJYi39U1xB6p/preview", pptTitle: "Number Play PPT", videoUrl: "https://drive.google.com/file/d/1-LBpIVFxvAju1VnaSG4jzQpilKc4ZgVr/preview", videoSummary: "Explore number patterns and games.", tbUrl: "https://drive.google.com/file/d/1_YAfGFbiGsn5ySmMwd30DfVDToAriMdC/preview", tbTitle: "Chapter 6 - Maths T.B. (Class 7)" },
+    7: { title: "A Tale of Three Intersecting Lines", pptUrl: "https://drive.google.com/file/d/1DDn0YB9PftrWhIKOndfyCl81uEalfeLy/preview", pptTitle: "A Tale of Three Intersecting Lines PPT", videoUrl: "https://drive.google.com/file/d/1g7okGSNzyKScQ_DU9-4HnqV28GTUejhp/preview", videoSummary: "Learn about triangles and their properties.", tbUrl: "https://drive.google.com/file/d/1-ZA9wYIyeMCNaNDuTgcdwOH0dPnPoomL/preview", tbTitle: "Chapter 7 - Maths T.B. (Class 7)" },
+    8: { title: "Working with Fractions", pptUrl: "https://drive.google.com/file/d/16SRmBSTFrVCPTs2F-PDr7L2CbuIXIULa/preview", pptTitle: "Working with Fractions PPT", videoUrl: "https://drive.google.com/file/d/1155B64YX5fCyWXUS-9tacPeRu8h_YY_h/preview", videoSummary: "Master fraction operations and applications.", tbUrl: "https://drive.google.com/file/d/137oZEzZXej7N1WE9_i9_vK22annvRmVB/preview", tbTitle: "Chapter 8 - Maths T.B. (Class 7)" },
+    9: { title: "Geometric Twins", pptUrl: "https://drive.google.com/file/d/1Kyc1Za_FUjh7r88TH_iXRBSWM6y3fQGo/preview", pptTitle: "Geometric Twins PPT", videoUrl: "https://drive.google.com/file/d/1ecFget9f37Byi6ClXJDO7gcpC-IRZ_xp/preview", videoSummary: "Explore congruence and similarity.", tbUrl: "https://drive.google.com/file/d/1JFUx8oZejHebk124wAaRJJFVpVilCgGk/preview", tbTitle: "Chapter 9 - Maths T.B. (Class 7)" },
+    10: { title: "Operations with Integers", pptUrl: "https://drive.google.com/file/d/1BEiyNA3iMZ-b_AAq_ZyRO6lBbFxU8YP3/preview", pptTitle: "Operations with Integers PPT", videoUrl: "https://drive.google.com/file/d/1Nk5SQv57L0a2zyKKsxLWkwzXDuCa5gwq/preview", videoSummary: "Learn integer operations and number line.", tbUrl: "https://drive.google.com/file/d/1T6QtIeIDmA1hsucVwUgQ5lksSwHqOVtJ/preview", tbTitle: "Chapter 10 - Maths T.B. (Class 7)" },
+    11: { title: "Finding Common Ground", pptUrl: "https://drive.google.com/file/d/1TFSgekqFpsW8VqrHNkfnr6-gVukk2ZkG/preview", pptTitle: "Finding Common Ground PPT", videoUrl: "https://drive.google.com/file/d/1yaWE9V03HIbXuthX0vd63mpiXSnv8k-j/preview", videoSummary: "Discover LCM and HCF concepts.", tbUrl: "https://drive.google.com/file/d/1F3PMDh-BmYJfM3ztVr0BNrraIgzooJiP/preview", tbTitle: "Chapter 11 - Maths T.B. (Class 7)" },
+    12: { title: "Another Peek Beyond the Point", pptUrl: "https://drive.google.com/file/d/1T-9lSIMekwNm0j0XJdIr_dnxwolf8hXB/preview", pptTitle: "Another Peek Beyond the Point PPT", videoUrl: "https://drive.google.com/file/d/1jzYmHtHZMdp4de_nV1c8Xe9u960fi7ZD/preview", videoSummary: "Advanced decimal operations and conversions.", tbUrl: "https://drive.google.com/file/d/17lA6-oyJBKqFoZ0DKlsrwHVYepGMNYRi/preview", tbTitle: "Chapter 12 - Maths T.B. (Class 7)" },
+    13: { title: "Connecting the Dots", pptUrl: "https://drive.google.com/file/d/1h4s3Zs3czMcGU7oWWJaBJYY7cxKeO2VX/preview", pptTitle: "Connecting the Dots PPT", videoUrl: "https://drive.google.com/file/d/1ASQposMDvgLpnZrImpfOHdX4SHJ18JOs/preview", videoSummary: "Learn about coordinates and graphs.", tbUrl: "https://drive.google.com/file/d/1KBclaRaGhQBMdMWnuGftVrk8LyeZ0wF8/preview", tbTitle: "Chapter 13 - Maths T.B. (Class 7)" },
+    14: { title: "Constructions and Tilings", pptUrl: "https://drive.google.com/file/d/1abaNUbx15SRQB57eDu9wm-L_G8gV9Vzm/preview", pptTitle: "Constructions and Tilings PPT", videoUrl: "https://drive.google.com/file/d/17bAwK8jjRvDLZ5IJAOgWuz2v-C6jdAJS/preview", videoSummary: "Master geometric constructions and tessellations.", tbUrl: "https://drive.google.com/file/d/1NQNn6WqdIWekahpNJ5nCTs3RR30eaOZU/preview", tbTitle: "Chapter 14 - Maths T.B. (Class 7)" },
+    15: { title: "Finding the Unknown", pptUrl: "https://drive.google.com/file/d/1Z71FNDGqoCe9RokyCkR31N8BS26cp6zm/preview", pptTitle: "Finding the Unknown PPT", videoUrl: "https://drive.google.com/file/d/1XhwisqNFJriBAo40l0tJ7kkdEDd91V1i/preview", videoSummary: "Solve equations and find unknown values.", tbUrl: "https://drive.google.com/file/d/17myOn9QW3-AmvJR6MGmB8TmjL7XVObdW/preview", tbTitle: "Chapter 15 - Maths T.B. (Class 7)" },
+};
+
+// Module-level current class ref; updated by component useEffect on selectedClass change
+let _currentClass = '6';
+const setCurrentClassRef = (c) => { _currentClass = String(c); };
+const getCurrentMedia = (chapterId) => (_currentClass === '7' ? chapterMedia7 : chapterMedia)[chapterId];
 
 // PDF Viewer HTML generator using PDF.js for inbuilt viewing
 const generatePDFViewerHTML = (base64Data) => {
@@ -762,6 +922,100 @@ const generateVideoPlayerHTML = (base64Data, title) => {
   `;
 };
 
+// YouTube-style Drive video player wrapper HTML
+const generateDriveVideoPlayerHTML = (driveUrl, title) => {
+  return `<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; background: #000; overflow: hidden; font-family: -apple-system, sans-serif; }
+  .player-wrap { position: absolute; inset: 0; display: flex; flex-direction: column; }
+  .top-bar {
+    position: absolute; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px;
+    background: linear-gradient(180deg, rgba(0,0,0,0.7) 0%, transparent 100%);
+    opacity: 1; transition: opacity 0.3s;
+  }
+  .top-bar.hidden { opacity: 0; pointer-events: none; }
+  .top-title { color: #fff; font-size: 15px; font-weight: 600; flex: 1; margin: 0 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .top-btn { width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,0.15); border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .top-btn svg { width: 20px; height: 20px; fill: #fff; }
+  iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; z-index: 1; }
+  .bottom-bar {
+    position: absolute; bottom: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: center; gap: 24px;
+    padding: 14px 16px;
+    background: linear-gradient(0deg, rgba(0,0,0,0.7) 0%, transparent 100%);
+    opacity: 1; transition: opacity 0.3s;
+  }
+  .bottom-bar.hidden { opacity: 0; pointer-events: none; }
+  .bottom-btn { width: 44px; height: 44px; border-radius: 50%; background: rgba(255,255,255,0.12); border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .bottom-btn svg { width: 22px; height: 22px; fill: #fff; }
+  .bottom-btn.accent { background: rgba(233,69,96,0.8); }
+  .toggle-btn { position: absolute; top: 8px; right: 8px; z-index: 200; width: 36px; height: 36px; border-radius: 50%; background: rgba(0,0,0,0.5); border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #fff; font-size: 18px; }
+  .toggle-btn.hidden { display: none; }
+</style>
+</head>
+<body>
+<div class="player-wrap">
+  <button class="toggle-btn hidden" id="toggleBtn">&#8942;</button>
+  <div class="top-bar" id="topBar">
+    <button class="top-btn" id="minimizeBtn" title="Minimize">
+      <svg viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z"/></svg>
+    </button>
+    <div class="top-title">${(title || 'Video').replace(/[<>"'&]/g, c => ({'<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','&':'&amp;'})[c])}</div>
+    <button class="top-btn" id="closeBtn" title="Close">
+      <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+    </button>
+  </div>
+  <iframe src="${driveUrl}" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+  <div class="bottom-bar" id="bottomBar">
+    <button class="bottom-btn" id="fullscreenBtn" title="Fullscreen">
+      <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+    </button>
+  </div>
+</div>
+<script>
+  var barsVisible = true;
+  var hideTimer = null;
+  function showBars() {
+    barsVisible = true;
+    document.getElementById('topBar').classList.remove('hidden');
+    document.getElementById('bottomBar').classList.remove('hidden');
+    document.getElementById('toggleBtn').classList.add('hidden');
+    clearTimeout(hideTimer);
+    hideTimer = setTimeout(hideBars, 4000);
+  }
+  function hideBars() {
+    barsVisible = false;
+    document.getElementById('topBar').classList.add('hidden');
+    document.getElementById('bottomBar').classList.add('hidden');
+    document.getElementById('toggleBtn').classList.remove('hidden');
+  }
+  document.getElementById('toggleBtn').addEventListener('click', function(e) {
+    e.stopPropagation();
+    showBars();
+  });
+  document.getElementById('minimizeBtn').addEventListener('click', function(e) {
+    e.stopPropagation();
+    if (window.ReactNativeWebView) window.ReactNativeWebView.postMessage(JSON.stringify({type:'minimize'}));
+  });
+  document.getElementById('closeBtn').addEventListener('click', function(e) {
+    e.stopPropagation();
+    if (window.ReactNativeWebView) window.ReactNativeWebView.postMessage(JSON.stringify({type:'close'}));
+  });
+  document.getElementById('fullscreenBtn').addEventListener('click', function(e) {
+    e.stopPropagation();
+    if (window.ReactNativeWebView) window.ReactNativeWebView.postMessage(JSON.stringify({type:'fullscreen'}));
+  });
+  hideTimer = setTimeout(hideBars, 4000);
+</script>
+</body></html>`;
+};
+
 // Global state for PDF viewer (will be set by App component)
 let globalSetShowPdfViewer = null;
 let globalSetPdfBase64 = null;
@@ -771,14 +1025,15 @@ let globalSetPdfUrl = null;
 // Helper function to open PDF files - INBUILT VIEWER
 const openPDF = async (chapterId, title, setShowPdfViewer, setPdfBase64, setPdfTitle, setPdfUrl) => {
   try {
-    // For chapters 1-10, we have PDF files
-    if (chapterId < 1 || chapterId > 10) {
+    // For Class 6: chapters 1-10; for Class 7: chapters 1-15
+    const maxChapter = _currentClass === '7' ? 15 : 10;
+    if (chapterId < 1 || chapterId > maxChapter) {
       Alert.alert('Coming Soon', 'PPT for this chapter will be available soon!');
       return;
     }
     
     // Check if using Google Drive URL
-    const media = chapterMedia[chapterId];
+    const media = getCurrentMedia(chapterId);
     if (media && media.pptUrl && media.pptUrl.includes('drive.google.com')) {
       // Use Google Drive URL directly in WebView
       if (setShowPdfViewer && setPdfTitle && setPdfUrl) {
@@ -793,51 +1048,9 @@ const openPDF = async (chapterId, title, setShowPdfViewer, setPdfBase64, setPdfT
       return;
     }
     
-    // Fallback to local PDF files
-    // Show loading indicator
-    Alert.alert('Loading', 'Opening PDF...', [], { cancelable: false });
-    
-    // Try to load the PDF asset
-    const pdfAssets = {
-      1: require('./assets/ppts/chapter1_ppt.pdf'),
-      2: require('./assets/ppts/chapter2_ppt.pdf'),
-      3: require('./assets/ppts/chapter3_ppt.pdf'),
-      4: require('./assets/ppts/chapter4_ppt.pdf'),
-      5: require('./assets/ppts/chapter5_ppt.pdf'),
-      6: require('./assets/ppts/chapter6_ppt.pdf'),
-      7: require('./assets/ppts/chapter7_ppt.pdf'),
-      8: require('./assets/ppts/chapter8_ppt.pdf'),
-      9: require('./assets/ppts/chapter9_ppt.pdf'),
-      10: require('./assets/ppts/chapter10_ppt.pdf'),
-    };
-    
-    const asset = Asset.fromModule(pdfAssets[chapterId]);
-    await asset.downloadAsync();
-    
-    const sourceUri = asset.localUri || asset.uri;
-    const destUri = FileSystem.documentDirectory + `chapter${chapterId}.pdf`;
-    
-    // Always copy fresh to avoid corruption
-    try {
-      await FileSystem.deleteAsync(destUri, { idempotent: true });
-    } catch (e) {}
-    await FileSystem.copyAsync({ from: sourceUri, to: destUri });
-    
-    // Read PDF as base64 for inbuilt viewer
-    const base64 = await FileSystem.readAsStringAsync(destUri, {
-      encoding: FileSystem.EncodingType.Base64,
-    });
-    
-    // Show inbuilt PDF viewer
-    if (setShowPdfViewer && setPdfBase64 && setPdfTitle) {
-      setPdfBase64(base64);
-      setPdfTitle(title || `Chapter ${chapterId} PPT`);
-      setShowPdfViewer(true);
-    } else if (globalSetShowPdfViewer && globalSetPdfBase64 && globalSetPdfTitle) {
-      globalSetPdfBase64(base64);
-      globalSetPdfTitle(title || `Chapter ${chapterId} PPT`);
-      globalSetShowPdfViewer(true);
-    }
+    // No local PDF files bundled — show coming soon
+    Alert.alert('Coming Soon', `PPT for ${title || 'Chapter ' + chapterId} will be available soon!`);
+    return;
   } catch (error) {
     console.log('PDF open error:', error);
     Alert.alert(
@@ -848,19 +1061,8 @@ const openPDF = async (chapterId, title, setShowPdfViewer, setPdfBase64, setPdfT
   }
 };
 
-// Video assets for each chapter
-const videoAssets = {
-  1: require('./assets/videos/chapter1_video.mp4'),
-  2: require('./assets/videos/chapter2_video.mp4'),
-  3: require('./assets/videos/chapter3_video.mp4'),
-  4: require('./assets/videos/chapter4_video.mp4'),
-  5: require('./assets/videos/chapter5_video.mp4'),
-  6: require('./assets/videos/chapter6_video.mp4'),
-  7: require('./assets/videos/chapter7_video.mp4'),
-  8: require('./assets/videos/chapter8_video.mp4'),
-  9: require('./assets/videos/chapter9_video.mp4'),
-  10: require('./assets/videos/chapter10_video.mp4'),
-};
+// Video assets placeholder — no local videos bundled yet
+const videoAssets = {};
 
 // Global state for Video viewer (will be set by App component)
 let globalSetShowVideoPlayer = null;
@@ -871,13 +1073,14 @@ let globalSetVideoUrl = null;
 // Helper function to open Video files - INBUILT VIEWER
 const openVideo = async (chapterId, title, setShowVideoPlayer, setVideoBase64, setVideoTitle, setVideoUrl) => {
   try {
-    if (chapterId < 1 || chapterId > 10) {
+    const maxChapter = _currentClass === '7' ? 15 : 10;
+    if (chapterId < 1 || chapterId > maxChapter) {
       Alert.alert('Coming Soon', 'Video for this chapter will be available soon!');
       return;
     }
     
     // Check if using Google Drive URL
-    const media = chapterMedia[chapterId];
+    const media = getCurrentMedia(chapterId);
     if (media && media.videoUrl && media.videoUrl.includes('drive.google.com')) {
       // Use Google Drive URL directly in WebView
       if (setShowVideoPlayer && setVideoTitle && setVideoUrl) {
@@ -892,33 +1095,9 @@ const openVideo = async (chapterId, title, setShowVideoPlayer, setVideoBase64, s
       return;
     }
     
-    // Fallback to local video files
-    Alert.alert('Loading', 'Opening Video...', [], { cancelable: false });
-    
-    const asset = Asset.fromModule(videoAssets[chapterId]);
-    await asset.downloadAsync();
-    
-    const sourceUri = asset.localUri || asset.uri;
-    const destUri = FileSystem.documentDirectory + `chapter${chapterId}_video.mp4`;
-    
-    try {
-      await FileSystem.deleteAsync(destUri, { idempotent: true });
-    } catch (e) {}
-    await FileSystem.copyAsync({ from: sourceUri, to: destUri });
-    
-    const base64 = await FileSystem.readAsStringAsync(destUri, {
-      encoding: FileSystem.EncodingType.Base64,
-    });
-    
-    if (setShowVideoPlayer && setVideoBase64 && setVideoTitle) {
-      setVideoBase64(base64);
-      setVideoTitle(title || `Chapter ${chapterId} Video`);
-      setShowVideoPlayer(true);
-    } else if (globalSetShowVideoPlayer && globalSetVideoBase64 && globalSetVideoTitle) {
-      globalSetVideoBase64(base64);
-      globalSetVideoTitle(title || `Chapter ${chapterId} Video`);
-      globalSetShowVideoPlayer(true);
-    }
+    // No local video files bundled — show coming soon
+    Alert.alert('Coming Soon', `Video for ${title || 'Chapter ' + chapterId} will be available soon!`);
+    return;
   } catch (error) {
     console.log('Video open error:', error);
     Alert.alert(
@@ -932,78 +1111,187 @@ const openVideo = async (chapterId, title, setShowVideoPlayer, setVideoBase64, s
 // 3D Models data for each chapter (5 per chapter)
 const chapter3DModels = {
   1: [
-    { id: 1, name: "Number Sequence Spiral", type: "spiral", description: "Visualize number patterns" },
-    { id: 2, name: "Fibonacci Spiral", type: "fibonacci", description: "Golden ratio spiral" },
-    { id: 3, name: "Magic Square 3D", type: "cube", description: "Interactive 3x3 magic square" },
+    { id: 1, name: "Number Sequence Spiral", type: "spiral", description: "Visualize number patterns in a spiral" },
+    { id: 2, name: "Fibonacci Spiral", type: "fibonacci", description: "Golden ratio spiral pattern" },
+    { id: 3, name: "Magic Square Cube", type: "cube", description: "Interactive 3x3 magic square" },
     { id: 4, name: "Triangular Numbers", type: "pyramid", description: "Stack of dots forming triangular numbers" },
     { id: 5, name: "Square Numbers Grid", type: "grid", description: "Visual representation of square numbers" },
   ],
   2: [
-    { id: 1, name: "Parallel Lines", type: "lines", description: "Two lines that never meet" },
-    { id: 2, name: "Perpendicular Lines", type: "lines", description: "Lines meeting at 90 degrees" },
-    { id: 3, name: "Angle Types", type: "angles", description: "Acute, right, obtuse angles" },
-    { id: 4, name: "Protractor 3D", type: "protractor", description: "Interactive angle measurement" },
-    { id: 5, name: "Ray and Segment", type: "lines", description: "Difference between ray and segment" },
+    { id: 1, name: "Angle Protractor", type: "protractor", description: "Interactive angle measurement tool" },
+    { id: 2, name: "Parallel Lines", type: "lines", description: "Visualize parallel and transversal lines" },
+    { id: 3, name: "Perpendicular Lines", type: "perpendicular", description: "90-degree angle visualization" },
+    { id: 4, name: "Angle Types", type: "angles", description: "Acute, right, obtuse, and reflex angles" },
+    { id: 5, name: "Line Segments", type: "lines", description: "Points, rays, and line segments" },
   ],
   3: [
-    { id: 1, name: "Place Value Blocks", type: "blocks", description: "Units, tens, hundreds" },
-    { id: 2, name: "Number Line 3D", type: "numberline", description: "Interactive number line" },
-    { id: 3, name: "Divisibility Wheel", type: "wheel", description: "Visual divisibility rules" },
-    { id: 4, name: "Factor Tree", type: "tree", description: "Prime factorization tree" },
-    { id: 5, name: "Number Bonds", type: "bonds", description: "Number relationships" },
+    { id: 1, name: "Number Line Explorer", type: "numberline", description: "Interactive number line with tick marks" },
+    { id: 2, name: "Place Value Blocks", type: "cube", description: "Ones, tens, hundreds visualization" },
+    { id: 3, name: "Odd-Even Pattern Grid", type: "grid", description: "Odd and even number patterns" },
+    { id: 4, name: "Number Spiral", type: "spiral", description: "Numbers arranged in a spiral pattern" },
+    { id: 5, name: "Dice Cube", type: "cube", description: "Explore numbers on a dice" },
   ],
   4: [
-    { id: 1, name: "Bar Graph 3D", type: "bargraph", description: "Interactive 3D bar chart" },
-    { id: 2, name: "Pie Chart 3D", type: "piechart", description: "3D pie chart visualization" },
-    { id: 3, name: "Pictograph", type: "pictograph", description: "Picture-based data" },
-    { id: 4, name: "Line Graph", type: "linegraph", description: "Trend visualization" },
-    { id: 5, name: "Tally Marks", type: "tally", description: "Counting with tally marks" },
+    { id: 1, name: "Bar Graph Builder", type: "bargraph", description: "Create and explore 3D bar charts" },
+    { id: 2, name: "Pie Chart Maker", type: "piechart", description: "Visualize data as pie chart slices" },
+    { id: 3, name: "Data Table Grid", type: "grid", description: "Organize data in a visual grid" },
+    { id: 4, name: "Pictograph Bars", type: "cylinder", description: "Picture-based data visualization" },
+    { id: 5, name: "Tally Counter Cube", type: "cube", description: "3D tally mark counter" },
   ],
   5: [
-    { id: 1, name: "Prime Sieve", type: "sieve", description: "Sieve of Eratosthenes" },
-    { id: 2, name: "Factor Pairs", type: "pairs", description: "Visual factor pairs" },
-    { id: 3, name: "LCM Visualization", type: "lcm", description: "Least common multiple" },
-    { id: 4, name: "HCF Visualization", type: "hcf", description: "Highest common factor" },
-    { id: 5, name: "Prime Spiral", type: "spiral", description: "Ulam spiral of primes" },
+    { id: 1, name: "Factor Tree", type: "pyramid", description: "Prime factorization tree visualization" },
+    { id: 2, name: "Sieve of Eratosthenes", type: "grid", description: "Visual sieve to find prime numbers" },
+    { id: 3, name: "Prime Number Spiral", type: "spiral", description: "Ulam spiral of prime numbers" },
+    { id: 4, name: "Divisibility Cube", type: "cube", description: "Interactive divisibility rules" },
+    { id: 5, name: "Factor Pairs Pyramid", type: "pyramid", description: "Factor pairs stacked as pyramid" },
   ],
   6: [
-    { id: 1, name: "Rectangle Perimeter", type: "rectangle", description: "Interactive perimeter" },
-    { id: 2, name: "Square Area", type: "square", description: "Area of square" },
-    { id: 3, name: "Triangle Area", type: "triangle", description: "Triangle area formula" },
-    { id: 4, name: "Composite Shapes", type: "composite", description: "Breaking down shapes" },
-    { id: 5, name: "Grid Area", type: "grid", description: "Counting squares for area" },
+    { id: 1, name: "Rectangle Shape", type: "rectangle", description: "Interactive rectangle with dimensions" },
+    { id: 2, name: "Area Grid", type: "grid", description: "Calculate area using unit squares" },
+    { id: 3, name: "Square Shape", type: "cube", description: "3D square/cube for area concepts" },
+    { id: 4, name: "Triangle Shape", type: "pyramid", description: "Triangle area visualization" },
+    { id: 5, name: "Circle Shape", type: "sphere", description: "Circle area and circumference" },
   ],
   7: [
-    { id: 1, name: "Fraction Circles", type: "circles", description: "Circular fraction representation" },
-    { id: 2, name: "Fraction Bars", type: "bars", description: "Bar model for fractions" },
-    { id: 3, name: "Equivalent Fractions", type: "equivalent", description: "Visual equivalence" },
-    { id: 4, name: "Fraction Addition", type: "addition", description: "Adding fractions visually" },
-    { id: 5, name: "Mixed Numbers", type: "mixed", description: "Mixed number visualization" },
+    { id: 1, name: "Fraction Pie", type: "piechart", description: "Fractions as slices of a pie" },
+    { id: 2, name: "Fraction Circles", type: "sphere", description: "Visualize fractions as parts of a whole" },
+    { id: 3, name: "Fraction Bars", type: "cylinder", description: "Compare fractions using bars" },
+    { id: 4, name: "Fraction Wall Grid", type: "grid", description: "Fraction wall showing equivalent fractions" },
+    { id: 5, name: "Equal Parts Cube", type: "cube", description: "Dividing shapes into equal parts" },
   ],
   8: [
-    { id: 1, name: "Compass Drawing", type: "compass", description: "Circle construction" },
-    { id: 2, name: "Angle Bisector", type: "bisector", description: "Bisecting angles" },
-    { id: 3, name: "Perpendicular Bisector", type: "perpbisector", description: "Perpendicular line" },
-    { id: 4, name: "Triangle Construction", type: "triangle", description: "Building triangles" },
-    { id: 5, name: "Parallel Line Construction", type: "parallel", description: "Drawing parallel lines" },
+    { id: 1, name: "Compass Circle", type: "sphere", description: "Draw circles with a compass" },
+    { id: 2, name: "Angle Constructor", type: "protractor", description: "Construct angles with protractor" },
+    { id: 3, name: "Perpendicular Builder", type: "perpendicular", description: "Construct perpendicular lines" },
+    { id: 4, name: "Line Drawing Tool", type: "lines", description: "Draw and measure line segments" },
+    { id: 5, name: "Geometric Pattern", type: "tessellation", description: "Create geometric patterns" },
   ],
   9: [
-    { id: 1, name: "Line Symmetry", type: "linesym", description: "Reflection symmetry" },
-    { id: 2, name: "Rotational Symmetry", type: "rotsym", description: "Rotation symmetry" },
-    { id: 3, name: "Mirror Image", type: "mirror", description: "Mirror reflection" },
-    { id: 4, name: "Symmetry in Nature", type: "nature", description: "Natural symmetry" },
-    { id: 5, name: "Symmetry Patterns", type: "patterns", description: "Creating symmetric patterns" },
+    { id: 1, name: "Symmetry Mirror", type: "symmetry", description: "Lines of symmetry visualization" },
+    { id: 2, name: "Dodecahedron", type: "dodecahedron", description: "12-faced regular polyhedron" },
+    { id: 3, name: "Shape Net (Cube)", type: "nets", description: "Unfold a cube into its net" },
+    { id: 4, name: "Tessellation Pattern", type: "tessellation", description: "Tiling patterns with shapes" },
+    { id: 5, name: "Octahedron", type: "octahedron", description: "8-faced regular polyhedron" },
   ],
   10: [
-    { id: 1, name: "Number Line Integers", type: "numberline", description: "Integers on number line" },
-    { id: 2, name: "Integer Addition", type: "addition", description: "Adding positive and negative" },
-    { id: 3, name: "Integer Subtraction", type: "subtraction", description: "Subtracting integers" },
-    { id: 4, name: "Temperature Scale", type: "temperature", description: "Negative temperatures" },
-    { id: 5, name: "Elevation Model", type: "elevation", description: "Above and below sea level" },
+    { id: 1, name: "Integer Number Line", type: "numberline", description: "Positive and negative integers on a line" },
+    { id: 2, name: "Positive-Negative Cubes", type: "cube", description: "Colored cubes for positive and negative" },
+    { id: 3, name: "Temperature Scale", type: "cylinder", description: "Thermometer showing negative temperatures" },
+    { id: 4, name: "Elevation Pyramid", type: "pyramid", description: "Above and below sea level model" },
+    { id: 5, name: "Zero Point Sphere", type: "sphere", description: "The origin point - zero" },
   ],
 };
 
-const chapters = [
+// 3D Models data for Class 7 chapters (Ganita Prakash)
+const chapter3DModels7 = {
+  1: [
+    { id: 1, name: "Place Value Blocks", type: "cube", description: "Visualize lakhs and crores with blocks" },
+    { id: 2, name: "Number Pattern Spiral", type: "spiral", description: "Patterns in large number products" },
+    { id: 3, name: "Indian Number Grid", type: "grid", description: "Indian vs International place value" },
+    { id: 4, name: "Powers of 10 Pyramid", type: "pyramid", description: "Growing powers of 10" },
+    { id: 5, name: "Large Number Bars", type: "cylinder", description: "Compare large numbers as bars" },
+  ],
+  2: [
+    { id: 1, name: "Expression Tiles", type: "cube", description: "Build arithmetic expressions visually" },
+    { id: 2, name: "BODMAS Balance", type: "balance", description: "Order of operations on a balance scale" },
+    { id: 3, name: "Expression Tree", type: "pyramid", description: "Parse expressions as trees" },
+    { id: 4, name: "Bracket Cube", type: "cube", description: "Group operations with brackets" },
+    { id: 5, name: "Operations Grid", type: "grid", description: "Step-by-step expression evaluation" },
+  ],
+  3: [
+    { id: 1, name: "Decimal Number Line", type: "numberline", description: "Explore decimals on a number line" },
+    { id: 2, name: "Place Value Grid", type: "grid", description: "Tenths, hundredths, thousandths grid" },
+    { id: 3, name: "Fraction-Decimal Pie", type: "piechart", description: "Convert fractions to decimals visually" },
+    { id: 4, name: "Decimal Comparison Bars", type: "cylinder", description: "Compare decimal numbers as bars" },
+    { id: 5, name: "Decimal Spiral", type: "spiral", description: "Decimal patterns in a spiral" },
+  ],
+  4: [
+    { id: 1, name: "Letter Tiles", type: "cube", description: "Represent unknowns with letter tiles" },
+    { id: 2, name: "Pattern Grid", type: "grid", description: "Convert patterns to expressions" },
+    { id: 3, name: "Variable Cube", type: "cube", description: "Understanding variables" },
+    { id: 4, name: "Expression Pyramid", type: "pyramid", description: "Build expressions step by step" },
+    { id: 5, name: "Balance Scale", type: "balance", description: "Balance expressions on a scale" },
+  ],
+  5: [
+    { id: 1, name: "Parallel Lines", type: "lines", description: "Parallel lines visualization" },
+    { id: 2, name: "Intersecting Lines", type: "perpendicular", description: "Lines crossing at a point" },
+    { id: 3, name: "Angle Measurer", type: "protractor", description: "Measure angles between lines" },
+    { id: 4, name: "Transversal Angles", type: "angles", description: "Angles formed by transversals" },
+    { id: 5, name: "Right Angle Builder", type: "perpendicular", description: "Right angle construction" },
+  ],
+  6: [
+    { id: 1, name: "Number Puzzle Grid", type: "grid", description: "Interactive number puzzles" },
+    { id: 2, name: "Palindrome Spiral", type: "spiral", description: "Discover palindromic numbers" },
+    { id: 3, name: "Divisibility Cube", type: "cube", description: "Test divisibility rules interactively" },
+    { id: 4, name: "Factor Tree", type: "pyramid", description: "Find factors of numbers" },
+    { id: 5, name: "Magic Number Sphere", type: "sphere", description: "Explore magic number properties" },
+  ],
+  7: [
+    { id: 1, name: "Triangle Builder", type: "pyramid", description: "Build triangles with intersecting lines" },
+    { id: 2, name: "Angle Sum Property", type: "angles", description: "Triangle angle sum = 180 degrees" },
+    { id: 3, name: "Medians Visualizer", type: "lines", description: "Medians of a triangle" },
+    { id: 4, name: "Altitudes Visualizer", type: "perpendicular", description: "Altitudes of a triangle" },
+    { id: 5, name: "Centroid Finder", type: "sphere", description: "Find the centroid of a triangle" },
+  ],
+  8: [
+    { id: 1, name: "Fraction Circles", type: "sphere", description: "Visualize fractions as parts of circles" },
+    { id: 2, name: "Fraction Bars", type: "cylinder", description: "Compare fractions using bars" },
+    { id: 3, name: "Fraction Pie", type: "piechart", description: "Add, subtract, multiply fractions" },
+    { id: 4, name: "Fraction Grid", type: "grid", description: "Equivalent fractions on a grid" },
+    { id: 5, name: "Mixed Number Cube", type: "cube", description: "Work with mixed numbers" },
+  ],
+  9: [
+    { id: 1, name: "Symmetry Mirror", type: "symmetry", description: "Line symmetry in geometric shapes" },
+    { id: 2, name: "Congruent Cubes", type: "cube", description: "Identify congruent shapes" },
+    { id: 3, name: "Rotation Torus", type: "torus", description: "Rotate shapes and compare" },
+    { id: 4, name: "Congruent Triangles", type: "pyramid", description: "Matching congruent triangles" },
+    { id: 5, name: "Shape Matching Grid", type: "grid", description: "Match geometric twins on a grid" },
+  ],
+  10: [
+    { id: 1, name: "Integer Number Line", type: "numberline", description: "Positive and negative integers" },
+    { id: 2, name: "Integer Addition Bars", type: "cylinder", description: "Adding integers visually with bars" },
+    { id: 3, name: "Integer Cube", type: "cube", description: "Positive and negative integer operations" },
+    { id: 4, name: "Positive-Negative Spiral", type: "spiral", description: "Integer patterns in a spiral" },
+    { id: 5, name: "Elevation Pyramid", type: "pyramid", description: "Above and below zero" },
+  ],
+  11: [
+    { id: 1, name: "Factor Tree", type: "pyramid", description: "Prime factorization tree" },
+    { id: 2, name: "Common Multiple Grid", type: "grid", description: "Find common multiples visually" },
+    { id: 3, name: "HCF Cube", type: "cube", description: "Highest common factor visualization" },
+    { id: 4, name: "Venn Diagram Torus", type: "torus", description: "Overlapping sets for LCM and HCF" },
+    { id: 5, name: "Multiple Spiral", type: "spiral", description: "Patterns in multiples" },
+  ],
+  12: [
+    { id: 1, name: "Decimal Number Line", type: "numberline", description: "Thousandths and beyond" },
+    { id: 2, name: "Decimal Multiply Grid", type: "grid", description: "Multiply decimals visually" },
+    { id: 3, name: "Decimal Division Bars", type: "cylinder", description: "Divide decimals step by step" },
+    { id: 4, name: "Money Pie Chart", type: "piechart", description: "Real-world decimal calculations" },
+    { id: 5, name: "Decimal Pattern Spiral", type: "spiral", description: "Patterns in decimal numbers" },
+  ],
+  13: [
+    { id: 1, name: "Coordinate Plane", type: "coordinate", description: "Plot points on coordinate axes" },
+    { id: 2, name: "Dot Connector Lines", type: "lines", description: "Connect dots to form shapes" },
+    { id: 3, name: "Shape Plot Grid", type: "grid", description: "Draw shapes using coordinates" },
+    { id: 4, name: "Triangle Coordinates", type: "pyramid", description: "Plot triangles on coordinate plane" },
+    { id: 5, name: "Data Graph Bars", type: "bargraph", description: "Plot data on bar graphs" },
+  ],
+  14: [
+    { id: 1, name: "Compass & Ruler", type: "protractor", description: "Geometric construction tools" },
+    { id: 2, name: "Tessellation Pattern", type: "tessellation", description: "Create tiling patterns" },
+    { id: 3, name: "Shape Net (Cube)", type: "nets", description: "Unfold and fold 3D shapes" },
+    { id: 4, name: "Tiling Grid", type: "grid", description: "Explore tiling patterns on grid" },
+    { id: 5, name: "Construction Lines", type: "lines", description: "Step-by-step constructions" },
+  ],
+  15: [
+    { id: 1, name: "Equation Balance", type: "balance", description: "Solve equations using balance scale" },
+    { id: 2, name: "Equation Grid", type: "grid", description: "Build and solve equations on grid" },
+    { id: 3, name: "Variable Cube", type: "cube", description: "Find the unknown variable" },
+    { id: 4, name: "Equation Pyramid", type: "pyramid", description: "Step-by-step equation solving" },
+    { id: 5, name: "Solution Sphere", type: "sphere", description: "Verify equation solutions" },
+  ],
+};
+
+const topLevelChaptersClass6 = [
   {
     "id": 1,
     "number": "1",
@@ -1028,7 +1316,7 @@ const chapters = [
       }
     ],
     "questions": [
-      {
+      { "section": "A",
         "q": "What is the next number in the pattern: 2, 4, 6, 8, ?",
         "options": [
           "9",
@@ -1038,7 +1326,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Which pattern shows multiplication by 2: 1, 2, 4, 8, ?",
         "options": [
           "10",
@@ -1048,7 +1336,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "In a magic square of order 3, if the magic sum is 15, what is the center number?",
         "options": [
           "3",
@@ -1058,7 +1346,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "What comes next: 1, 1, 2, 3, 5, 8, ?",
         "options": [
           "11",
@@ -1068,7 +1356,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "The pattern 1, 4, 9, 16, 25 represents:",
         "options": [
           "Prime numbers",
@@ -1078,7 +1366,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "What is the next number: 5, 10, 15, 20, ?",
         "options": [
           "22",
@@ -1088,7 +1376,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "In the pattern 1, 3, 5, 7, ?, what comes next?",
         "options": [
           "8",
@@ -1098,7 +1386,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "What is the 10th term in: 2, 4, 6, 8...?",
         "options": [
           "18",
@@ -1108,7 +1396,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "The pattern 1, 8, 27, 64 represents:",
         "options": [
           "Squares",
@@ -1118,7 +1406,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "What comes after 100, 90, 80, 70, ?",
         "options": [
           "60",
@@ -1128,7 +1416,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "A",
         "q": "In pattern 2, 6, 18, 54, each term is:",
         "options": [
           "Added by 4",
@@ -1138,7 +1426,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "What is missing: 1, 4, 9, ?, 25",
         "options": [
           "12",
@@ -1148,7 +1436,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "The sum of first 5 odd numbers is:",
         "options": [
           "15",
@@ -1158,7 +1446,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "Pattern: A, C, E, G, ? Next letter is:",
         "options": [
           "H",
@@ -1168,7 +1456,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "In 3, 6, 12, 24, each term is:",
         "options": [
           "Added 3",
@@ -1178,7 +1466,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "What is the 5th triangular number?",
         "options": [
           "10",
@@ -1188,7 +1476,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Pattern 10, 20, 30, 40 increases by:",
         "options": [
           "5",
@@ -1198,7 +1486,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Next in 1, 4, 9, 16, 25, ?",
         "options": [
           "30",
@@ -1208,7 +1496,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "In pattern 100, 50, 25, ?, what comes next?",
         "options": [
           "12.5",
@@ -1218,7 +1506,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "A",
         "q": "The 7th term in 3, 6, 9, 12... is:",
         "options": [
           "18",
@@ -1228,7 +1516,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Pattern: 2, 3, 5, 7, 11 are all:",
         "options": [
           "Even",
@@ -1238,7 +1526,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "What comes next: 1, 2, 4, 7, 11, ?",
         "options": [
           "14",
@@ -1248,7 +1536,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "In magic square, sum of each row is:",
         "options": [
           "Same",
@@ -1258,7 +1546,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "A",
         "q": "Pattern 5, 15, 45, 135 multiplies by:",
         "options": [
           "2",
@@ -1268,7 +1556,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Next number: 64, 32, 16, 8, ?",
         "options": [
           "4",
@@ -1278,7 +1566,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "B", "case": "A teacher writes the sequence 5, 10, 20, 40, 80 on the blackboard and asks students to find the rule. Use this for the next 3 questions.",
         "q": "Fibonacci sequence starts with:",
         "options": [
           "0, 1",
@@ -1288,7 +1576,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "B", "case": "A teacher writes the sequence 5, 10, 20, 40, 80 on the blackboard and asks students to find the rule. Use this for the next 3 questions.",
         "q": "Pattern: 1, 3, 6, 10, 15 are:",
         "options": [
           "Square numbers",
@@ -1298,7 +1586,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "B", "case": "A teacher writes the sequence 5, 10, 20, 40, 80 on the blackboard and asks students to find the rule. Use this for the next 3 questions.",
         "q": "What is next: 2, 5, 10, 17, ?",
         "options": [
           "24",
@@ -1308,7 +1596,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "B", "case": "Ravi arranges dots to form triangular numbers: 1, 3, 6, 10, 15, 21. He notices a pattern in the differences. Use this for the next 4 questions.",
         "q": "In pattern 1, 4, 7, 10, difference is:",
         "options": [
           "2",
@@ -1318,7 +1606,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "B", "case": "Ravi arranges dots to form triangular numbers: 1, 3, 6, 10, 15, 21. He notices a pattern in the differences. Use this for the next 4 questions.",
         "q": "Next: 100, 81, 64, 49, ?",
         "options": [
           "36",
@@ -1328,7 +1616,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "B", "case": "Ravi arranges dots to form triangular numbers: 1, 3, 6, 10, 15, 21. He notices a pattern in the differences. Use this for the next 4 questions.",
         "q": "Pattern 3, 9, 27, 81 is powers of:",
         "options": [
           "2",
@@ -1338,7 +1626,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "B", "case": "Ravi arranges dots to form triangular numbers: 1, 3, 6, 10, 15, 21. He notices a pattern in the differences. Use this for the next 4 questions.",
         "q": "What comes next: 1, 1, 2, 3, 5, 8, 13, ?",
         "options": [
           "18",
@@ -1348,7 +1636,7 @@ const chapters = [
         ],
         "answer": 3
       },
-      {
+      { "section": "B", "case": "A 4x4 magic square uses numbers 1 to 16. The magic constant is 34. Use this for the next 3 questions.",
         "q": "In pattern 20, 18, 16, 14, next is:",
         "options": [
           "10",
@@ -1358,7 +1646,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "B", "case": "A 4x4 magic square uses numbers 1 to 16. The magic constant is 34. Use this for the next 3 questions.",
         "q": "Sum of angles in triangle pattern:",
         "options": [
           "90",
@@ -1368,7 +1656,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "B", "case": "A 4x4 magic square uses numbers 1 to 16. The magic constant is 34. Use this for the next 3 questions.",
         "q": "Pattern: 1, 10, 100, 1000 multiplies by:",
         "options": [
           "5",
@@ -1377,57 +1665,14 @@ const chapters = [
           "1000"
         ],
         "answer": 1
-      },
-      {
-        "q": "Next in 7, 14, 21, 28, ?",
-        "options": [
-          "32",
-          "35",
-          "38",
-          "42"
-        ],
-        "answer": 1
-      },
-      {
-        "q": "Pattern 2, 4, 8, 16, 32 doubles, next is:",
-        "options": [
-          "48",
-          "56",
-          "64",
-          "72"
-        ],
-        "answer": 2
-      },
-      {
-        "q": "In 5, 10, 20, 40, each term:",
-        "options": [
-          "Adds 5",
-          "Doubles",
-          "Triples",
-          "Squares"
-        ],
-        "answer": 1
-      },
-      {
-        "q": "What is next: 11, 22, 33, 44, ?",
-        "options": [
-          "50",
-          "55",
-          "60",
-          "66"
-        ],
-        "answer": 1
-      },
-      {
-        "q": "Pattern: 1, 3, 7, 15, 31, ? follows 2n-1",
-        "options": [
-          "47",
-          "55",
-          "63",
-          "71"
-        ],
-        "answer": 2
       }
+    ],
+    "penPaper": [
+      {"section": "C", "q": "Write the first 10 terms of the Fibonacci sequence and circle every third term. What pattern do you notice? Show your work on paper and upload a photo.", "marks": 2},
+      {"section": "C", "q": "Draw a 3x3 magic square using the numbers 1 to 9. Verify that all rows, columns, and diagonals sum to 15. Show on paper and upload a photo.", "marks": 2},
+      {"section": "D", "q": "Find the next three terms in each sequence: (a) 2, 6, 18, 54, ... (b) 1, 4, 9, 16, ... (c) 1, 1, 2, 3, 5, 8, ... Show your reasoning on paper and upload a photo.", "marks": 3},
+      {"section": "D", "q": "Create a number pattern where each term is obtained by adding consecutive odd numbers. Write the first 8 terms and explain the pattern. Upload a photo of your work.", "marks": 3},
+      {"section": "E", "q": "Design and draw two different shape patterns: one using rotation and one using reflection. For each, draw at least 6 terms and explain the rule. Upload a clear photo.", "marks": 5}
     ],
     "penPaperQuestions": [
       {
@@ -1460,7 +1705,7 @@ const chapters = [
       }
     ],
     "questions": [
-      {
+      { "section": "A",
         "q": "An angle of 90 degrees is called:",
         "options": [
           "Acute angle",
@@ -1470,7 +1715,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Two lines that never meet are called:",
         "options": [
           "Intersecting",
@@ -1480,7 +1725,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "An angle greater than 90 but less than 180 is:",
         "options": [
           "Acute",
@@ -1490,7 +1735,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "How many degrees are in a straight angle?",
         "options": [
           "90",
@@ -1500,7 +1745,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "A ray has:",
         "options": [
           "No endpoints",
@@ -1510,7 +1755,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Perpendicular lines meet at:",
         "options": [
           "45 degrees",
@@ -1520,7 +1765,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "An acute angle is:",
         "options": [
           "Less than 90 degrees",
@@ -1530,7 +1775,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "A",
         "q": "Complementary angles add up to:",
         "options": [
           "90 degrees",
@@ -1540,7 +1785,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "A",
         "q": "Supplementary angles add up to:",
         "options": [
           "90 degrees",
@@ -1550,7 +1795,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "A reflex angle is:",
         "options": [
           "Less than 90 degrees",
@@ -1560,7 +1805,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "Vertically opposite angles are:",
         "options": [
           "Equal",
@@ -1570,7 +1815,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "A",
         "q": "A line segment has:",
         "options": [
           "No endpoints",
@@ -1580,7 +1825,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "Adjacent angles share a:",
         "options": [
           "Common vertex",
@@ -1590,7 +1835,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "Sum of angles around a point:",
         "options": [
           "90 degrees",
@@ -1600,7 +1845,7 @@ const chapters = [
         ],
         "answer": 3
       },
-      {
+      { "section": "A",
         "q": "Linear pair of angles:",
         "options": [
           "Add to 90 degrees",
@@ -1610,7 +1855,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "An angle of 45 degrees is:",
         "options": [
           "Acute",
@@ -1620,7 +1865,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "A",
         "q": "An angle of 135 degrees is:",
         "options": [
           "Acute",
@@ -1630,7 +1875,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "Bisector divides angle into:",
         "options": [
           "Three parts",
@@ -1640,7 +1885,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Alternate interior angles are:",
         "options": [
           "Equal",
@@ -1650,7 +1895,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "A",
         "q": "Corresponding angles are:",
         "options": [
           "Equal",
@@ -1660,7 +1905,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "A",
         "q": "Co-interior angles add to:",
         "options": [
           "90 degrees",
@@ -1670,7 +1915,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "A complete angle is:",
         "options": [
           "90 degrees",
@@ -1680,7 +1925,7 @@ const chapters = [
         ],
         "answer": 3
       },
-      {
+      { "section": "A",
         "q": "Zero angle measures:",
         "options": [
           "0 degrees",
@@ -1690,7 +1935,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "A",
         "q": "If two angles are 30 and 60 degrees, they are:",
         "options": [
           "Complementary",
@@ -1700,7 +1945,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "A",
         "q": "If two angles are 120 and 60 degrees, they are:",
         "options": [
           "Complementary",
@@ -1710,7 +1955,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "B", "case": "Two straight roads cross at a junction forming four angles. One of the angles measures 65 degrees. Use this for the next 3 questions.",
         "q": "Angle in a semicircle is:",
         "options": [
           "45 degrees",
@@ -1720,7 +1965,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "B", "case": "Two straight roads cross at a junction forming four angles. One of the angles measures 65 degrees. Use this for the next 3 questions.",
         "q": "Sum of interior angles of triangle:",
         "options": [
           "90 degrees",
@@ -1730,7 +1975,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "B", "case": "Two straight roads cross at a junction forming four angles. One of the angles measures 65 degrees. Use this for the next 3 questions.",
         "q": "Each angle of equilateral triangle:",
         "options": [
           "30 degrees",
@@ -1740,7 +1985,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "B", "case": "In a triangle ABC, angle A = 50 degrees and angle B = 70 degrees. A line DE is drawn parallel to BC passing through A. Use this for the next 4 questions.",
         "q": "Exterior angle of triangle equals:",
         "options": [
           "One interior angle",
@@ -1750,7 +1995,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "B", "case": "In a triangle ABC, angle A = 50 degrees and angle B = 70 degrees. A line DE is drawn parallel to BC passing through A. Use this for the next 4 questions.",
         "q": "Transversal cuts two parallel lines at:",
         "options": [
           "One point",
@@ -1760,7 +2005,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "B", "case": "In a triangle ABC, angle A = 50 degrees and angle B = 70 degrees. A line DE is drawn parallel to BC passing through A. Use this for the next 4 questions.",
         "q": "Angle between hour and minute hand at 3:00:",
         "options": [
           "60 degrees",
@@ -1770,7 +2015,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "B", "case": "In a triangle ABC, angle A = 50 degrees and angle B = 70 degrees. A line DE is drawn parallel to BC passing through A. Use this for the next 4 questions.",
         "q": "If angle is 70 degrees, its complement is:",
         "options": [
           "10 degrees",
@@ -1780,7 +2025,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "B", "case": "A clock shows 3:00. The minute hand moves from 12 to different positions. Use this for the next 3 questions.",
         "q": "If angle is 70 degrees, its supplement is:",
         "options": [
           "20 degrees",
@@ -1790,7 +2035,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "B", "case": "A clock shows 3:00. The minute hand moves from 12 to different positions. Use this for the next 3 questions.",
         "q": "Angle made by clock hands at 6:00:",
         "options": [
           "90 degrees",
@@ -1800,7 +2045,7 @@ const chapters = [
         ],
         "answer": 3
       },
-      {
+      { "section": "B", "case": "A clock shows 3:00. The minute hand moves from 12 to different positions. Use this for the next 3 questions.",
         "q": "Two angles are 3x and 2x, if complementary, x=:",
         "options": [
           "15 degrees",
@@ -1809,57 +2054,14 @@ const chapters = [
           "30 degrees"
         ],
         "answer": 1
-      },
-      {
-        "q": "Angle between North and East:",
-        "options": [
-          "45 degrees",
-          "90 degrees",
-          "135 degrees",
-          "180 degrees"
-        ],
-        "answer": 1
-      },
-      {
-        "q": "If three angles at a point are 100, 120, x, then x=:",
-        "options": [
-          "120 degrees",
-          "130 degrees",
-          "140 degrees",
-          "150 degrees"
-        ],
-        "answer": 2
-      },
-      {
-        "q": "Angle between opposite directions:",
-        "options": [
-          "90 degrees",
-          "120 degrees",
-          "150 degrees",
-          "180 degrees"
-        ],
-        "answer": 3
-      },
-      {
-        "q": "If angle is x, its vertically opposite angle is:",
-        "options": [
-          "x",
-          "90-x",
-          "180-x",
-          "360-x"
-        ],
-        "answer": 0
-      },
-      {
-        "q": "Angle subtended by diameter at circumference:",
-        "options": [
-          "45 degrees",
-          "60 degrees",
-          "90 degrees",
-          "180 degrees"
-        ],
-        "answer": 2
       }
+    ],
+    "penPaper": [
+      {"section": "C", "q": "Draw two intersecting lines and label all four angles. Measure each angle with a protractor and verify that vertically opposite angles are equal. Upload a photo.", "marks": 2},
+      {"section": "C", "q": "Draw a pair of parallel lines cut by a transversal. Label and measure all 8 angles formed. Identify corresponding and alternate angles. Upload a photo.", "marks": 2},
+      {"section": "D", "q": "Construct an angle of 75 degrees using only a compass and ruler (hint: 75 = 60 + 15). Show all construction marks clearly. Upload a photo.", "marks": 3},
+      {"section": "D", "q": "Draw a triangle with angles 40, 60, and 80 degrees. Extend one side and measure the exterior angle. Verify the exterior angle theorem. Upload a photo.", "marks": 3},
+      {"section": "E", "q": "Draw a diagram showing all types of angles (acute, right, obtuse, straight, reflex). For each, provide a real-life example and measure with a protractor. Upload a clear photo.", "marks": 5}
     ],
     "penPaperQuestions": [
       {
@@ -1892,7 +2094,7 @@ const chapters = [
       }
     ],
     "questions": [
-      {
+      { "section": "A",
         "q": "What is the place value of 5 in 3,567?",
         "options": [
           "5",
@@ -1902,7 +2104,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "Round 4,567 to the nearest hundred:",
         "options": [
           "4,500",
@@ -1912,7 +2114,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Which is greater: 9,999 or 10,000?",
         "options": [
           "9,999",
@@ -1922,7 +2124,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "The successor of 99,999 is:",
         "options": [
           "99,998",
@@ -1932,7 +2134,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "What is 7,000 + 800 + 50 + 3?",
         "options": [
           "7,835",
@@ -1942,7 +2144,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "The predecessor of 1,000 is:",
         "options": [
           "999",
@@ -1952,7 +2154,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "A",
         "q": "Place value of 7 in 87,654:",
         "options": [
           "7",
@@ -1962,7 +2164,7 @@ const chapters = [
         ],
         "answer": 3
       },
-      {
+      { "section": "A",
         "q": "Round 3,456 to nearest thousand:",
         "options": [
           "3,000",
@@ -1972,7 +2174,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "A",
         "q": "Which is smallest: 5,678 or 5,687?",
         "options": [
           "5,678",
@@ -1982,7 +2184,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "A",
         "q": "Face value of 9 in 9,876:",
         "options": [
           "9",
@@ -1992,7 +2194,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "A",
         "q": "Expanded form of 4,567:",
         "options": [
           "4+5+6+7",
@@ -2002,7 +2204,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Sum of place values of 5 in 5,555:",
         "options": [
           "20",
@@ -2012,7 +2214,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Difference between 10,000 and 9,999:",
         "options": [
           "1",
@@ -2022,7 +2224,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "A",
         "q": "Round 7,850 to nearest hundred:",
         "options": [
           "7,800",
@@ -2032,7 +2234,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "The greatest 4-digit number is:",
         "options": [
           "9,000",
@@ -2042,7 +2244,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "The smallest 5-digit number is:",
         "options": [
           "10,000",
@@ -2052,7 +2254,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "A",
         "q": "Place value of 0 in 5,067:",
         "options": [
           "0",
@@ -2062,7 +2264,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "A",
         "q": "Compare: 45,678 __ 45,687",
         "options": [
           ">",
@@ -2072,7 +2274,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Round 9,950 to nearest hundred:",
         "options": [
           "9,900",
@@ -2082,7 +2284,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "Successor of 99,999:",
         "options": [
           "1,00,000",
@@ -2092,7 +2294,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "A",
         "q": "Which digit is in ten thousands place in 87,654?",
         "options": [
           "8",
@@ -2102,7 +2304,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "A",
         "q": "Sum of 5,000 + 600 + 70 + 8:",
         "options": [
           "5,678",
@@ -2112,7 +2314,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "A",
         "q": "Predecessor of 50,000:",
         "options": [
           "49,999",
@@ -2122,7 +2324,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "A",
         "q": "Round 4,444 to nearest ten:",
         "options": [
           "4,440",
@@ -2132,7 +2334,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "A",
         "q": "Difference: 1,00,000 - 1:",
         "options": [
           "99,999",
@@ -2142,7 +2344,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "B", "case": "A shopkeeper arranges 144 mangoes into equal rows. He tries different arrangements. Use this for the next 3 questions.",
         "q": "Place value of 3 in 23,456:",
         "options": [
           "3",
@@ -2152,7 +2354,7 @@ const chapters = [
         ],
         "answer": 3
       },
-      {
+      { "section": "B", "case": "A shopkeeper arranges 144 mangoes into equal rows. He tries different arrangements. Use this for the next 3 questions.",
         "q": "Which is greater: 67,890 or 67,809?",
         "options": [
           "67,890",
@@ -2162,7 +2364,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "B", "case": "A shopkeeper arranges 144 mangoes into equal rows. He tries different arrangements. Use this for the next 3 questions.",
         "q": "Expanded form of 90,807:",
         "options": [
           "9+0+8+0+7",
@@ -2172,7 +2374,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "B", "case": "Priya is playing a number game where she must find all numbers between 1 and 50 with exactly two factors. Use this for the next 4 questions.",
         "q": "Round 55,555 to nearest thousand:",
         "options": [
           "55,000",
@@ -2182,7 +2384,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "B", "case": "Priya is playing a number game where she must find all numbers between 1 and 50 with exactly two factors. Use this for the next 4 questions.",
         "q": "Face value of 6 in 6,66,666:",
         "options": [
           "6",
@@ -2192,7 +2394,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "B", "case": "Priya is playing a number game where she must find all numbers between 1 and 50 with exactly two factors. Use this for the next 4 questions.",
         "q": "Sum of all digits in 12,345:",
         "options": [
           "15",
@@ -2202,7 +2404,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "B", "case": "Priya is playing a number game where she must find all numbers between 1 and 50 with exactly two factors. Use this for the next 4 questions.",
         "q": "Greatest 5-digit number with all different digits:",
         "options": [
           "98,765",
@@ -2212,7 +2414,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "B", "case": "A school has 360 students to be divided into groups of equal size for a sports day. Use this for the next 3 questions.",
         "q": "Smallest 4-digit number using 0,1,2,3:",
         "options": [
           "0,123",
@@ -2222,7 +2424,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "B", "case": "A school has 360 students to be divided into groups of equal size for a sports day. Use this for the next 3 questions.",
         "q": "Place value of 4 in 4,04,040:",
         "options": [
           "4",
@@ -2232,7 +2434,7 @@ const chapters = [
         ],
         "answer": 3
       },
-      {
+      { "section": "B", "case": "A school has 360 students to be divided into groups of equal size for a sports day. Use this for the next 3 questions.",
         "q": "Round 99,999 to nearest ten thousand:",
         "options": [
           "90,000",
@@ -2241,57 +2443,14 @@ const chapters = [
           "99,990"
         ],
         "answer": 2
-      },
-      {
-        "q": "Predecessor of 1,00,000:",
-        "options": [
-          "99,999",
-          "99,000",
-          "1,00,001",
-          "90,000"
-        ],
-        "answer": 0
-      },
-      {
-        "q": "Compare: 1,23,456 __ 1,32,456",
-        "options": [
-          ">",
-          "<",
-          "=",
-          "Cannot compare"
-        ],
-        "answer": 1
-      },
-      {
-        "q": "Sum of place values of 2 in 22,222:",
-        "options": [
-          "10",
-          "22,222",
-          "2,222",
-          "222"
-        ],
-        "answer": 1
-      },
-      {
-        "q": "Difference between greatest and smallest 3-digit numbers:",
-        "options": [
-          "899",
-          "900",
-          "898",
-          "901"
-        ],
-        "answer": 0
-      },
-      {
-        "q": "Round 50,505 to nearest hundred:",
-        "options": [
-          "50,500",
-          "50,600",
-          "50,000",
-          "51,000"
-        ],
-        "answer": 0
       }
+    ],
+    "penPaper": [
+      {"section": "C", "q": "Find the GCD and LCM of 48 and 72 using the prime factorisation method. Show the complete factor tree for both numbers. Upload a photo.", "marks": 2},
+      {"section": "C", "q": "Write all the factors of 120 and circle the prime factors. How many total factors does 120 have? Show your work and upload a photo.", "marks": 2},
+      {"section": "D", "q": "Three bells ring at intervals of 12, 15, and 20 minutes. If they ring together at 9:00 AM, when will they next ring together? Show the LCM calculation on paper. Upload a photo.", "marks": 3},
+      {"section": "D", "q": "Find three consecutive numbers whose product is divisible by 6. Prove that the product of any three consecutive numbers is always divisible by 6. Write on paper and upload a photo.", "marks": 3},
+      {"section": "E", "q": "List all prime numbers between 1 and 100 using the Sieve of Eratosthenes method. Draw the sieve grid, cross out multiples, and circle the primes. Upload a clear photo.", "marks": 5}
     ],
     "penPaperQuestions": [
       {
@@ -2324,7 +2483,7 @@ const chapters = [
       }
     ],
     "questions": [
-      {
+      { "section": "A",
         "q": "How many tally marks represent 7?",
         "options": [
           "IIII II",
@@ -2334,7 +2493,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "A",
         "q": "In a pictograph, if one symbol = 5 students, 4 symbols represent:",
         "options": [
           "15",
@@ -2344,7 +2503,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Which graph uses bars to represent data?",
         "options": [
           "Pie chart",
@@ -2354,7 +2513,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "The difference between highest and lowest values is called:",
         "options": [
           "Mean",
@@ -2364,7 +2523,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "Which is NOT a method of data collection?",
         "options": [
           "Survey",
@@ -2374,7 +2533,7 @@ const chapters = [
         ],
         "answer": 3
       },
-      {
+      { "section": "A",
         "q": "Tally marks for 13:",
         "options": [
           "IIII IIII III",
@@ -2384,7 +2543,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "A",
         "q": "In pictograph, half symbol represents:",
         "options": [
           "Full value",
@@ -2394,7 +2553,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Bar graph shows data using:",
         "options": [
           "Lines",
@@ -2404,7 +2563,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "Primary data is collected by:",
         "options": [
           "Researcher directly",
@@ -2414,7 +2573,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "A",
         "q": "Secondary data comes from:",
         "options": [
           "Direct observation",
@@ -2424,7 +2583,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Mode is the value that appears:",
         "options": [
           "Most frequently",
@@ -2434,7 +2593,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "A",
         "q": "Mean is also called:",
         "options": [
           "Median",
@@ -2444,7 +2603,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "Median is the:",
         "options": [
           "Middle value",
@@ -2454,7 +2613,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "A",
         "q": "In a bar graph, bars are:",
         "options": [
           "Overlapping",
@@ -2464,7 +2623,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Pictograph uses:",
         "options": [
           "Bars",
@@ -2474,7 +2633,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Data arranged in order is called:",
         "options": [
           "Raw data",
@@ -2484,7 +2643,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Frequency means:",
         "options": [
           "How often",
@@ -2494,7 +2653,7 @@ const chapters = [
         ],
         "answer": 3
       },
-      {
+      { "section": "A",
         "q": "Scale in bar graph helps to:",
         "options": [
           "Draw bars",
@@ -2504,7 +2663,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Horizontal bar graph has bars:",
         "options": [
           "Standing up",
@@ -2514,7 +2673,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Title of a graph tells:",
         "options": [
           "What graph shows",
@@ -2524,7 +2683,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "A",
         "q": "X-axis is usually:",
         "options": [
           "Horizontal",
@@ -2534,7 +2693,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "A",
         "q": "Y-axis is usually:",
         "options": [
           "Horizontal",
@@ -2544,7 +2703,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Legend in pictograph shows:",
         "options": [
           "Title",
@@ -2554,7 +2713,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Double bar graph compares:",
         "options": [
           "One set of data",
@@ -2564,7 +2723,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Tally marks are grouped in:",
         "options": [
           "3s",
@@ -2574,7 +2733,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "B", "case": "A class of 40 students recorded their favourite sports: Cricket-15, Football-8, Badminton-10, Tennis-7. Use this for the next 3 questions.",
         "q": "If 8 students like cricket, tally is:",
         "options": [
           "IIII II",
@@ -2584,7 +2743,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "B", "case": "A class of 40 students recorded their favourite sports: Cricket-15, Football-8, Badminton-10, Tennis-7. Use this for the next 3 questions.",
         "q": "Range of 5, 8, 12, 3, 9 is:",
         "options": [
           "9",
@@ -2594,7 +2753,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "B", "case": "A class of 40 students recorded their favourite sports: Cricket-15, Football-8, Badminton-10, Tennis-7. Use this for the next 3 questions.",
         "q": "Mode of 2, 3, 3, 4, 5, 3 is:",
         "options": [
           "2",
@@ -2604,7 +2763,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "B", "case": "The temperature in a city was recorded for 7 days: Mon 32C, Tue 35C, Wed 33C, Thu 30C, Fri 28C, Sat 31C, Sun 34C. Use this for the next 4 questions.",
         "q": "Mean of 10, 20, 30 is:",
         "options": [
           "10",
@@ -2614,7 +2773,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "B", "case": "The temperature in a city was recorded for 7 days: Mon 32C, Tue 35C, Wed 33C, Thu 30C, Fri 28C, Sat 31C, Sun 34C. Use this for the next 4 questions.",
         "q": "Median of 1, 3, 5, 7, 9 is:",
         "options": [
           "3",
@@ -2624,7 +2783,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "B", "case": "The temperature in a city was recorded for 7 days: Mon 32C, Tue 35C, Wed 33C, Thu 30C, Fri 28C, Sat 31C, Sun 34C. Use this for the next 4 questions.",
         "q": "Bar graph is best for:",
         "options": [
           "Showing parts of whole",
@@ -2634,7 +2793,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "B", "case": "The temperature in a city was recorded for 7 days: Mon 32C, Tue 35C, Wed 33C, Thu 30C, Fri 28C, Sat 31C, Sun 34C. Use this for the next 4 questions.",
         "q": "Pie chart shows:",
         "options": [
           "Parts of a whole",
@@ -2644,7 +2803,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "B", "case": "A shop sold the following items in a week: Pencils-120, Pens-85, Erasers-60, Sharpeners-35. Use this for the next 3 questions.",
         "q": "Line graph is best for:",
         "options": [
           "Comparing",
@@ -2654,7 +2813,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "B", "case": "A shop sold the following items in a week: Pencils-120, Pens-85, Erasers-60, Sharpeners-35. Use this for the next 3 questions.",
         "q": "Raw data is:",
         "options": [
           "Organized",
@@ -2664,7 +2823,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "B", "case": "A shop sold the following items in a week: Pencils-120, Pens-85, Erasers-60, Sharpeners-35. Use this for the next 3 questions.",
         "q": "Observation method collects data by:",
         "options": [
           "Asking questions",
@@ -2673,57 +2832,14 @@ const chapters = [
           "Calculating"
         ],
         "answer": 1
-      },
-      {
-        "q": "Survey method uses:",
-        "options": [
-          "Questionnaires",
-          "Observation",
-          "Experiments",
-          "Books"
-        ],
-        "answer": 0
-      },
-      {
-        "q": "Class interval is:",
-        "options": [
-          "Range of values",
-          "Single value",
-          "Average",
-          "Mode"
-        ],
-        "answer": 0
-      },
-      {
-        "q": "Frequency table shows:",
-        "options": [
-          "Data and how often",
-          "Only data",
-          "Only frequency",
-          "Graphs"
-        ],
-        "answer": 0
-      },
-      {
-        "q": "If scale is 1 cm = 10 units, 5 cm represents:",
-        "options": [
-          "10",
-          "50",
-          "15",
-          "5"
-        ],
-        "answer": 1
-      },
-      {
-        "q": "Grouped data uses:",
-        "options": [
-          "Individual values",
-          "Class intervals",
-          "Single numbers",
-          "No numbers"
-        ],
-        "answer": 1
       }
+    ],
+    "penPaper": [
+      {"section": "C", "q": "The marks of 10 students are: 45, 67, 82, 55, 73, 91, 38, 60, 77, 85. Find the mean, median, and mode. Show all steps on paper and upload a photo.", "marks": 2},
+      {"section": "C", "q": "Draw a pictograph for: Apples-20, Bananas-35, Oranges-15, Grapes-25. Use a symbol to represent 5 fruits. Upload a photo.", "marks": 2},
+      {"section": "D", "q": "Draw a bar graph for monthly rainfall (in mm): Jan-20, Feb-15, Mar-30, Apr-50, May-80, Jun-150. Choose an appropriate scale and label both axes. Upload a photo.", "marks": 3},
+      {"section": "D", "q": "A dice is rolled 30 times with results: 1->5, 2->4, 3->6, 4->3, 5->7, 6->5. Draw a frequency table and bar graph. Find the most and least frequent outcomes. Upload a photo.", "marks": 3},
+      {"section": "E", "q": "Conduct a survey of 20 items (e.g. favourite colours or foods). Record the data, create a tally chart, frequency table, bar graph, and pie chart. Write observations. Upload a clear photo.", "marks": 5}
     ],
     "penPaperQuestions": [
       {
@@ -2756,7 +2872,7 @@ const chapters = [
       }
     ],
     "questions": [
-      {
+      { "section": "A",
         "q": "Which of these is a prime number?",
         "options": [
           "4",
@@ -2766,7 +2882,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "The smallest prime number is:",
         "options": [
           "0",
@@ -2776,7 +2892,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "How many factors does 12 have?",
         "options": [
           "4",
@@ -2786,7 +2902,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "The prime factorization of 18 is:",
         "options": [
           "2 x 9",
@@ -2796,7 +2912,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Which is a composite number?",
         "options": [
           "2",
@@ -2806,7 +2922,7 @@ const chapters = [
         ],
         "answer": 3
       },
-      {
+      { "section": "A",
         "q": "Factors of 24 are:",
         "options": [
           "1,2,3,4,6,8,12,24",
@@ -2816,7 +2932,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "A",
         "q": "HCF of 12 and 18 is:",
         "options": [
           "2",
@@ -2826,7 +2942,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "LCM of 4 and 6 is:",
         "options": [
           "2",
@@ -2836,7 +2952,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "1 is:",
         "options": [
           "Prime",
@@ -2846,7 +2962,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "Prime numbers between 10 and 20:",
         "options": [
           "11, 13, 17, 19",
@@ -2856,7 +2972,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "A",
         "q": "Which is NOT a factor of 36?",
         "options": [
           "4",
@@ -2866,7 +2982,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "The only even prime number is:",
         "options": [
           "0",
@@ -2876,7 +2992,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Co-prime numbers have HCF:",
         "options": [
           "0",
@@ -2886,7 +3002,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Prime factorization of 36:",
         "options": [
           "2x2x3x3",
@@ -2896,7 +3012,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "A",
         "q": "Number of prime numbers less than 10:",
         "options": [
           "3",
@@ -2906,7 +3022,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "LCM of 8 and 12 is:",
         "options": [
           "4",
@@ -2916,7 +3032,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "HCF of 15 and 25 is:",
         "options": [
           "5",
@@ -2926,7 +3042,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "A",
         "q": "A number with exactly 2 factors is:",
         "options": [
           "Prime",
@@ -2936,7 +3052,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "A",
         "q": "Factors of 1 are:",
         "options": [
           "0",
@@ -2946,7 +3062,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Which pair is co-prime?",
         "options": [
           "4, 8",
@@ -2956,7 +3072,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "Prime factorization of 48:",
         "options": [
           "2x2x2x2x3",
@@ -2966,7 +3082,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "A",
         "q": "LCM of 5 and 7 is:",
         "options": [
           "12",
@@ -2976,7 +3092,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "HCF of 24 and 36 is:",
         "options": [
           "6",
@@ -2986,7 +3102,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Twin primes are primes that differ by:",
         "options": [
           "1",
@@ -2996,7 +3112,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Example of twin primes:",
         "options": [
           "2, 3",
@@ -3006,7 +3122,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "B", "case": "A number N when divided by 12 leaves remainder 7. Use this for the next 3 questions.",
         "q": "Product of HCF and LCM of two numbers equals:",
         "options": [
           "Sum of numbers",
@@ -3016,7 +3132,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "B", "case": "A number N when divided by 12 leaves remainder 7. Use this for the next 3 questions.",
         "q": "Divisibility rule for 2:",
         "options": [
           "Sum divisible by 2",
@@ -3026,7 +3142,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "B", "case": "A number N when divided by 12 leaves remainder 7. Use this for the next 3 questions.",
         "q": "Divisibility rule for 3:",
         "options": [
           "Last digit 3",
@@ -3036,7 +3152,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "B", "case": "Two farmers have fields of area 252 sq m and 180 sq m. They want to divide them into equal square plots. Use this for the next 4 questions.",
         "q": "Divisibility rule for 5:",
         "options": [
           "Ends in 0 or 5",
@@ -3046,7 +3162,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "B", "case": "Two farmers have fields of area 252 sq m and 180 sq m. They want to divide them into equal square plots. Use this for the next 4 questions.",
         "q": "Is 91 prime?",
         "options": [
           "Yes",
@@ -3056,7 +3172,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "B", "case": "Two farmers have fields of area 252 sq m and 180 sq m. They want to divide them into equal square plots. Use this for the next 4 questions.",
         "q": "Factors of prime number p:",
         "options": [
           "1 only",
@@ -3066,7 +3182,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "B", "case": "Two farmers have fields of area 252 sq m and 180 sq m. They want to divide them into equal square plots. Use this for the next 4 questions.",
         "q": "LCM of 12, 15, 20 is:",
         "options": [
           "30",
@@ -3076,7 +3192,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "B", "case": "A library arranges 1260 books equally on shelves. Use this for the next 3 questions.",
         "q": "HCF of 18, 24, 30 is:",
         "options": [
           "2",
@@ -3086,7 +3202,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "B", "case": "A library arranges 1260 books equally on shelves. Use this for the next 3 questions.",
         "q": "Composite numbers between 1 and 10:",
         "options": [
           "4, 6, 8, 9, 10",
@@ -3096,7 +3212,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "B", "case": "A library arranges 1260 books equally on shelves. Use this for the next 3 questions.",
         "q": "Prime factorization of 100:",
         "options": [
           "2x2x5x5",
@@ -3105,57 +3221,14 @@ const chapters = [
           "2x50"
         ],
         "answer": 0
-      },
-      {
-        "q": "If HCF(a,b)=1, then a and b are:",
-        "options": [
-          "Equal",
-          "Co-prime",
-          "Composite",
-          "Prime"
-        ],
-        "answer": 1
-      },
-      {
-        "q": "LCM of two co-prime numbers is:",
-        "options": [
-          "Their sum",
-          "Their product",
-          "Their HCF",
-          "1"
-        ],
-        "answer": 1
-      },
-      {
-        "q": "Number of factors of 16:",
-        "options": [
-          "3",
-          "4",
-          "5",
-          "6"
-        ],
-        "answer": 2
-      },
-      {
-        "q": "Smallest composite number:",
-        "options": [
-          "1",
-          "2",
-          "4",
-          "6"
-        ],
-        "answer": 2
-      },
-      {
-        "q": "Greatest prime number less than 50:",
-        "options": [
-          "43",
-          "47",
-          "49",
-          "51"
-        ],
-        "answer": 1
       }
+    ],
+    "penPaper": [
+      {"section": "C", "q": "Draw the factor tree for 360 and write its prime factorisation. Also express it in exponential form. Show on paper and upload a photo.", "marks": 2},
+      {"section": "C", "q": "Find all pairs of twin primes between 1 and 100 (twin primes differ by 2). List them on paper and upload a photo.", "marks": 2},
+      {"section": "D", "q": "Find the HCF and LCM of 84, 120, and 156 using the prime factorisation method. Verify that HCF x LCM relationship holds for any two of these. Upload a photo.", "marks": 3},
+      {"section": "D", "q": "Prove that every even number greater than 2 can be expressed as the sum of two prime numbers (verify for 10, 20, 30, 40, 50). Upload your work.", "marks": 3},
+      {"section": "E", "q": "Explain the divisibility rules for 2, 3, 4, 5, 6, 8, 9, and 11 with examples. Test the number 2,475,936 for divisibility by each. Show all work on paper and upload a photo.", "marks": 5}
     ],
     "penPaperQuestions": [
       {
@@ -3188,7 +3261,7 @@ const chapters = [
       }
     ],
     "questions": [
-      {
+      { "section": "A",
         "q": "The perimeter of a square with side 5 cm is:",
         "options": [
           "10 cm",
@@ -3198,7 +3271,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "Area of a rectangle with length 8 cm and breadth 5 cm is:",
         "options": [
           "13 sq cm",
@@ -3208,7 +3281,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "If perimeter of a square is 24 cm, its side is:",
         "options": [
           "4 cm",
@@ -3218,7 +3291,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Perimeter of a rectangle with l=10 cm, b=6 cm is:",
         "options": [
           "16 cm",
@@ -3228,7 +3301,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Area of a square with side 7 cm is:",
         "options": [
           "14 sq cm",
@@ -3238,7 +3311,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "Perimeter formula for rectangle:",
         "options": [
           "l + b",
@@ -3248,7 +3321,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Area formula for rectangle:",
         "options": [
           "l + b",
@@ -3258,7 +3331,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "Perimeter formula for square:",
         "options": [
           "s",
@@ -3268,7 +3341,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "Area formula for square:",
         "options": [
           "s",
@@ -3278,7 +3351,7 @@ const chapters = [
         ],
         "answer": 3
       },
-      {
+      { "section": "A",
         "q": "If area of square is 64 sq cm, side is:",
         "options": [
           "4 cm",
@@ -3288,7 +3361,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Perimeter of equilateral triangle with side 6 cm:",
         "options": [
           "12 cm",
@@ -3298,7 +3371,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Area of rectangle with l=12 m, b=8 m:",
         "options": [
           "20 sq m",
@@ -3308,7 +3381,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "If perimeter of rectangle is 30 cm and l=10 cm, b=:",
         "options": [
           "5 cm",
@@ -3318,7 +3391,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "A",
         "q": "Area of square with perimeter 20 cm:",
         "options": [
           "5 sq cm",
@@ -3328,7 +3401,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "Perimeter of rectangle with area 24 sq cm and l=6 cm:",
         "options": [
           "10 cm",
@@ -3338,7 +3411,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "Unit of perimeter:",
         "options": [
           "cm",
@@ -3348,7 +3421,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "A",
         "q": "Unit of area:",
         "options": [
           "cm",
@@ -3358,7 +3431,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "1 sq m = ___ sq cm:",
         "options": [
           "100",
@@ -3368,7 +3441,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "Perimeter of triangle with sides 3, 4, 5 cm:",
         "options": [
           "6 cm",
@@ -3378,7 +3451,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Area of rectangle doubles if:",
         "options": [
           "Length doubles",
@@ -3388,7 +3461,7 @@ const chapters = [
         ],
         "answer": 3
       },
-      {
+      { "section": "A",
         "q": "Perimeter of rectangle doubles if:",
         "options": [
           "Length doubles",
@@ -3398,7 +3471,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "Square and rectangle have same perimeter. Which has more area?",
         "options": [
           "Square",
@@ -3408,7 +3481,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "A",
         "q": "If side of square is doubled, area becomes:",
         "options": [
           "Double",
@@ -3418,7 +3491,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "If side of square is doubled, perimeter becomes:",
         "options": [
           "Double",
@@ -3428,7 +3501,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "A",
         "q": "Area of path around rectangle:",
         "options": [
           "Outer - Inner",
@@ -3438,7 +3511,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "B", "case": "A rectangular park is 120m long and 80m wide. A 2m wide path runs along the inside of the boundary. Use this for the next 3 questions.",
         "q": "Perimeter of semicircle with diameter 14 cm:",
         "options": [
           "22 cm",
@@ -3448,7 +3521,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "B", "case": "A rectangular park is 120m long and 80m wide. A 2m wide path runs along the inside of the boundary. Use this for the next 3 questions.",
         "q": "Area of square field with perimeter 100 m:",
         "options": [
           "100 sq m",
@@ -3458,7 +3531,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "B", "case": "A rectangular park is 120m long and 80m wide. A 2m wide path runs along the inside of the boundary. Use this for the next 3 questions.",
         "q": "Cost of fencing at Rs 10/m for square field of side 25 m:",
         "options": [
           "Rs 250",
@@ -3468,7 +3541,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "B", "case": "A farmer has 200m of fencing wire and wants to enclose the maximum area. He considers different shapes. Use this for the next 4 questions.",
         "q": "Area of rectangular plot 50 m x 30 m:",
         "options": [
           "80 sq m",
@@ -3478,7 +3551,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "B", "case": "A farmer has 200m of fencing wire and wants to enclose the maximum area. He considers different shapes. Use this for the next 4 questions.",
         "q": "Perimeter of regular hexagon with side 5 cm:",
         "options": [
           "15 cm",
@@ -3488,7 +3561,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "B", "case": "A farmer has 200m of fencing wire and wants to enclose the maximum area. He considers different shapes. Use this for the next 4 questions.",
         "q": "If area of rectangle is 48 sq cm and l=8 cm, b=:",
         "options": [
           "4 cm",
@@ -3498,7 +3571,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "B", "case": "A farmer has 200m of fencing wire and wants to enclose the maximum area. He considers different shapes. Use this for the next 4 questions.",
         "q": "Perimeter of isosceles triangle with equal sides 5 cm and base 6 cm:",
         "options": [
           "11 cm",
@@ -3508,7 +3581,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "B", "case": "A room is 8m long, 6m wide, and 3m high. It has 2 doors (2m x 1m each) and 3 windows (1.5m x 1m each). Use this for the next 3 questions.",
         "q": "Area of square with diagonal 10 cm:",
         "options": [
           "25 sq cm",
@@ -3518,7 +3591,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "B", "case": "A room is 8m long, 6m wide, and 3m high. It has 2 doors (2m x 1m each) and 3 windows (1.5m x 1m each). Use this for the next 3 questions.",
         "q": "If perimeter of square equals perimeter of rectangle (l=9, b=3), side of square:",
         "options": [
           "3 cm",
@@ -3528,7 +3601,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "B", "case": "A room is 8m long, 6m wide, and 3m high. It has 2 doors (2m x 1m each) and 3 windows (1.5m x 1m each). Use this for the next 3 questions.",
         "q": "Area of rectangle with perimeter 20 cm and l=6 cm:",
         "options": [
           "12 sq cm",
@@ -3537,57 +3610,14 @@ const chapters = [
           "30 sq cm"
         ],
         "answer": 2
-      },
-      {
-        "q": "Perimeter of rhombus with side 8 cm:",
-        "options": [
-          "16 cm",
-          "24 cm",
-          "32 cm",
-          "64 cm"
-        ],
-        "answer": 2
-      },
-      {
-        "q": "If area of square is 144 sq cm, perimeter is:",
-        "options": [
-          "12 cm",
-          "24 cm",
-          "36 cm",
-          "48 cm"
-        ],
-        "answer": 3
-      },
-      {
-        "q": "Cost of carpeting at Rs 50/sq m for room 6 m x 4 m:",
-        "options": [
-          "Rs 240",
-          "Rs 500",
-          "Rs 1000",
-          "Rs 1200"
-        ],
-        "answer": 3
-      },
-      {
-        "q": "Perimeter of rectangle is 50 cm. If l=15 cm, area is:",
-        "options": [
-          "100 sq cm",
-          "150 sq cm",
-          "200 sq cm",
-          "225 sq cm"
-        ],
-        "answer": 1
-      },
-      {
-        "q": "Area of square is 81 sq cm. Its perimeter is:",
-        "options": [
-          "18 cm",
-          "27 cm",
-          "36 cm",
-          "81 cm"
-        ],
-        "answer": 2
       }
+    ],
+    "penPaper": [
+      {"section": "C", "q": "Find the area and perimeter of a triangle with sides 13cm, 14cm, and 15cm using Heron's formula. Show all steps on paper and upload a photo.", "marks": 2},
+      {"section": "C", "q": "A circular garden has radius 14m. Find its circumference and area (use pi = 22/7). Show the calculation on paper and upload a photo.", "marks": 2},
+      {"section": "D", "q": "Draw a composite shape made of a rectangle (10cm x 6cm) with a semicircle on one shorter side. Find the total area and perimeter. Upload a photo.", "marks": 3},
+      {"section": "D", "q": "A rectangular field is 50m x 30m. A path 2m wide runs around the outside. Find the area of the path and the cost of paving at Rs.25/sq m. Upload a photo.", "marks": 3},
+      {"section": "E", "q": "Design a floor plan of a room with at least 3 different shaped regions (rectangle, triangle, circle). Calculate the area of each region and the total area. Draw to scale and upload a clear photo.", "marks": 5}
     ],
     "penPaperQuestions": [
       {
@@ -3620,7 +3650,7 @@ const chapters = [
       }
     ],
     "questions": [
-      {
+      { "section": "A",
         "q": "What type of fraction is 5/3?",
         "options": [
           "Proper",
@@ -3630,7 +3660,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Which fraction is equivalent to 2/4?",
         "options": [
           "1/3",
@@ -3640,7 +3670,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Convert 7/4 to mixed number:",
         "options": [
           "1 1/4",
@@ -3650,7 +3680,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "1/4 + 2/4 = ?",
         "options": [
           "3/8",
@@ -3660,7 +3690,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Which is greater: 3/5 or 2/5?",
         "options": [
           "3/5",
@@ -3670,7 +3700,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "A",
         "q": "A proper fraction has:",
         "options": [
           "Numerator > Denominator",
@@ -3680,7 +3710,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "An improper fraction has:",
         "options": [
           "Numerator > Denominator",
@@ -3690,7 +3720,7 @@ const chapters = [
         ],
         "answer": 3
       },
-      {
+      { "section": "A",
         "q": "Convert 2 1/3 to improper fraction:",
         "options": [
           "5/3",
@@ -3700,7 +3730,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Simplify 8/12:",
         "options": [
           "2/3",
@@ -3710,7 +3740,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "A",
         "q": "3/4 - 1/4 = ?",
         "options": [
           "2/4",
@@ -3720,7 +3750,7 @@ const chapters = [
         ],
         "answer": 3
       },
-      {
+      { "section": "A",
         "q": "LCM of denominators is needed for:",
         "options": [
           "Multiplication",
@@ -3730,7 +3760,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "2/5 + 1/3 = ?",
         "options": [
           "3/8",
@@ -3740,7 +3770,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "5/6 - 1/3 = ?",
         "options": [
           "4/6",
@@ -3750,7 +3780,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "2/3 x 3/4 = ?",
         "options": [
           "5/7",
@@ -3760,7 +3790,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "3/4 divided by 1/2 = ?",
         "options": [
           "3/8",
@@ -3770,7 +3800,7 @@ const chapters = [
         ],
         "answer": 3
       },
-      {
+      { "section": "A",
         "q": "Reciprocal of 2/5 is:",
         "options": [
           "2/5",
@@ -3780,7 +3810,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Which is smallest: 1/2, 1/3, 1/4?",
         "options": [
           "1/2",
@@ -3790,7 +3820,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "Which is largest: 2/3, 3/4, 5/6?",
         "options": [
           "2/3",
@@ -3800,7 +3830,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "1/2 of 24 = ?",
         "options": [
           "6",
@@ -3810,7 +3840,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "3/4 of 20 = ?",
         "options": [
           "5",
@@ -3820,7 +3850,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "Convert 0.5 to fraction:",
         "options": [
           "1/5",
@@ -3830,7 +3860,7 @@ const chapters = [
         ],
         "answer": 3
       },
-      {
+      { "section": "A",
         "q": "Convert 3/4 to decimal:",
         "options": [
           "0.34",
@@ -3840,7 +3870,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Sum of 1/2 + 1/3 + 1/6 = ?",
         "options": [
           "3/11",
@@ -3850,7 +3880,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Product of 2/3 and its reciprocal:",
         "options": [
           "0",
@@ -3860,7 +3890,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "If 2/5 of a number is 10, the number is:",
         "options": [
           "4",
@@ -3870,7 +3900,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "B", "case": "A recipe needs 3/4 cup sugar, 2/3 cup flour, and 1/2 cup butter. Meena wants to make 1.5 times the recipe. Use this for the next 3 questions.",
         "q": "Fraction between 1/2 and 3/4:",
         "options": [
           "1/3",
@@ -3880,7 +3910,7 @@ const chapters = [
         ],
         "answer": 3
       },
-      {
+      { "section": "B", "case": "A recipe needs 3/4 cup sugar, 2/3 cup flour, and 1/2 cup butter. Meena wants to make 1.5 times the recipe. Use this for the next 3 questions.",
         "q": "1 - 3/7 = ?",
         "options": [
           "4/7",
@@ -3890,7 +3920,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "B", "case": "A recipe needs 3/4 cup sugar, 2/3 cup flour, and 1/2 cup butter. Meena wants to make 1.5 times the recipe. Use this for the next 3 questions.",
         "q": "2 1/2 + 1 1/4 = ?",
         "options": [
           "3 1/2",
@@ -3900,7 +3930,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "B", "case": "A water tank is 5/8 full. 120 litres are used, leaving it 3/8 full. Use this for the next 4 questions.",
         "q": "4 1/3 - 2 2/3 = ?",
         "options": [
           "2 1/3",
@@ -3910,7 +3940,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "B", "case": "A water tank is 5/8 full. 120 litres are used, leaving it 3/8 full. Use this for the next 4 questions.",
         "q": "Like fractions have same:",
         "options": [
           "Numerator",
@@ -3920,7 +3950,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "B", "case": "A water tank is 5/8 full. 120 litres are used, leaving it 3/8 full. Use this for the next 4 questions.",
         "q": "Unlike fractions have different:",
         "options": [
           "Numerators",
@@ -3930,7 +3960,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "B", "case": "A water tank is 5/8 full. 120 litres are used, leaving it 3/8 full. Use this for the next 4 questions.",
         "q": "Unit fraction has numerator:",
         "options": [
           "0",
@@ -3940,7 +3970,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "B", "case": "Three friends share a pizza. Amit eats 1/3, Ravi eats 1/4, and Sneha eats 1/6 of the pizza. Use this for the next 3 questions.",
         "q": "Fraction form of 25%:",
         "options": [
           "1/4",
@@ -3950,7 +3980,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "B", "case": "Three friends share a pizza. Amit eats 1/3, Ravi eats 1/4, and Sneha eats 1/6 of the pizza. Use this for the next 3 questions.",
         "q": "Percentage form of 3/4:",
         "options": [
           "34%",
@@ -3960,7 +3990,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "B", "case": "Three friends share a pizza. Amit eats 1/3, Ravi eats 1/4, and Sneha eats 1/6 of the pizza. Use this for the next 3 questions.",
         "q": "3/5 x 5/3 = ?",
         "options": [
           "0",
@@ -3969,57 +3999,14 @@ const chapters = [
           "Both B and C"
         ],
         "answer": 3
-      },
-      {
-        "q": "Ascending order: 1/2, 2/3, 3/4",
-        "options": [
-          "1/2, 2/3, 3/4",
-          "3/4, 2/3, 1/2",
-          "2/3, 1/2, 3/4",
-          "1/2, 3/4, 2/3"
-        ],
-        "answer": 0
-      },
-      {
-        "q": "Descending order: 5/6, 2/3, 1/2",
-        "options": [
-          "1/2, 2/3, 5/6",
-          "5/6, 2/3, 1/2",
-          "2/3, 5/6, 1/2",
-          "5/6, 1/2, 2/3"
-        ],
-        "answer": 1
-      },
-      {
-        "q": "Fraction equivalent to 3/5 with denominator 20:",
-        "options": [
-          "6/20",
-          "9/20",
-          "12/20",
-          "15/20"
-        ],
-        "answer": 2
-      },
-      {
-        "q": "Simplest form of 18/24:",
-        "options": [
-          "9/12",
-          "6/8",
-          "3/4",
-          "2/3"
-        ],
-        "answer": 2
-      },
-      {
-        "q": "If 3/4 = x/20, then x = ?",
-        "options": [
-          "12",
-          "15",
-          "16",
-          "18"
-        ],
-        "answer": 1
       }
+    ],
+    "penPaper": [
+      {"section": "C", "q": "Simplify: (2/3 + 3/4) x (5/6 - 1/3). Show every step of the calculation on paper and upload a photo.", "marks": 2},
+      {"section": "C", "q": "Arrange in ascending order: 3/5, 2/3, 5/8, 7/12. Find the LCM of denominators and convert. Show work and upload a photo.", "marks": 2},
+      {"section": "D", "q": "A piece of cloth is 8 3/4 metres long. Three pieces of lengths 2 1/3 m, 1 5/6 m, and 3 1/4 m are cut from it. How much cloth is left? Show all steps and upload a photo.", "marks": 3},
+      {"section": "D", "q": "If 2/5 of a number is 30, find the number. Then find 3/4 of that number and 7/8 of the result. Show the chain of calculations. Upload a photo.", "marks": 3},
+      {"section": "E", "q": "Create a word problem involving addition, subtraction, and multiplication of fractions (at least 3 operations). Solve it step by step showing all working. Upload a clear photo.", "marks": 5}
     ],
     "penPaperQuestions": [
       {
@@ -4052,7 +4039,7 @@ const chapters = [
       }
     ],
     "questions": [
-      {
+      { "section": "A",
         "q": "Which tool is used to draw a circle?",
         "options": [
           "Ruler",
@@ -4062,7 +4049,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "To construct a 60 degree angle, we use:",
         "options": [
           "Protractor only",
@@ -4072,7 +4059,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "The radius of a circle is 5 cm. Its diameter is:",
         "options": [
           "2.5 cm",
@@ -4082,7 +4069,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "A perpendicular bisector divides a line segment into:",
         "options": [
           "Three equal parts",
@@ -4092,7 +4079,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "To construct a triangle, minimum how many measurements are needed?",
         "options": [
           "1",
@@ -4102,7 +4089,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "Compass is used to:",
         "options": [
           "Measure angles",
@@ -4112,7 +4099,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Protractor is used to:",
         "options": [
           "Draw circles",
@@ -4122,7 +4109,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Set square has angles:",
         "options": [
           "30, 60, 90",
@@ -4132,7 +4119,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "To bisect an angle, we use:",
         "options": [
           "Ruler only",
@@ -4142,7 +4129,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "Perpendicular from a point to a line makes angle:",
         "options": [
           "45 degrees",
@@ -4152,7 +4139,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "To construct 90 degree angle, first construct:",
         "options": [
           "30 degrees",
@@ -4162,7 +4149,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "To construct 45 degree angle:",
         "options": [
           "Bisect 90 degrees",
@@ -4172,7 +4159,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "A",
         "q": "To construct 30 degree angle:",
         "options": [
           "Bisect 90 degrees",
@@ -4182,7 +4169,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "To construct 120 degree angle:",
         "options": [
           "Double 60 degrees",
@@ -4192,7 +4179,7 @@ const chapters = [
         ],
         "answer": 3
       },
-      {
+      { "section": "A",
         "q": "SSS congruence means:",
         "options": [
           "Side-Side-Side",
@@ -4202,7 +4189,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "A",
         "q": "SAS congruence means:",
         "options": [
           "Side-Angle-Side",
@@ -4212,7 +4199,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "A",
         "q": "ASA congruence means:",
         "options": [
           "Angle-Side-Angle",
@@ -4222,7 +4209,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "A",
         "q": "RHS congruence is for:",
         "options": [
           "All triangles",
@@ -4232,7 +4219,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "To construct equilateral triangle, all sides are:",
         "options": [
           "Different",
@@ -4242,7 +4229,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Angle of equilateral triangle:",
         "options": [
           "30 degrees",
@@ -4252,7 +4239,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "To construct isosceles triangle:",
         "options": [
           "All sides equal",
@@ -4262,7 +4249,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Scalene triangle has:",
         "options": [
           "All sides equal",
@@ -4272,7 +4259,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "Sum of angles in triangle:",
         "options": [
           "90 degrees",
@@ -4282,7 +4269,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Triangle inequality: sum of two sides is:",
         "options": [
           "Equal to third",
@@ -4292,7 +4279,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "Can triangle have sides 2, 3, 6 cm?",
         "options": [
           "Yes",
@@ -4302,7 +4289,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "B", "case": "Arun is constructing a triangle with sides 5cm, 7cm, and 8cm using a compass and ruler. Use this for the next 3 questions.",
         "q": "Can triangle have sides 3, 4, 5 cm?",
         "options": [
           "Yes",
@@ -4312,7 +4299,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "B", "case": "Arun is constructing a triangle with sides 5cm, 7cm, and 8cm using a compass and ruler. Use this for the next 3 questions.",
         "q": "Divider is used to:",
         "options": [
           "Draw circles",
@@ -4322,7 +4309,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "B", "case": "Arun is constructing a triangle with sides 5cm, 7cm, and 8cm using a compass and ruler. Use this for the next 3 questions.",
         "q": "To construct parallel line, we use:",
         "options": [
           "Compass only",
@@ -4332,7 +4319,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "B", "case": "A regular hexagon is to be inscribed in a circle of radius 4cm. Use this for the next 4 questions.",
         "q": "Angle bisector divides angle into:",
         "options": [
           "Three parts",
@@ -4342,7 +4329,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "B", "case": "A regular hexagon is to be inscribed in a circle of radius 4cm. Use this for the next 4 questions.",
         "q": "Perpendicular bisector of chord passes through:",
         "options": [
           "Chord",
@@ -4352,7 +4339,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "B", "case": "A regular hexagon is to be inscribed in a circle of radius 4cm. Use this for the next 4 questions.",
         "q": "To construct 75 degree angle:",
         "options": [
           "60 + 15",
@@ -4362,7 +4349,7 @@ const chapters = [
         ],
         "answer": 3
       },
-      {
+      { "section": "B", "case": "A regular hexagon is to be inscribed in a circle of radius 4cm. Use this for the next 4 questions.",
         "q": "To construct 105 degree angle:",
         "options": [
           "60 + 45",
@@ -4372,7 +4359,7 @@ const chapters = [
         ],
         "answer": 3
       },
-      {
+      { "section": "B", "case": "Two circles of radii 3cm and 5cm overlap. The distance between their centres is 6cm. Use this for the next 3 questions.",
         "q": "To construct 135 degree angle:",
         "options": [
           "90 + 45",
@@ -4382,7 +4369,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "B", "case": "Two circles of radii 3cm and 5cm overlap. The distance between their centres is 6cm. Use this for the next 3 questions.",
         "q": "To construct 150 degree angle:",
         "options": [
           "90 + 60",
@@ -4392,7 +4379,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "B", "case": "Two circles of radii 3cm and 5cm overlap. The distance between their centres is 6cm. Use this for the next 3 questions.",
         "q": "Altitude of triangle is:",
         "options": [
           "Perpendicular from vertex to opposite side",
@@ -4401,57 +4388,14 @@ const chapters = [
           "Side"
         ],
         "answer": 0
-      },
-      {
-        "q": "Median of triangle connects:",
-        "options": [
-          "Vertex to midpoint of opposite side",
-          "Midpoints of two sides",
-          "Two vertices",
-          "None"
-        ],
-        "answer": 0
-      },
-      {
-        "q": "Centroid divides median in ratio:",
-        "options": [
-          "1:1",
-          "1:2",
-          "2:1",
-          "1:3"
-        ],
-        "answer": 2
-      },
-      {
-        "q": "Circumcenter is equidistant from:",
-        "options": [
-          "Vertices",
-          "Sides",
-          "Angles",
-          "Medians"
-        ],
-        "answer": 0
-      },
-      {
-        "q": "Incenter is equidistant from:",
-        "options": [
-          "Vertices",
-          "Sides",
-          "Angles",
-          "Medians"
-        ],
-        "answer": 1
-      },
-      {
-        "q": "Orthocenter is intersection of:",
-        "options": [
-          "Medians",
-          "Altitudes",
-          "Angle bisectors",
-          "Perpendicular bisectors"
-        ],
-        "answer": 1
       }
+    ],
+    "penPaper": [
+      {"section": "C", "q": "Construct a triangle with sides 6cm, 7cm, and 8cm using compass and ruler. Measure all three angles with a protractor. Upload a photo.", "marks": 2},
+      {"section": "C", "q": "Construct the perpendicular bisector of a line segment of length 8cm. Mark the midpoint. Upload a photo showing all construction arcs.", "marks": 2},
+      {"section": "D", "q": "Construct a triangle ABC where AB=7cm, angle A=60 degrees, angle B=50 degrees. Find angle C by measurement and verify the angle sum property. Upload a photo.", "marks": 3},
+      {"section": "D", "q": "Draw a circle of radius 4cm. Construct a regular hexagon inscribed in the circle. Measure each side and verify they equal the radius. Upload a photo.", "marks": 3},
+      {"section": "E", "q": "Construct a triangle with sides 5cm, 6cm, 7cm. Then construct the circumscribed circle (circumcircle) passing through all three vertices. Show all construction steps clearly. Upload a photo.", "marks": 5}
     ],
     "penPaperQuestions": [
       {
@@ -4484,7 +4428,7 @@ const chapters = [
       }
     ],
     "questions": [
-      {
+      { "section": "A",
         "q": "How many lines of symmetry does a square have?",
         "options": [
           "1",
@@ -4494,7 +4438,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "A circle has:",
         "options": [
           "1 line of symmetry",
@@ -4504,7 +4448,7 @@ const chapters = [
         ],
         "answer": 3
       },
-      {
+      { "section": "A",
         "q": "Which letter has vertical line of symmetry?",
         "options": [
           "F",
@@ -4514,7 +4458,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "An equilateral triangle has how many lines of symmetry?",
         "options": [
           "1",
@@ -4524,7 +4468,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "Which shape has no line of symmetry?",
         "options": [
           "Circle",
@@ -4534,7 +4478,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "Rectangle has how many lines of symmetry?",
         "options": [
           "1",
@@ -4544,7 +4488,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Isosceles triangle has how many lines of symmetry?",
         "options": [
           "0",
@@ -4554,7 +4498,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Regular hexagon has how many lines of symmetry?",
         "options": [
           "3",
@@ -4564,7 +4508,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "Regular pentagon has how many lines of symmetry?",
         "options": [
           "3",
@@ -4574,7 +4518,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "Letter H has how many lines of symmetry?",
         "options": [
           "0",
@@ -4584,7 +4528,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "Letter B has how many lines of symmetry?",
         "options": [
           "0",
@@ -4594,7 +4538,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Letter O has how many lines of symmetry?",
         "options": [
           "1",
@@ -4604,7 +4548,7 @@ const chapters = [
         ],
         "answer": 3
       },
-      {
+      { "section": "A",
         "q": "Letter S has how many lines of symmetry?",
         "options": [
           "0",
@@ -4614,7 +4558,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "A",
         "q": "Rhombus has how many lines of symmetry?",
         "options": [
           "0",
@@ -4624,7 +4568,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "Parallelogram has how many lines of symmetry?",
         "options": [
           "0",
@@ -4634,7 +4578,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "A",
         "q": "Kite has how many lines of symmetry?",
         "options": [
           "0",
@@ -4644,7 +4588,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Trapezium has how many lines of symmetry?",
         "options": [
           "0",
@@ -4654,7 +4598,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "A",
         "q": "Isosceles trapezium has how many lines of symmetry?",
         "options": [
           "0",
@@ -4664,7 +4608,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Regular octagon has how many lines of symmetry?",
         "options": [
           "4",
@@ -4674,7 +4618,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "Semi-circle has how many lines of symmetry?",
         "options": [
           "0",
@@ -4684,7 +4628,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Line of symmetry is also called:",
         "options": [
           "Axis of symmetry",
@@ -4694,7 +4638,7 @@ const chapters = [
         ],
         "answer": 3
       },
-      {
+      { "section": "A",
         "q": "Reflection symmetry means:",
         "options": [
           "Rotation",
@@ -4704,7 +4648,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Rotational symmetry of square:",
         "options": [
           "Order 2",
@@ -4714,7 +4658,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "Rotational symmetry of equilateral triangle:",
         "options": [
           "Order 2",
@@ -4724,7 +4668,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Rotational symmetry of regular hexagon:",
         "options": [
           "Order 2",
@@ -4734,7 +4678,7 @@ const chapters = [
         ],
         "answer": 3
       },
-      {
+      { "section": "B", "case": "A butterfly has bilateral symmetry. Its left wing has a pattern of 3 spots arranged in a triangle. Use this for the next 3 questions.",
         "q": "Angle of rotation for order 4 symmetry:",
         "options": [
           "45 degrees",
@@ -4744,7 +4688,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "B", "case": "A butterfly has bilateral symmetry. Its left wing has a pattern of 3 spots arranged in a triangle. Use this for the next 3 questions.",
         "q": "Angle of rotation for order 6 symmetry:",
         "options": [
           "45 degrees",
@@ -4754,7 +4698,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "B", "case": "A butterfly has bilateral symmetry. Its left wing has a pattern of 3 spots arranged in a triangle. Use this for the next 3 questions.",
         "q": "Which has both line and rotational symmetry?",
         "options": [
           "Scalene triangle",
@@ -4764,7 +4708,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "B", "case": "A rangoli design is made using a regular octagon as the base shape. Use this for the next 4 questions.",
         "q": "Point symmetry is same as:",
         "options": [
           "Line symmetry",
@@ -4774,7 +4718,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "B", "case": "A rangoli design is made using a regular octagon as the base shape. Use this for the next 4 questions.",
         "q": "Which digit has line symmetry?",
         "options": [
           "2",
@@ -4784,7 +4728,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "B", "case": "A rangoli design is made using a regular octagon as the base shape. Use this for the next 4 questions.",
         "q": "Which digit has rotational symmetry?",
         "options": [
           "1",
@@ -4794,7 +4738,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "B", "case": "A rangoli design is made using a regular octagon as the base shape. Use this for the next 4 questions.",
         "q": "Number 88 has how many lines of symmetry?",
         "options": [
           "0",
@@ -4804,7 +4748,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "B", "case": "The letters of the English alphabet are classified by their lines of symmetry. Use this for the next 3 questions.",
         "q": "Number 101 has how many lines of symmetry?",
         "options": [
           "0",
@@ -4814,7 +4758,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "B", "case": "The letters of the English alphabet are classified by their lines of symmetry. Use this for the next 3 questions.",
         "q": "Mirror image of 'b' is:",
         "options": [
           "b",
@@ -4824,7 +4768,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "B", "case": "The letters of the English alphabet are classified by their lines of symmetry. Use this for the next 3 questions.",
         "q": "Mirror image of 'p' is:",
         "options": [
           "b",
@@ -4833,57 +4777,14 @@ const chapters = [
           "q"
         ],
         "answer": 3
-      },
-      {
-        "q": "Which word reads same in mirror?",
-        "options": [
-          "MOM",
-          "DAD",
-          "SIS",
-          "BRO"
-        ],
-        "answer": 0
-      },
-      {
-        "q": "Butterfly has how many lines of symmetry?",
-        "options": [
-          "0",
-          "1",
-          "2",
-          "4"
-        ],
-        "answer": 1
-      },
-      {
-        "q": "Human face has approximately:",
-        "options": [
-          "No symmetry",
-          "1 line of symmetry",
-          "2 lines of symmetry",
-          "4 lines of symmetry"
-        ],
-        "answer": 1
-      },
-      {
-        "q": "Which playing card suit has rotational symmetry?",
-        "options": [
-          "Heart",
-          "Diamond",
-          "Club",
-          "All"
-        ],
-        "answer": 3
-      },
-      {
-        "q": "Snowflake typically has how many lines of symmetry?",
-        "options": [
-          "3",
-          "4",
-          "6",
-          "8"
-        ],
-        "answer": 2
       }
+    ],
+    "penPaper": [
+      {"section": "C", "q": "Draw all lines of symmetry for the following shapes: equilateral triangle, square, regular pentagon, regular hexagon. Label each line. Upload a photo.", "marks": 2},
+      {"section": "C", "q": "Write all uppercase English letters that have exactly one line of symmetry. Draw the line of symmetry for each. Upload a photo.", "marks": 2},
+      {"section": "D", "q": "Draw a shape that has rotational symmetry of order 3 but no line of symmetry. Explain why it has rotational but not reflective symmetry. Upload a photo.", "marks": 3},
+      {"section": "D", "q": "Complete a figure given half of it and a line of symmetry (draw any half-shape of your choice). Verify by folding. Upload a photo.", "marks": 3},
+      {"section": "E", "q": "Design a rangoli or mandala pattern that has at least 4 lines of symmetry and rotational symmetry of order 4. Use colours and clearly mark all lines of symmetry. Upload a photo.", "marks": 5}
     ],
     "penPaperQuestions": [
       {
@@ -4916,7 +4817,7 @@ const chapters = [
       }
     ],
     "questions": [
-      {
+      { "section": "A",
         "q": "Which is smaller: -5 or -3?",
         "options": [
           "-5",
@@ -4926,7 +4827,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "A",
         "q": "The integer between -2 and 0 is:",
         "options": [
           "-3",
@@ -4936,7 +4837,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "What is 5 + (-3)?",
         "options": [
           "8",
@@ -4946,7 +4847,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "The opposite of -7 is:",
         "options": [
           "-7",
@@ -4956,7 +4857,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "On a number line, -4 is to the _____ of 0:",
         "options": [
           "Right",
@@ -4966,7 +4867,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "What is (-3) + (-5)?",
         "options": [
           "8",
@@ -4976,7 +4877,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "What is (-8) - (-3)?",
         "options": [
           "-11",
@@ -4986,7 +4887,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "What is 6 - 9?",
         "options": [
           "3",
@@ -4996,7 +4897,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "What is (-4) x 3?",
         "options": [
           "12",
@@ -5006,7 +4907,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "What is (-6) x (-2)?",
         "options": [
           "12",
@@ -5016,7 +4917,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "A",
         "q": "What is (-15) / 3?",
         "options": [
           "5",
@@ -5026,7 +4927,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "What is (-20) / (-4)?",
         "options": [
           "5",
@@ -5036,7 +4937,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "A",
         "q": "Absolute value of -9 is:",
         "options": [
           "-9",
@@ -5046,7 +4947,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Which is greatest: -2, -5, -1, -10?",
         "options": [
           "-2",
@@ -5056,7 +4957,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "Which is smallest: 3, -3, 0, -1?",
         "options": [
           "3",
@@ -5066,7 +4967,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Sum of -7 and 7 is:",
         "options": [
           "14",
@@ -5076,7 +4977,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "Product of -5 and 0 is:",
         "options": [
           "5",
@@ -5086,7 +4987,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "(-1) x (-1) x (-1) = ?",
         "options": [
           "1",
@@ -5096,7 +4997,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "(-2)^3 = ?",
         "options": [
           "6",
@@ -5106,7 +5007,7 @@ const chapters = [
         ],
         "answer": 3
       },
-      {
+      { "section": "A",
         "q": "(-3)^2 = ?",
         "options": [
           "6",
@@ -5116,7 +5017,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "A",
         "q": "Additive inverse of 5 is:",
         "options": [
           "5",
@@ -5126,7 +5027,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Additive inverse of -8 is:",
         "options": [
           "8",
@@ -5136,7 +5037,7 @@ const chapters = [
         ],
         "answer": 0
       },
-      {
+      { "section": "A",
         "q": "If a + b = 0, then b is:",
         "options": [
           "Equal to a",
@@ -5146,7 +5047,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Temperature -5 C is _____ than 0 C:",
         "options": [
           "Warmer",
@@ -5156,7 +5057,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "A",
         "q": "Sea level is represented by:",
         "options": [
           "-1",
@@ -5166,7 +5067,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "B", "case": "A submarine is at -200m depth. It rises 80m, then dives 50m, then rises 120m. Use this for the next 3 questions.",
         "q": "5 m below sea level is:",
         "options": [
           "5 m",
@@ -5176,7 +5077,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "B", "case": "A submarine is at -200m depth. It rises 80m, then dives 50m, then rises 120m. Use this for the next 3 questions.",
         "q": "Profit of Rs 100 is +100, loss of Rs 50 is:",
         "options": [
           "+50",
@@ -5186,7 +5087,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "B", "case": "A submarine is at -200m depth. It rises 80m, then dives 50m, then rises 120m. Use this for the next 3 questions.",
         "q": "If temperature rises from -3 C to 5 C, change is:",
         "options": [
           "2 C",
@@ -5196,7 +5097,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "B", "case": "The temperature in Shimla was 5C at noon. It dropped 3C every hour for 4 hours, then rose 2C every hour for 3 hours. Use this for the next 4 questions.",
         "q": "If temperature falls from 2 C to -4 C, change is:",
         "options": [
           "2 C",
@@ -5206,7 +5107,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "B", "case": "The temperature in Shimla was 5C at noon. It dropped 3C every hour for 4 hours, then rose 2C every hour for 3 hours. Use this for the next 4 questions.",
         "q": "Integers include:",
         "options": [
           "Only positive numbers",
@@ -5216,7 +5117,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "B", "case": "The temperature in Shimla was 5C at noon. It dropped 3C every hour for 4 hours, then rose 2C every hour for 3 hours. Use this for the next 4 questions.",
         "q": "Whole numbers include:",
         "options": [
           "Negative numbers",
@@ -5226,7 +5127,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "B", "case": "The temperature in Shimla was 5C at noon. It dropped 3C every hour for 4 hours, then rose 2C every hour for 3 hours. Use this for the next 4 questions.",
         "q": "Natural numbers include:",
         "options": [
           "Zero",
@@ -5236,7 +5137,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "B", "case": "A bank account has Rs.500. Deposits of Rs.200 and Rs.300 are made, followed by withdrawals of Rs.150 and Rs.400. Use this for the next 3 questions.",
         "q": "Which is NOT an integer?",
         "options": [
           "-5",
@@ -5246,7 +5147,7 @@ const chapters = [
         ],
         "answer": 2
       },
-      {
+      { "section": "B", "case": "A bank account has Rs.500. Deposits of Rs.200 and Rs.300 are made, followed by withdrawals of Rs.150 and Rs.400. Use this for the next 3 questions.",
         "q": "Successor of -1 is:",
         "options": [
           "-2",
@@ -5256,7 +5157,7 @@ const chapters = [
         ],
         "answer": 1
       },
-      {
+      { "section": "B", "case": "A bank account has Rs.500. Deposits of Rs.200 and Rs.300 are made, followed by withdrawals of Rs.150 and Rs.400. Use this for the next 3 questions.",
         "q": "Predecessor of 0 is:",
         "options": [
           "-1",
@@ -5265,57 +5166,14 @@ const chapters = [
           "-2"
         ],
         "answer": 0
-      },
-      {
-        "q": "How many integers between -3 and 3?",
-        "options": [
-          "5",
-          "6",
-          "7",
-          "Infinite"
-        ],
-        "answer": 0
-      },
-      {
-        "q": "(-10) + 10 + (-5) + 5 = ?",
-        "options": [
-          "0",
-          "10",
-          "20",
-          "30"
-        ],
-        "answer": 0
-      },
-      {
-        "q": "Arrange in ascending: 5, -3, 0, -7, 2",
-        "options": [
-          "-7,-3,0,2,5",
-          "-3,-7,0,2,5",
-          "5,2,0,-3,-7",
-          "0,-3,-7,2,5"
-        ],
-        "answer": 0
-      },
-      {
-        "q": "Arrange in descending: -1, -5, 3, 0, -2",
-        "options": [
-          "3,0,-1,-2,-5",
-          "-5,-2,-1,0,3",
-          "3,-1,0,-2,-5",
-          "-1,-2,-5,0,3"
-        ],
-        "answer": 0
-      },
-      {
-        "q": "(-8) - 0 = ?",
-        "options": [
-          "8",
-          "-8",
-          "0",
-          "Undefined"
-        ],
-        "answer": 1
       }
+    ],
+    "penPaper": [
+      {"section": "C", "q": "Draw a number line from -10 to +10. Mark and label: -7, -3, 0, +4, +8. Show the addition (-7) + (+4) on the number line. Upload a photo.", "marks": 2},
+      {"section": "C", "q": "Arrange in ascending order: -15, 8, -3, 0, -9, 12, -1, 5. Draw them on a number line. Upload a photo.", "marks": 2},
+      {"section": "D", "q": "Evaluate: (-12) + 7 - (-5) + (-3) - 8 + (-2) + 15. Show each step using a number line or step-by-step calculation. Upload a photo.", "marks": 3},
+      {"section": "D", "q": "The temperature in 5 cities on a winter day was: Delhi 8C, Shimla -2C, Srinagar -6C, Mumbai 25C, Leh -12C. Find the difference between the hottest and coldest city. Arrange in order. Upload a photo.", "marks": 3},
+      {"section": "E", "q": "Create a real-life story problem involving integers (use at least 5 different integers, including negative ones). Solve it showing all steps on a number line and arithmetically. Upload a clear photo.", "marks": 5}
     ],
     "penPaperQuestions": [
       {
@@ -5330,40 +5188,5843 @@ const chapters = [
   }
 ];
 
+// Class 7 chapters - 15 NCERT chapters with topics (PDF/Video/TB come from chapterMedia7)
+const chaptersClass7 = [
+  {
+    "id": 1,
+    "number": "1",
+    "title": "Large Numbers Around Us",
+    "description": "Exploring large numbers like lakhs and crores, place value system, patterns in products, and real-world applications of big numbers",
+    "topics": [
+      {
+        "name": "1.1 A Lakh Varieties!",
+        "content": "This topic introduces large numbers through the fascinating story of rice varieties in India. Did you know there are more than 1,00,000 (one lakh) varieties of rice in the world? This helps students understand just how big one lakh really is.\n\n**Understanding One Lakh (1,00,000):**\nOne lakh = 100 thousands = 10 ten-thousands. If you count 1 number per second, it would take you about 28 hours to count to one lakh!\n\n**Real-World Examples of Large Numbers:**\n• India has approximately 140 crore people\n• The Earth is about 15 crore km from the Sun\n• A pinch of sand contains about 10,000 grains\n• The Indian Railways carries about 2.3 crore passengers daily\n\n**Place Value Connections:**\nIn the Indian system: 1,00,000 = 1 lakh. Each comma groups digits differently than the international system.\n• Indian: 1,00,00,000 (1 crore)\n• International: 10,000,000 (10 million)\n\n**Practice Tip:** When dealing with large numbers, always try to relate them to something you can visualize. For example, your school might have 1,000 students — so 1 lakh would be 100 schools like yours!"
+      },
+      {
+        "name": "1.2 Land of Tens",
+        "content": "Our number system is built entirely on powers of ten. This topic explores why we use base-10 and how place values work.\n\n**Powers of Ten:**\n• 10⁰ = 1 (ones place)\n• 10¹ = 10 (tens place)\n• 10² = 100 (hundreds place)\n• 10³ = 1,000 (thousands place)\n• 10⁴ = 10,000 (ten-thousands place)\n• 10⁵ = 1,00,000 (lakhs place)\n• 10⁶ = 10,00,000 (ten-lakhs place)\n• 10⁷ = 1,00,00,000 (crores place)\n\n**Why Base 10?**\nHumans have 10 fingers, which is likely why we developed a base-10 system. Other civilizations used base-12 (Babylonians counted finger joints) or base-20 (Mayans counted fingers and toes).\n\n**Expanded Form:**\nEvery number can be written as a sum of place values:\n5,34,267 = 5×1,00,000 + 3×10,000 + 4×1,000 + 2×100 + 6×10 + 7×1\n\n**Reading Large Numbers:**\nIn the Indian system, commas are placed after the hundreds, then every two digits: 1,23,45,678. Read as: one crore twenty-three lakh forty-five thousand six hundred seventy-eight.\n\n**Fun Fact:** Computers use base-2 (binary) because they work with ON/OFF switches!"
+      },
+      {
+        "name": "1.3 Of Crores and Crores!",
+        "content": "This section extends the place value system to crores and beyond. Students learn to read, write, and compare very large numbers used in real life.\n\n**Indian Place Value Chart (up to Crores):**\nCrores | Ten Lakhs | Lakhs | Ten Thousands | Thousands | Hundreds | Tens | Ones\n\n**Key Conversions:**\n• 1 lakh = 100 thousand\n• 10 lakhs = 1 million\n• 1 crore = 100 lakhs = 10 million\n• 10 crores = 100 million = 1 arab\n• 100 crores = 1 billion\n\n**Comparing Large Numbers:**\nStep 1: Count the digits — more digits means bigger number\nStep 2: If same digits, compare from the leftmost digit\nExample: 45,23,100 vs 45,32,100 → Compare lakhs place: 23 < 32, so first number is smaller\n\n**Real-World Large Numbers:**\n• India's GDP: approximately 350 lakh crore rupees\n• Distance to nearest star (Proxima Centauri): about 4 light years = 40,00,00,00,00,000 km\n• Number of cells in human body: about 37 lakh crore\n\n**Practice Tip:** When comparing numbers, first check the number of digits. A 7-digit number is always greater than any 6-digit number, no matter what the digits are!"
+      },
+      {
+        "name": "1.4 Exact and Approximate Values",
+        "content": "In real life, we often don't need exact numbers — approximations are more practical and easier to understand.\n\n**When to Use Approximations:**\n• Population of a city: We say 'about 2 crore' not '2,01,34,567'\n• Distance between cities: 'about 300 km' not '297.4 km'\n• Cost of a project: 'approximately 50 lakh' not '49,87,342'\n\n**Rounding Rules:**\n• If the digit to be dropped is 0-4: round down (keep the digit same)\n• If the digit to be dropped is 5-9: round up (increase the digit by 1)\n\n**Examples:**\n• 7,32,461 rounded to nearest lakh = 7,00,000\n• 7,62,461 rounded to nearest lakh = 8,00,000\n• 3,456 rounded to nearest hundred = 3,500\n• 3,432 rounded to nearest hundred = 3,400\n\n**Estimation in Calculations:**\nTo estimate 4,891 + 3,207:\nRound each: 5,000 + 3,000 = 8,000 (actual: 8,098)\nThis is useful for quickly checking if your answer makes sense!\n\n**Real-World Application:** Scientists often work with approximate values. The speed of light is approximately 3,00,000 km/s (exact: 2,99,792.458 km/s). The approximation is much easier to work with!"
+      },
+      {
+        "name": "1.5 Patterns in Products",
+        "content": "This topic explores fascinating patterns that emerge when multiplying numbers, helping students discover relationships between products and factors.\n\n**Pattern 1 - Multiplying by Powers of 10:**\n• 37 × 10 = 370 (add one zero)\n• 37 × 100 = 3,700 (add two zeros)\n• 37 × 1,000 = 37,000 (add three zeros)\n\n**Pattern 2 - Interesting Product Patterns:**\n• 1 × 9 + 1 = 10\n• 12 × 9 + 2 = 110\n• 123 × 9 + 3 = 1110\n• 1234 × 9 + 4 = 11110\n\n**Pattern 3 - Products with Repeated Digits:**\n• 7 × 11 × 13 = 1001\n• 1001 × any 3-digit number repeats that number: 1001 × 235 = 235235\n\n**Pattern 4 - Multiplying by 11:**\n• For 2-digit numbers: 34 × 11 = 374 (3, 3+4, 4)\n• 45 × 11 = 495 (4, 4+5, 5)\n\n**Why Patterns Matter:**\nPatterns in multiplication help us:\n• Calculate faster mentally\n• Check if our answers are reasonable\n• Understand deeper relationships in mathematics\n\n**Practice Tip:** Try discovering your own patterns! What happens when you multiply any number by 9 and add its digits?"
+      },
+      {
+        "name": "1.6 Did You Ever Wonder...?",
+        "content": "A culminating section that poses fascinating questions about large numbers in nature, science, and everyday life, encouraging curiosity and mathematical thinking.\n\n**Amazing Number Facts:**\n• There are about 1 lakh hairs on a human head\n• A human heart beats about 1,00,000 times per day\n• There are about 10 lakh ants for every human on Earth\n• The Milky Way contains about 100 arab (10,000 crore) stars\n\n**Numbers in the Human Body:**\n• Red blood cells: about 2.5 crore are produced every second\n• Nerve signals travel at about 400 km/h\n• DNA: if stretched out, would be about 2 meters long per cell\n• Total DNA in your body would stretch from Earth to Pluto and back!\n\n**Numbers in Nature:**\n• A sunflower can have up to 2,000 seeds\n• A single tree can have 2,00,000 leaves\n• Bees visit about 50-100 flowers per trip\n• A colony of bees can have 60,000-80,000 members\n\n**Numbers in Technology:**\n• Internet users worldwide: about 500 crore\n• Google processes about 850 crore searches per day\n• A smartphone has about 1,000 crore transistors\n\n**Think About It:** Can you estimate how many words you speak in a day? (Hint: Average person speaks about 16,000 words per day!)"
+      }
+    ],
+    "questions": [
+      { "section": "A",
+        "q": "How many zeros are there in 1 lakh?",
+        "options": [
+          "3",
+          "4",
+          "5",
+          "6"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "1 crore is equal to how many lakhs?",
+        "options": [
+          "10",
+          "100",
+          "1000",
+          "10000"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "What is the place value of 5 in 5,34,267?",
+        "options": [
+          "5 thousands",
+          "5 ten-thousands",
+          "5 lakhs",
+          "5 crores"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "Which is the largest 6-digit number?",
+        "options": [
+          "100000",
+          "999999",
+          "900000",
+          "999990"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Round 7,62,461 to the nearest lakh:",
+        "options": [
+          "7,00,000",
+          "8,00,000",
+          "7,60,000",
+          "7,62,000"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "10 lakhs is equal to:",
+        "options": [
+          "1 crore",
+          "1 million",
+          "10 million",
+          "100 thousand"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "In the number 3,45,678, the digit 4 is in which place?",
+        "options": [
+          "Thousands",
+          "Ten thousands",
+          "Lakhs",
+          "Hundreds"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "What is 37 x 1000?",
+        "options": [
+          "370",
+          "3700",
+          "37000",
+          "370000"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "Which number is greater: 45,23,100 or 45,32,100?",
+        "options": [
+          "45,23,100",
+          "45,32,100",
+          "Both are equal",
+          "Cannot compare"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "The successor of 99,999 is:",
+        "options": [
+          "99,998",
+          "1,00,000",
+          "10,000",
+          "9,99,999"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "How many 6-digit numbers are there in all?",
+        "options": [
+          "9,00,000",
+          "1,00,000",
+          "8,99,999",
+          "9,99,999"
+        ],
+        "answer": 0
+      },
+      { "section": "A",
+        "q": "The smallest 7-digit number is:",
+        "options": [
+          "9999999",
+          "1000000",
+          "1000001",
+          "7000000"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "1 billion = how many crores?",
+        "options": [
+          "10",
+          "100",
+          "1000",
+          "1"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Round 3,456 to the nearest hundred:",
+        "options": [
+          "3,400",
+          "3,500",
+          "3,000",
+          "3,460"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "What is the expanded form of 6,05,032?",
+        "options": [
+          "6x100000+5x1000+3x10+2x1",
+          "6x100000+5x100+3x10+2x1",
+          "6x100000+0x10000+5x1000+0x100+3x10+2x1",
+          "6x10000+5x1000+32"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "If you count 1 number per second, how long to count to 1 lakh?",
+        "options": [
+          "About 1 hour",
+          "About 10 hours",
+          "About 28 hours",
+          "About 100 hours"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "1001 x 235 = ?",
+        "options": [
+          "235000",
+          "235235",
+          "236235",
+          "235035"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Which is the predecessor of 10,00,000?",
+        "options": [
+          "9,99,999",
+          "10,00,001",
+          "99,999",
+          "9,99,990"
+        ],
+        "answer": 0
+      },
+      { "section": "A",
+        "q": "45 x 11 = ?",
+        "options": [
+          "455",
+          "495",
+          "485",
+          "505"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "The number of zeros in 10 crore is:",
+        "options": [
+          "6",
+          "7",
+          "8",
+          "9"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "Estimate 4,891 + 3,207 by rounding to thousands:",
+        "options": [
+          "7,000",
+          "8,000",
+          "9,000",
+          "7,500"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Which digit is in the ten-lakhs place of 3,45,67,890?",
+        "options": [
+          "3",
+          "4",
+          "5",
+          "6"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "1 lakh = ___ ten thousands",
+        "options": [
+          "1",
+          "10",
+          "100",
+          "1000"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "The Indian and International systems differ in:",
+        "options": [
+          "Digits used",
+          "Placement of commas",
+          "Value of numbers",
+          "Base system"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "What is 1 crore in the international system?",
+        "options": [
+          "1 million",
+          "10 million",
+          "100 million",
+          "1 billion"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "India's population is approximately 1.4 billion. The world population is about 8 billion. Use this for the next 3 questions.",
+        "q": "How many thousands make 1 lakh?",
+        "options": [
+          "10",
+          "100",
+          "1000",
+          "10000"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "India's population is approximately 1.4 billion. The world population is about 8 billion. Use this for the next 3 questions.",
+        "q": "The place value of 0 in 3,05,042 at thousands place is:",
+        "options": [
+          "0",
+          "5000",
+          "5",
+          "50"
+        ],
+        "answer": 0
+      },
+      { "section": "B", "case": "India's population is approximately 1.4 billion. The world population is about 8 billion. Use this for the next 3 questions.",
+        "q": "34 x 11 = ?",
+        "options": [
+          "344",
+          "374",
+          "354",
+          "384"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "A factory produces 2,50,000 units per day. Each unit weighs 1.5 kg. The factory operates 300 days a year. Use this for the next 4 questions.",
+        "q": "Which is the correct Indian representation of 10 million?",
+        "options": [
+          "10,00,000",
+          "1,00,00,000",
+          "100,00,000",
+          "1,00,000"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "A factory produces 2,50,000 units per day. Each unit weighs 1.5 kg. The factory operates 300 days a year. Use this for the next 4 questions.",
+        "q": "Round 8,45,600 to nearest lakh:",
+        "options": [
+          "8,00,000",
+          "9,00,000",
+          "8,50,000",
+          "8,45,000"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "A factory produces 2,50,000 units per day. Each unit weighs 1.5 kg. The factory operates 300 days a year. Use this for the next 4 questions.",
+        "q": "The face value of 7 in 47,83,291 is:",
+        "options": [
+          "7",
+          "7,00,000",
+          "70,000",
+          "7000"
+        ],
+        "answer": 0
+      },
+      { "section": "B", "case": "A factory produces 2,50,000 units per day. Each unit weighs 1.5 kg. The factory operates 300 days a year. Use this for the next 4 questions.",
+        "q": "100 crores = ?",
+        "options": [
+          "1 million",
+          "10 million",
+          "100 million",
+          "1 billion"
+        ],
+        "answer": 3
+      },
+      { "section": "B", "case": "The distance from Earth to Sun is approximately 15 crore km. Light travels at 3 lakh km/s. Use this for the next 3 questions.",
+        "q": "What comes just after 9,99,99,999?",
+        "options": [
+          "10,00,00,000",
+          "9,99,99,998",
+          "10,00,00,001",
+          "1,00,00,00,000"
+        ],
+        "answer": 0
+      },
+      { "section": "B", "case": "The distance from Earth to Sun is approximately 15 crore km. Light travels at 3 lakh km/s. Use this for the next 3 questions.",
+        "q": "Which is greater: 8 lakhs or 80 thousand?",
+        "options": [
+          "8 lakhs",
+          "80 thousand",
+          "Both equal",
+          "Cannot compare"
+        ],
+        "answer": 0
+      },
+      { "section": "B", "case": "The distance from Earth to Sun is approximately 15 crore km. Light travels at 3 lakh km/s. Use this for the next 3 questions.",
+        "q": "12 x 9 + 2 = ?",
+        "options": [
+          "100",
+          "108",
+          "110",
+          "112"
+        ],
+        "answer": 2
+      }
+    ],
+    "penPaper": [
+      {"section": "C", "q": "Express in both Indian and International number systems: 45,67,89,012. Write in words in both systems. Upload a photo.", "marks": 2},
+      {"section": "C", "q": "Round 9,87,65,432 to the nearest lakh and the nearest crore. Show the place value chart. Upload a photo.", "marks": 2},
+      {"section": "D", "q": "A city uses 3,50,00,000 litres of water daily. Express this in standard form. How much water is used in a year? Show calculations and upload a photo.", "marks": 3},
+      {"section": "D", "q": "Compare: 5.6 x 10^8 and 3.2 x 10^9. Which is larger and by how much? Express the difference in standard form. Upload a photo.", "marks": 3},
+      {"section": "E", "q": "Research and list 5 real-world quantities that use large numbers (population, distances, money, etc.). Express each in Indian system, International system, and standard form. Upload a photo.", "marks": 5}
+    ],
+  },
+  {
+    "id": 2,
+    "number": "2",
+    "title": "Arithmetic Expressions",
+    "description": "Understanding and evaluating arithmetic expressions, order of operations, comparing expressions, and reading complex mathematical phrases",
+    "topics": [
+      {
+        "name": "2.1 Simple Expressions",
+        "content": "An arithmetic expression is a combination of numbers and operations (+, –, ×, ÷) that represents a value. Every expression, no matter how complex, evaluates to a single number.\n\n**What is an Expression?**\nAn expression is a mathematical phrase that combines numbers with operations. Examples:\n• 13 + 2 = 15\n• 20 – 4 = 16\n• 12 × 5 = 60\n• 18 ÷ 3 = 6\n\n**Writing Expressions from Situations:**\n• 'Raju has 15 marbles and gets 8 more' → 15 + 8\n• 'A ribbon 20 cm long is cut into 4 equal pieces' → 20 ÷ 4\n• 'Price of 3 notebooks at Rs. 45 each' → 3 × 45\n\n**Properties of Operations:**\n• **Commutative:** a + b = b + a and a × b = b × a (works for addition and multiplication, NOT for subtraction and division)\n• **Identity:** a + 0 = a (zero is additive identity), a × 1 = a (one is multiplicative identity)\n• **Zero property:** a × 0 = 0\n\n**Real-World Connection:** Every time you calculate the total cost at a shop, figure out how to split a bill, or measure ingredients for cooking, you are evaluating arithmetic expressions!\n\n**Practice Tip:** When solving word problems, first identify the numbers and the operation needed before writing the expression."
+      },
+      {
+        "name": "2.2 Reading and Evaluating Complex Expressions",
+        "content": "When an expression has multiple operations, we need rules to decide which operation to do first. This is called the order of operations (BODMAS/PEMDAS).\n\n**BODMAS Rule:**\nB – Brackets (solve what's inside first)\nO – Orders (powers and roots)\nD – Division (left to right)\nM – Multiplication (left to right)\nA – Addition (left to right)\nS – Subtraction (left to right)\n\n**Important:** Division and Multiplication have EQUAL priority — do them left to right. Same for Addition and Subtraction.\n\n**Examples:**\n• 3 + 4 × 5 = 3 + 20 = 23 (NOT 35, because multiplication comes before addition)\n• (3 + 4) × 5 = 7 × 5 = 35 (brackets change the order!)\n• 24 ÷ 6 + 2 × 3 = 4 + 6 = 10\n• 100 – 5 × (8 + 2) = 100 – 5 × 10 = 100 – 50 = 50\n\n**Nested Brackets:**\nWhen expressions have brackets within brackets, solve the innermost bracket first:\n2 × {3 + (4 × 5)} = 2 × {3 + 20} = 2 × 23 = 46\n\n**Common Mistakes:**\n• Doing operations left to right without considering BODMAS\n• Forgetting that multiplication/division come before addition/subtraction\n• Not solving brackets first\n\n**Practice Tip:** Always underline or highlight the part you need to solve first, then rewrite the expression step by step."
+      }
+    ],
+    "questions": [
+      { "section": "A",
+        "q": "What is the value of 3 + 4 x 5?",
+        "options": [
+          "35",
+          "23",
+          "60",
+          "17"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Evaluate: (3 + 4) x 5",
+        "options": [
+          "23",
+          "35",
+          "60",
+          "17"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "What is 24 / 6 + 2 x 3?",
+        "options": [
+          "10",
+          "15",
+          "18",
+          "6"
+        ],
+        "answer": 0
+      },
+      { "section": "A",
+        "q": "In BODMAS, what does 'B' stand for?",
+        "options": [
+          "Base",
+          "Brackets",
+          "Before",
+          "Below"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Evaluate: 100 - 5 x (8 + 2)",
+        "options": [
+          "950",
+          "50",
+          "60",
+          "45"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Which property says a + b = b + a?",
+        "options": [
+          "Associative",
+          "Commutative",
+          "Distributive",
+          "Identity"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "What is the value of 15 + 0?",
+        "options": [
+          "0",
+          "15",
+          "150",
+          "1"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Evaluate: 2 x {3 + (4 x 5)}",
+        "options": [
+          "46",
+          "70",
+          "50",
+          "26"
+        ],
+        "answer": 0
+      },
+      { "section": "A",
+        "q": "Which operation is performed first in 8 + 6 / 2?",
+        "options": [
+          "Addition",
+          "Division",
+          "Both together",
+          "Neither"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "What is 48 / 8 x 2?",
+        "options": [
+          "3",
+          "12",
+          "6",
+          "16"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "The additive identity is:",
+        "options": [
+          "1",
+          "0",
+          "-1",
+          "None"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Evaluate: 5 x 4 - 3 x 2",
+        "options": [
+          "14",
+          "34",
+          "26",
+          "7"
+        ],
+        "answer": 0
+      },
+      { "section": "A",
+        "q": "Which is NOT commutative?",
+        "options": [
+          "Addition",
+          "Multiplication",
+          "Subtraction",
+          "Both A and B"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "What is the value of 7 x 1?",
+        "options": [
+          "0",
+          "1",
+          "7",
+          "8"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "Evaluate: 36 / (6 x 3)",
+        "options": [
+          "18",
+          "2",
+          "6",
+          "3"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "In the expression 4 + 3 x 2, which operation is done first?",
+        "options": [
+          "Addition",
+          "Multiplication",
+          "Either one",
+          "None"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "'Price of 5 books at Rs. 30 each' is written as:",
+        "options": [
+          "5 + 30",
+          "5 - 30",
+          "5 x 30",
+          "5 / 30"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "Evaluate: (10 + 5) x (10 - 5)",
+        "options": [
+          "75",
+          "100",
+          "50",
+          "25"
+        ],
+        "answer": 0
+      },
+      { "section": "A",
+        "q": "What is 0 x 999?",
+        "options": [
+          "999",
+          "0",
+          "1",
+          "9990"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Evaluate: 8 + 8 / 8 + 8 x 8 - 8",
+        "options": [
+          "65",
+          "1",
+          "72",
+          "57"
+        ],
+        "answer": 0
+      },
+      { "section": "A",
+        "q": "Which expression equals 20?",
+        "options": [
+          "4 x 4 + 4",
+          "4 + 4 x 4",
+          "4 x (4 + 4)",
+          "(4 + 4) + 4"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Evaluate: 15 - 3 x 4 + 2",
+        "options": [
+          "50",
+          "5",
+          "8",
+          "10"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "The multiplicative identity is:",
+        "options": [
+          "0",
+          "1",
+          "-1",
+          "The number itself"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Evaluate: 50 - {20 - (10 - 5)}",
+        "options": [
+          "25",
+          "35",
+          "40",
+          "15"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "What is 12 / 4 / 3?",
+        "options": [
+          "1",
+          "9",
+          "3",
+          "4"
+        ],
+        "answer": 0
+      },
+      { "section": "B", "case": "Simplify the expression: 24 / 4 x 3 + 18 - 6 / 2. Different students get different answers. Use this for the next 3 questions.",
+        "q": "A ribbon of 20 cm cut into 4 equal pieces gives each piece of:",
+        "options": [
+          "4 cm",
+          "5 cm",
+          "16 cm",
+          "24 cm"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "Simplify the expression: 24 / 4 x 3 + 18 - 6 / 2. Different students get different answers. Use this for the next 3 questions.",
+        "q": "Evaluate: 6 + 6 x 6 - 6 / 6",
+        "options": [
+          "41",
+          "42",
+          "36",
+          "30"
+        ],
+        "answer": 0
+      },
+      { "section": "B", "case": "Simplify the expression: 24 / 4 x 3 + 18 - 6 / 2. Different students get different answers. Use this for the next 3 questions.",
+        "q": "In 5 + 3 x (2 + 4), which bracket is solved first?",
+        "options": [
+          "No brackets needed",
+          "(2 + 4)",
+          "5 + 3",
+          "3 x 2"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "A shop offers: Buy 3 shirts at Rs.450 each, get 1 free. Additional 10% discount on total. Use this for the next 4 questions.",
+        "q": "What does BODMAS stand for?",
+        "options": [
+          "Brackets Orders Division Multiplication Addition Subtraction",
+          "Base Operations Division Multiplication Addition Subtraction",
+          "Brackets Of Division Multiplication Addition Subtraction",
+          "Both Orders Division Multiplication Addition Signs"
+        ],
+        "answer": 0
+      },
+      { "section": "B", "case": "A shop offers: Buy 3 shirts at Rs.450 each, get 1 free. Additional 10% discount on total. Use this for the next 4 questions.",
+        "q": "Evaluate: 2 + 3 x 4 - 5",
+        "options": [
+          "15",
+          "9",
+          "20",
+          "0"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "A shop offers: Buy 3 shirts at Rs.450 each, get 1 free. Additional 10% discount on total. Use this for the next 4 questions.",
+        "q": "Is 8 - 3 the same as 3 - 8?",
+        "options": [
+          "Yes",
+          "No",
+          "Sometimes",
+          "Cannot determine"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "A shop offers: Buy 3 shirts at Rs.450 each, get 1 free. Additional 10% discount on total. Use this for the next 4 questions.",
+        "q": "Evaluate: (12 + 8) / (4 + 1)",
+        "options": [
+          "2",
+          "3",
+          "4",
+          "5"
+        ],
+        "answer": 2
+      },
+      { "section": "B", "case": "Evaluate step by step: 5 + 3 x (8 - 2) / 3 - 1. Use this for the next 3 questions.",
+        "q": "What is 5 x 5 + 5 x 5?",
+        "options": [
+          "50",
+          "100",
+          "625",
+          "30"
+        ],
+        "answer": 0
+      },
+      { "section": "B", "case": "Evaluate step by step: 5 + 3 x (8 - 2) / 3 - 1. Use this for the next 3 questions.",
+        "q": "Evaluate: 1000 / 10 / 10",
+        "options": [
+          "1",
+          "10",
+          "100",
+          "1000"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "Evaluate step by step: 5 + 3 x (8 - 2) / 3 - 1. Use this for the next 3 questions.",
+        "q": "Which gives the largest value?",
+        "options": [
+          "2 + 3 x 4",
+          "(2 + 3) x 4",
+          "2 x 3 + 4",
+          "2 x (3 + 4)"
+        ],
+        "answer": 1
+      }
+    ],
+    "penPaper": [
+      {"section": "C", "q": "Simplify using BODMAS: 48 / (6 + 2) x 3 - 4 + 12 / 3. Show each step clearly on paper. Upload a photo.", "marks": 2},
+      {"section": "C", "q": "Insert brackets to make the equation true: 8 + 4 x 3 - 2 = 34. Show your reasoning. Upload a photo.", "marks": 2},
+      {"section": "D", "q": "Create an arithmetic expression using all four operations (+, -, x, /) and brackets that equals exactly 100. Use only single-digit numbers. Show verification. Upload a photo.", "marks": 3},
+      {"section": "D", "q": "A shopkeeper buys 5 dozen eggs at Rs.60/dozen, sells 40 eggs at Rs.6 each and remaining at Rs.5 each. Find profit/loss using a single expression. Upload a photo.", "marks": 3},
+      {"section": "E", "q": "Write 5 different arithmetic expressions that all evaluate to 24, each using the numbers 1, 2, 3, 4 exactly once. You may use +, -, x, / and brackets. Show all workings. Upload a photo.", "marks": 5}
+    ],
+  },
+  {
+    "id": 3,
+    "number": "3",
+    "title": "A Peek Beyond the Point",
+    "description": "Introduction to decimals - tenths, hundredths, place value, units of measurement, comparing and locating decimals, and arithmetic with decimals",
+    "topics": [
+      {
+        "name": "3.1 The Need for Smaller Units",
+        "content": "When whole numbers aren't enough to express a measurement precisely, we need smaller parts — and that's where decimals come in.\n\n**Why Do We Need Decimals?**\nImagine measuring your height. You're not exactly 1 meter tall and not exactly 2 meters — you're somewhere in between, like 1.35 meters. Whole numbers can't express this!\n\n**Situations Requiring Decimals:**\n• Temperature: 98.6°F (normal body temperature)\n• Money: Rs. 45.50 (forty-five rupees and fifty paise)\n• Weight: 2.5 kg of rice\n• Distance: The school is 1.8 km away\n\n**From Fractions to Decimals:**\nDecimals are really fractions with denominators that are powers of 10:\n• 1/10 = 0.1 (one-tenth)\n• 1/100 = 0.01 (one-hundredth)\n• 3/10 = 0.3\n• 25/100 = 0.25\n\n**The Decimal Point:**\nThe dot between the whole number part and the fractional part is the decimal point. It separates 'wholes' from 'parts'.\nIn 23.45: 23 is the whole part, 45 is the decimal (fractional) part.\n\n**Practice Tip:** Think of decimals as money — Rs. 3.75 means 3 whole rupees and 75 paise (hundredths of a rupee)."
+      },
+      {
+        "name": "3.2 A Tenth Part",
+        "content": "When we divide something into 10 equal parts, each part is called one-tenth. In decimal notation, one-tenth is written as 0.1.\n\n**Understanding Tenths:**\n• 1/10 = 0.1 = one-tenth\n• 2/10 = 0.2 = two-tenths\n• 5/10 = 0.5 = five-tenths = one-half\n• 10/10 = 1.0 = one whole\n\n**Visualizing Tenths:**\nImagine a strip of paper divided into 10 equal parts. Each part represents 0.1. If you shade 3 parts, you have shaded 0.3 of the strip.\n\n**Tenths on a Number Line:**\nBetween 0 and 1, there are 9 points at equal distances: 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9\nBetween 3 and 4: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9\n\n**Tenths in Measurement:**\n• 1 cm = 10 mm, so 1 mm = 0.1 cm\n• 1 meter = 10 decimeters, so 1 dm = 0.1 m\n• 1 kg = 10 hectograms\n\n**Real-World Application:** When a shopkeeper weighs vegetables and says '2.3 kg', it means 2 kg and 3 tenths of a kg (which is 300 grams)."
+      },
+      {
+        "name": "3.3 A Hundredth Part",
+        "content": "When we divide something into 100 equal parts, each part is called one-hundredth. In decimal notation, one-hundredth is written as 0.01.\n\n**Understanding Hundredths:**\n• 1/100 = 0.01 = one-hundredth\n• 5/100 = 0.05 = five-hundredths\n• 25/100 = 0.25 = twenty-five hundredths\n• 100/100 = 1.00 = one whole\n\n**Relationship Between Tenths and Hundredths:**\n• 1 tenth = 10 hundredths (0.1 = 0.10)\n• 0.30 = 0.3 (3 tenths = 30 hundredths)\n• 0.50 = 0.5 (5 tenths = 50 hundredths)\n\n**Money Connection:**\n• 1 rupee = 100 paise\n• 1 paisa = 0.01 rupee\n• 25 paise = 0.25 rupee = Rs. 0.25\n• Rs. 7.50 = 7 rupees and 50 paise\n\n**Percentage Connection:**\nPercent means 'per hundred'. So 25% = 25/100 = 0.25. This connection between percentages and decimals is very useful!\n\n**Practice Tip:** To convert a fraction with denominator 100 to decimal, simply write the numerator with a decimal point two places from the right: 75/100 = 0.75."
+      },
+      {
+        "name": "3.4 Decimal Place Value",
+        "content": "Just like whole numbers have ones, tens, hundreds places going left, decimals have tenths, hundredths, thousandths places going right from the decimal point.\n\n**Decimal Place Value Chart:**\n... Hundreds | Tens | Ones . Tenths | Hundredths | Thousandths ...\n... 100 | 10 | 1 . 1/10 | 1/100 | 1/1000 ...\n\n**Reading Decimal Numbers:**\n• 3.7 = 'three point seven' or 'three and seven-tenths'\n• 15.23 = 'fifteen point two three' or 'fifteen and twenty-three hundredths'\n• 0.456 = 'zero point four five six' or 'four hundred fifty-six thousandths'\n\n**Expanded Form of Decimals:**\n34.56 = 3×10 + 4×1 + 5×(1/10) + 6×(1/100)\n= 30 + 4 + 0.5 + 0.06\n\n**Key Rule:** Adding zeros at the end of a decimal doesn't change its value:\n0.5 = 0.50 = 0.500 (all equal five-tenths)\nBut adding zeros between the decimal point and a digit DOES change it:\n0.5 ≠ 0.05 ≠ 0.005\n\n**Practice Tip:** When comparing or adding decimals, it helps to make them have the same number of decimal places by adding trailing zeros."
+      },
+      {
+        "name": "3.5 Units of Measurement",
+        "content": "Decimals are essential for converting between different units of measurement. Understanding these conversions helps in science, cooking, and daily life.\n\n**Length Conversions:**\n• 1 km = 1000 m, so 1 m = 0.001 km\n• 1 m = 100 cm, so 1 cm = 0.01 m\n• 1 cm = 10 mm, so 1 mm = 0.1 cm\n• Example: 3 km 250 m = 3.250 km = 3.25 km\n• Example: 7 m 5 cm = 7.05 m\n\n**Weight Conversions:**\n• 1 kg = 1000 g, so 1 g = 0.001 kg\n• Example: 2 kg 500 g = 2.500 kg = 2.5 kg\n• Example: 750 g = 0.750 kg = 0.75 kg\n\n**Capacity Conversions:**\n• 1 litre = 1000 mL, so 1 mL = 0.001 L\n• Example: 1 L 200 mL = 1.200 L = 1.2 L\n\n**Common Mistakes to Avoid:**\n• 3 m 5 cm is NOT 3.5 m! It is 3.05 m (since 5 cm = 0.05 m)\n• 2 kg 50 g is NOT 2.50 kg! It is 2.050 kg (since 50 g = 0.050 kg)\n\n**Practice Tip:** Always check: how many smaller units make one larger unit? If 100 cm = 1 m, then to convert cm to m, divide by 100 (move decimal point 2 places left)."
+      },
+      {
+        "name": "3.6 Locating and Comparing Decimals",
+        "content": "Being able to place decimals on a number line and compare them is a crucial skill. This helps in understanding the size of decimal numbers.\n\n**Locating Decimals on Number Line:**\nTo locate 2.7 on a number line:\n1. Find the interval 2 to 3\n2. Divide this interval into 10 equal parts\n3. Count 7 parts from 2 → that's 2.7\n\n**Comparing Decimals:**\nStep 1: Compare the whole number parts first\nStep 2: If equal, compare tenths\nStep 3: If still equal, compare hundredths, and so on\n\n**Examples:**\n• 3.5 vs 2.9: 3 > 2, so 3.5 > 2.9\n• 4.3 vs 4.7: Same whole part (4), compare tenths: 3 < 7, so 4.3 < 4.7\n• 5.23 vs 5.27: Same whole (5) and tenths (2), compare hundredths: 3 < 7, so 5.23 < 5.27\n\n**Ordering Decimals:**\nTo arrange in ascending order: 0.5, 0.35, 0.53, 0.3\nMake all same length: 0.50, 0.35, 0.53, 0.30\nOrder: 0.30 < 0.35 < 0.50 < 0.53\n\n**Between Any Two Decimals:**\nThere are infinitely many decimals between any two decimals! Between 0.1 and 0.2: 0.11, 0.12, 0.15, 0.19, etc."
+      },
+      {
+        "name": "3.7 Addition and Subtraction of Decimals",
+        "content": "Adding and subtracting decimals follows the same rules as whole numbers — just make sure to line up the decimal points!\n\n**Rules for Adding Decimals:**\n1. Write numbers one below the other, aligning decimal points\n2. Add trailing zeros if needed to make decimal places equal\n3. Add as usual, column by column from right to left\n4. Place the decimal point in the answer directly below\n\n**Examples:**\n• 23.45 + 7.3 = 23.45 + 7.30 = 30.75\n• 0.6 + 0.04 = 0.60 + 0.04 = 0.64\n• 134.5 + 28.75 = 134.50 + 28.75 = 163.25\n\n**Rules for Subtracting Decimals:**\nSame alignment rules as addition. Borrow from the left when needed, just like with whole numbers.\n\n**Examples:**\n• 45.8 - 23.5 = 22.3\n• 10 - 3.75 = 10.00 - 3.75 = 6.25\n• 5.2 - 0.86 = 5.20 - 0.86 = 4.34\n\n**Real-World Problems:**\n• You have Rs. 100. You spend Rs. 45.50. Balance = 100.00 - 45.50 = Rs. 54.50\n• Your height last year was 1.32 m. Now it's 1.40 m. You grew 0.08 m = 8 cm\n\n**Practice Tip:** Always align decimal points vertically. If a number has no decimal point (like 10), write it as 10.00."
+      },
+      {
+        "name": "3.8 More on the Decimal System",
+        "content": "The decimal system extends infinitely in both directions — larger place values to the left and smaller ones to the right.\n\n**The Pattern of Ten:**\nMoving left: each place is 10 times the previous\n... 1000, 100, 10, 1, 0.1, 0.01, 0.001 ...\nMoving right: each place is 1/10 of the previous\n\n**Thousandths:**\n• 0.001 = one-thousandth = 1/1000\n• 0.025 = twenty-five thousandths\n• 3.142 = 3 ones + 1 tenth + 4 hundredths + 2 thousandths\n\n**Decimal Equivalents of Common Fractions:**\n• 1/2 = 0.5\n• 1/4 = 0.25\n• 3/4 = 0.75\n• 1/5 = 0.2\n• 1/8 = 0.125\n• 1/3 = 0.333... (repeating)\n\n**Interesting Facts:**\n• The number π (pi) = 3.14159... has infinite non-repeating decimals\n• Some fractions give terminating decimals (1/4 = 0.25) while others give repeating decimals (1/3 = 0.333...)\n• A fraction gives a terminating decimal only when its denominator (in lowest form) has no prime factors other than 2 and 5\n\n**Practice Tip:** Memorize common fraction-decimal equivalents. They come up frequently in calculations and make mental math much faster!"
+      }
+    ],
+    "questions": [
+      { "section": "A",
+        "q": "What is 1/10 in decimal form?",
+        "options": [
+          "0.01",
+          "0.1",
+          "1.0",
+          "10"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "How many tenths make one whole?",
+        "options": [
+          "5",
+          "10",
+          "100",
+          "1000"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "What is 3/100 in decimal?",
+        "options": [
+          "0.3",
+          "0.03",
+          "3.0",
+          "0.003"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "5 cm = ___ m",
+        "options": [
+          "0.5",
+          "0.05",
+          "0.005",
+          "5.0"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Which is greater: 0.5 or 0.35?",
+        "options": [
+          "0.5",
+          "0.35",
+          "Both equal",
+          "Cannot compare"
+        ],
+        "answer": 0
+      },
+      { "section": "A",
+        "q": "23.45 + 7.3 = ?",
+        "options": [
+          "30.75",
+          "30.48",
+          "96.45",
+          "24.18"
+        ],
+        "answer": 0
+      },
+      { "section": "A",
+        "q": "What is the place value of 6 in 3.46?",
+        "options": [
+          "6 tenths",
+          "6 hundredths",
+          "6 ones",
+          "6 thousandths"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "10 - 3.75 = ?",
+        "options": [
+          "7.25",
+          "6.25",
+          "6.75",
+          "7.75"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "1 km 250 m = ___ km",
+        "options": [
+          "1.25",
+          "1.250",
+          "1.025",
+          "Both A and B"
+        ],
+        "answer": 3
+      },
+      { "section": "A",
+        "q": "0.5 = 0.50 is:",
+        "options": [
+          "True",
+          "False",
+          "Sometimes",
+          "Undefined"
+        ],
+        "answer": 0
+      },
+      { "section": "A",
+        "q": "Which decimal is between 0.3 and 0.4?",
+        "options": [
+          "0.25",
+          "0.35",
+          "0.45",
+          "0.29"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "750 g = ___ kg",
+        "options": [
+          "7.50",
+          "0.750",
+          "75.0",
+          "0.075"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Arrange in ascending order: 0.5, 0.35, 0.53",
+        "options": [
+          "0.5, 0.35, 0.53",
+          "0.35, 0.5, 0.53",
+          "0.53, 0.5, 0.35",
+          "0.35, 0.53, 0.5"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "0.6 + 0.04 = ?",
+        "options": [
+          "0.10",
+          "0.64",
+          "1.0",
+          "0.604"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "What is 1/4 as a decimal?",
+        "options": [
+          "0.4",
+          "0.25",
+          "0.14",
+          "0.75"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "3 m 5 cm = ___ m",
+        "options": [
+          "3.5",
+          "3.05",
+          "3.005",
+          "35"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "45.8 - 23.5 = ?",
+        "options": [
+          "22.3",
+          "23.3",
+          "21.3",
+          "22.5"
+        ],
+        "answer": 0
+      },
+      { "section": "A",
+        "q": "How many hundredths are in 0.3?",
+        "options": [
+          "3",
+          "30",
+          "300",
+          "0.3"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "5.2 - 0.86 = ?",
+        "options": [
+          "4.34",
+          "4.44",
+          "4.66",
+          "4.36"
+        ],
+        "answer": 0
+      },
+      { "section": "A",
+        "q": "The decimal 0.05 means:",
+        "options": [
+          "5 tenths",
+          "5 hundredths",
+          "5 thousandths",
+          "5 ones"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "2 kg 50 g = ___ kg",
+        "options": [
+          "2.50",
+          "2.050",
+          "2.005",
+          "2.5"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Which is smallest: 0.5, 0.05, 0.005?",
+        "options": [
+          "0.5",
+          "0.05",
+          "0.005",
+          "All are equal"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "0.125 in fraction form is:",
+        "options": [
+          "1/4",
+          "1/8",
+          "1/5",
+          "1/125"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "134.5 + 28.75 = ?",
+        "options": [
+          "163.25",
+          "162.25",
+          "163.75",
+          "422.5"
+        ],
+        "answer": 0
+      },
+      { "section": "A",
+        "q": "1 paisa = ___ rupees",
+        "options": [
+          "0.1",
+          "0.01",
+          "0.001",
+          "1"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "A runner completes a 100m race in 11.35 seconds. Another runner finishes in 11.08 seconds. Use this for the next 3 questions.",
+        "q": "The expanded form of 4.56 is:",
+        "options": [
+          "4+5+6",
+          "4+0.5+0.06",
+          "4+56",
+          "4+0.56"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "A runner completes a 100m race in 11.35 seconds. Another runner finishes in 11.08 seconds. Use this for the next 3 questions.",
+        "q": "Which fraction gives a terminating decimal?",
+        "options": [
+          "1/3",
+          "1/7",
+          "1/4",
+          "1/6"
+        ],
+        "answer": 2
+      },
+      { "section": "B", "case": "A runner completes a 100m race in 11.35 seconds. Another runner finishes in 11.08 seconds. Use this for the next 3 questions.",
+        "q": "1.8 + 2.75 = ?",
+        "options": [
+          "4.55",
+          "4.45",
+          "3.55",
+          "4.53"
+        ],
+        "answer": 0
+      },
+      { "section": "B", "case": "A shopkeeper measures cloth: 3.75m, 2.08m, and 4.5m pieces are cut from a 15m roll. Use this for the next 4 questions.",
+        "q": "0.333... is the decimal for:",
+        "options": [
+          "1/2",
+          "1/3",
+          "1/4",
+          "3/10"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "A shopkeeper measures cloth: 3.75m, 2.08m, and 4.5m pieces are cut from a 15m roll. Use this for the next 4 questions.",
+        "q": "Rs. 100 - Rs. 45.50 = ?",
+        "options": [
+          "Rs. 54.50",
+          "Rs. 55.50",
+          "Rs. 55.00",
+          "Rs. 45.50"
+        ],
+        "answer": 0
+      },
+      { "section": "B", "case": "A shopkeeper measures cloth: 3.75m, 2.08m, and 4.5m pieces are cut from a 15m roll. Use this for the next 4 questions.",
+        "q": "Between 2.3 and 2.4, there are:",
+        "options": [
+          "No numbers",
+          "1 number",
+          "9 numbers",
+          "Infinite numbers"
+        ],
+        "answer": 3
+      },
+      { "section": "B", "case": "A shopkeeper measures cloth: 3.75m, 2.08m, and 4.5m pieces are cut from a 15m roll. Use this for the next 4 questions.",
+        "q": "7.05 means:",
+        "options": [
+          "7 and 5 tenths",
+          "7 and 5 hundredths",
+          "7 and 50 hundredths",
+          "7 and 5 thousandths"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "Convert the fractions 1/3, 2/7, and 5/11 to decimals. Use this for the next 3 questions.",
+        "q": "What is 3/4 as a decimal?",
+        "options": [
+          "0.34",
+          "0.75",
+          "0.25",
+          "3.4"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "Convert the fractions 1/3, 2/7, and 5/11 to decimals. Use this for the next 3 questions.",
+        "q": "1 L 200 mL = ___ L",
+        "options": [
+          "1.200",
+          "1.2",
+          "12.00",
+          "Both A and B"
+        ],
+        "answer": 3
+      },
+      { "section": "B", "case": "Convert the fractions 1/3, 2/7, and 5/11 to decimals. Use this for the next 3 questions.",
+        "q": "4.3 vs 4.7: which is larger?",
+        "options": [
+          "4.3",
+          "4.7",
+          "Same",
+          "Cannot tell"
+        ],
+        "answer": 1
+      }
+    ],
+    "penPaper": [
+      {"section": "C", "q": "Convert to decimals: 3/8, 5/16, 7/12. Identify which are terminating and which are recurring. Upload a photo.", "marks": 2},
+      {"section": "C", "q": "Arrange in ascending order: 0.305, 0.35, 0.3, 0.053, 0.503. Show place value comparison. Upload a photo.", "marks": 2},
+      {"section": "D", "q": "Multiply 3.14 x 2.5 and divide the result by 0.05. Show the long multiplication and division on paper. Upload a photo.", "marks": 3},
+      {"section": "D", "q": "A car travels 156.8 km on 12.5 litres of petrol. Find mileage (km/litre). If petrol costs Rs.102.50/litre, find cost per km. Upload a photo.", "marks": 3},
+      {"section": "E", "q": "Explain with examples: (a) How to convert a recurring decimal to a fraction (b) Why 0.999... = 1 (c) Place value in decimals up to thousandths. Upload a clear photo.", "marks": 5}
+    ],
+  },
+  {
+    "id": 4,
+    "number": "4",
+    "title": "Expressions Using Letter-Numbers",
+    "description": "Introduction to algebraic thinking - using letters to represent unknowns, forming expressions, simplifying algebraic expressions, and discovering patterns",
+    "topics": [
+      {
+        "name": "4.1 The Notion of Letter-Numbers",
+        "content": "In mathematics, we often use letters like x, y, n, a, b to represent numbers we don't know yet. These are called variables or letter-numbers.\n\n**Why Use Letters?**\nLetters help us write general rules that work for ALL numbers, not just specific ones. For example:\n• 'Any number plus zero equals that number' can be written as: a + 0 = a\n• 'The perimeter of a square with side s' can be written as: P = 4s\n\n**Letters as Unknowns:**\nWhen we write x + 3 = 7, the letter x represents an unknown number (which is 4).\n\n**Letters as Variables:**\nWhen we write 2n + 1, n can take different values, and the expression gives different results:\n• n = 1: 2(1) + 1 = 3\n• n = 2: 2(2) + 1 = 5\n• n = 3: 2(3) + 1 = 7\nThis generates the pattern of odd numbers!\n\n**Rules for Writing Letter-Numbers:**\n• We usually write the number before the letter: 3x (not x3)\n• We don't write the multiplication sign: 3x means 3 × x\n• 1×x is written as just x (not 1x)\n\n**Practice Tip:** Think of a letter as a box that can hold any number. When you see 'x', imagine a box — whatever number goes in that box, the expression tells you what to do with it."
+      },
+      {
+        "name": "4.2 Revisiting Arithmetic Expressions",
+        "content": "Before jumping into algebraic expressions, let's revisit how arithmetic expressions work and see how they connect to algebraic thinking.\n\n**From Arithmetic to Algebra:**\nArithmetic: 5 + 3 = 8 (specific numbers, specific answer)\nAlgebra: a + b = ? (general expression, answer depends on values of a and b)\n\n**Translating Words to Expressions:**\n• 'A number increased by 5' → x + 5\n• 'Twice a number' → 2x\n• 'Three less than a number' → x – 3\n• 'A number divided by 4' → x/4\n• 'The sum of two numbers' → a + b\n• 'Product of a number and 7' → 7x\n\n**Evaluating Expressions:**\nTo find the value of an expression for a given value of the variable, substitute (replace) the letter with the number:\nIf x = 4, then 3x + 2 = 3(4) + 2 = 12 + 2 = 14\n\n**Forming Expressions from Patterns:**\n• Matchstick squares: 1 square needs 4 sticks, 2 squares need 7, 3 need 10...\n• Pattern: 3n + 1 sticks for n squares\n\n**Practice Tip:** Practice converting word phrases to mathematical expressions daily. This skill is the foundation of equation solving!"
+      },
+      {
+        "name": "4.3 Omission of the Multiplication Symbol",
+        "content": "In algebra, we simplify how we write expressions by dropping the multiplication sign (×) between numbers and letters.\n\n**Convention Rules:**\n• 3 × x is written as 3x\n• a × b is written as ab\n• 2 × a × b is written as 2ab\n• 1 × x is written as x (not 1x)\n• x × x is written as x² (x squared)\n\n**Important:** We ONLY omit the multiplication sign when at least one factor is a letter. We NEVER write 35 to mean 3 × 5 (that would be thirty-five!).\n\n**Coefficient:**\nIn 5x, the number 5 is called the coefficient of x. It tells us how many x's we have.\n• In 3ab: coefficient is 3\n• In x (same as 1x): coefficient is 1\n• In -2y: coefficient is -2\n\n**Terms:**\nParts of an expression separated by + or – signs are called terms.\nIn 3x + 5y – 2: the terms are 3x, 5y, and –2\n\n**Like Terms:**\nTerms with the same variables are called like terms:\n• 3x and 5x are like terms (both have x)\n• 3x and 3y are NOT like terms (different variables)\n• 4ab and 7ab are like terms\n\n**Practice Tip:** When reading algebraic expressions, always remember that letters next to each other (or next to numbers) means multiplication."
+      },
+      {
+        "name": "4.4 Simplification of Algebraic Expressions",
+        "content": "Simplification means combining like terms to make an expression shorter and easier to work with.\n\n**Combining Like Terms:**\n• 3x + 5x = 8x (combine the x terms: 3 + 5 = 8)\n• 7a – 3a = 4a (7 – 3 = 4)\n• 4x + 3y + 2x + y = 6x + 4y (combine x terms and y terms separately)\n\n**Step-by-Step Method:**\n1. Identify like terms\n2. Group like terms together\n3. Combine the coefficients\n\n**Example:** Simplify 5a + 3b – 2a + 7b\n= (5a – 2a) + (3b + 7b)\n= 3a + 10b\n\n**With Constants:**\n2x + 5 + 3x + 8 = (2x + 3x) + (5 + 8) = 5x + 13\n\n**Cannot Simplify:**\n3x + 4y cannot be simplified further (different variables = unlike terms)\n5x + 3 cannot be simplified (x term and constant are unlike)\n\n**Common Mistakes:**\n• 3x + 4y ≠ 7xy (WRONG! You can't combine unlike terms)\n• x + x = 2x, NOT x² (adding, not multiplying)\n• 2x × 3x = 6x², NOT 6x (multiplying gives higher power)\n\n**Practice Tip:** Underline like terms with the same color or mark, then combine them. This visual approach helps avoid mistakes."
+      },
+      {
+        "name": "4.5 Pick Patterns and Reveal Relationships",
+        "content": "One of the most powerful uses of algebraic expressions is describing number patterns and geometric relationships.\n\n**Number Patterns:**\n• Even numbers: 2, 4, 6, 8... → Formula: 2n (where n = 1, 2, 3...)\n• Odd numbers: 1, 3, 5, 7... → Formula: 2n – 1\n• Multiples of 5: 5, 10, 15, 20... → Formula: 5n\n• Square numbers: 1, 4, 9, 16... → Formula: n²\n\n**Matchstick Patterns:**\n• Triangle pattern: 3, 5, 7, 9... sticks → Formula: 2n + 1\n• Square pattern: 4, 7, 10, 13... sticks → Formula: 3n + 1\n• Pentagon pattern: 5, 9, 13, 17... sticks → Formula: 4n + 1\n\n**Geometric Formulas:**\n• Perimeter of square = 4s (s = side)\n• Perimeter of rectangle = 2(l + b) or 2l + 2b\n• Perimeter of equilateral triangle = 3s\n• Area of square = s²\n• Area of rectangle = l × b\n\n**How to Find a Pattern Formula:**\n1. Write out first few terms with their position numbers\n2. Look for the relationship between position (n) and term value\n3. Test your formula with the known terms\n\n**Practice Tip:** When looking for patterns, always calculate the differences between consecutive terms. If the difference is constant, the formula is linear (an + b)."
+      }
+    ],
+    "questions": [
+      { "section": "A",
+        "q": "If x = 3, what is 2x + 5?",
+        "options": [
+          "8",
+          "11",
+          "10",
+          "16"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "3 x y is written in algebra as:",
+        "options": [
+          "3y",
+          "y3",
+          "3+y",
+          "3-y"
+        ],
+        "answer": 0
+      },
+      { "section": "A",
+        "q": "In the expression 5x, the coefficient of x is:",
+        "options": [
+          "x",
+          "5",
+          "5x",
+          "1"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Simplify: 3x + 5x",
+        "options": [
+          "8x",
+          "8x2",
+          "15x",
+          "35x"
+        ],
+        "answer": 0
+      },
+      { "section": "A",
+        "q": "Which represents 'a number increased by 5'?",
+        "options": [
+          "x - 5",
+          "5x",
+          "x + 5",
+          "x/5"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "Simplify: 4a + 3b - 2a + b",
+        "options": [
+          "2a + 4b",
+          "6a + 4b",
+          "2a + 2b",
+          "6ab"
+        ],
+        "answer": 0
+      },
+      { "section": "A",
+        "q": "If n = 4, what is n squared?",
+        "options": [
+          "8",
+          "12",
+          "16",
+          "44"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "The perimeter of a square with side s is:",
+        "options": [
+          "s + 4",
+          "4s",
+          "s x s",
+          "2s"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "'Twice a number' is written as:",
+        "options": [
+          "x + 2",
+          "x - 2",
+          "2x",
+          "x/2"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "3x + 4y can be simplified to:",
+        "options": [
+          "7xy",
+          "7x",
+          "7y",
+          "Cannot be simplified"
+        ],
+        "answer": 3
+      },
+      { "section": "A",
+        "q": "x + x equals:",
+        "options": [
+          "x squared",
+          "2x",
+          "xx",
+          "x"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "If a = 2, b = 3, what is ab?",
+        "options": [
+          "5",
+          "6",
+          "23",
+          "1"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "The formula for even numbers is:",
+        "options": [
+          "n + 2",
+          "2n",
+          "n/2",
+          "2n + 1"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Simplify: 2x + 5 + 3x + 8",
+        "options": [
+          "5x + 13",
+          "5x + 58",
+          "13x + 5",
+          "10x + 13"
+        ],
+        "answer": 0
+      },
+      { "section": "A",
+        "q": "The formula for odd numbers is:",
+        "options": [
+          "2n",
+          "2n + 1",
+          "2n - 1",
+          "n + 1"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "1 x x is written as:",
+        "options": [
+          "1x",
+          "x",
+          "x1",
+          "11x"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Perimeter of rectangle with length l and breadth b:",
+        "options": [
+          "l + b",
+          "lb",
+          "2(l+b)",
+          "4(l+b)"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "If y = 5, what is 3y - 7?",
+        "options": [
+          "8",
+          "22",
+          "15",
+          "1"
+        ],
+        "answer": 0
+      },
+      { "section": "A",
+        "q": "Which are like terms?",
+        "options": [
+          "3x and 3y",
+          "5a and 7a",
+          "2x and 2",
+          "ab and a"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "In 3x + 5y - 2, how many terms are there?",
+        "options": [
+          "1",
+          "2",
+          "3",
+          "5"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "2x x 3x = ?",
+        "options": [
+          "5x",
+          "6x",
+          "6x squared",
+          "5x squared"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "Matchstick pattern 4, 7, 10, 13... formula is:",
+        "options": [
+          "4n",
+          "3n + 1",
+          "n + 3",
+          "4n + 3"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "If x = 0, what is 5x + 3?",
+        "options": [
+          "0",
+          "3",
+          "5",
+          "8"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Area of square with side s:",
+        "options": [
+          "4s",
+          "2s",
+          "s squared",
+          "s + s"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "Simplify: 7a - 3a + 2a",
+        "options": [
+          "6a",
+          "2a",
+          "12a",
+          "7a"
+        ],
+        "answer": 0
+      },
+      { "section": "B", "case": "Anu thinks of a number x, doubles it, adds 5, and gets 17. Use this for the next 3 questions.",
+        "q": "'Three less than a number' is:",
+        "options": [
+          "3 - x",
+          "x - 3",
+          "3x",
+          "x/3"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "Anu thinks of a number x, doubles it, adds 5, and gets 17. Use this for the next 3 questions.",
+        "q": "If a = 5, what is a squared + 1?",
+        "options": [
+          "11",
+          "26",
+          "36",
+          "51"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "Anu thinks of a number x, doubles it, adds 5, and gets 17. Use this for the next 3 questions.",
+        "q": "Simplify: 3(x + 2)",
+        "options": [
+          "3x + 2",
+          "3x + 6",
+          "x + 6",
+          "3x + 5"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "The perimeter of a rectangle is 2(l + b). If l = 3x + 2 and b = 2x - 1, use this for the next 4 questions.",
+        "q": "Which formula gives 1, 4, 9, 16...?",
+        "options": [
+          "n + 3",
+          "4n",
+          "n squared",
+          "2n"
+        ],
+        "answer": 2
+      },
+      { "section": "B", "case": "The perimeter of a rectangle is 2(l + b). If l = 3x + 2 and b = 2x - 1, use this for the next 4 questions.",
+        "q": "In the expression -2y, the coefficient is:",
+        "options": [
+          "2",
+          "-2",
+          "y",
+          "-y"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "The perimeter of a rectangle is 2(l + b). If l = 3x + 2 and b = 2x - 1, use this for the next 4 questions.",
+        "q": "Can 5x + 3 be simplified further?",
+        "options": [
+          "Yes, to 8x",
+          "Yes, to 8",
+          "Yes, to 15x",
+          "No"
+        ],
+        "answer": 3
+      },
+      { "section": "B", "case": "The perimeter of a rectangle is 2(l + b). If l = 3x + 2 and b = 2x - 1, use this for the next 4 questions.",
+        "q": "If x = 2, y = 3, what is x + 2y?",
+        "options": [
+          "7",
+          "8",
+          "10",
+          "12"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "A pattern of matchsticks forms squares: 1 square uses 4 sticks, 2 squares use 7 sticks, 3 squares use 10 sticks. Use this for the next 3 questions.",
+        "q": "Simplify: 4x + 3x + 2y + 5y",
+        "options": [
+          "7x + 7y",
+          "14xy",
+          "7x + 5y",
+          "4x + 7y"
+        ],
+        "answer": 0
+      },
+      { "section": "B", "case": "A pattern of matchsticks forms squares: 1 square uses 4 sticks, 2 squares use 7 sticks, 3 squares use 10 sticks. Use this for the next 3 questions.",
+        "q": "The constant term in 5x + 3 is:",
+        "options": [
+          "5",
+          "x",
+          "3",
+          "5x"
+        ],
+        "answer": 2
+      },
+      { "section": "B", "case": "A pattern of matchsticks forms squares: 1 square uses 4 sticks, 2 squares use 7 sticks, 3 squares use 10 sticks. Use this for the next 3 questions.",
+        "q": "Perimeter of equilateral triangle with side a:",
+        "options": [
+          "a + 3",
+          "3a",
+          "a squared",
+          "6a"
+        ],
+        "answer": 1
+      }
+    ],
+    "penPaper": [
+      {"section": "C", "q": "Simplify: 3(2x + 4) - 2(x - 3) + 5x. Show each step on paper. Upload a photo.", "marks": 2},
+      {"section": "C", "q": "If a = 3, b = -2, c = 5, evaluate: 2a^2*b + 3bc - ab^2*c. Show substitution and calculation. Upload a photo.", "marks": 2},
+      {"section": "D", "q": "The sum of three consecutive even numbers is 72. Form an equation, solve for the numbers, and verify your answer. Upload a photo.", "marks": 3},
+      {"section": "D", "q": "Write algebraic expressions for: (a) 7 added to twice a number (b) one-third of a number decreased by 5 (c) the product of a number and 3 more than itself. Upload a photo.", "marks": 3},
+      {"section": "E", "q": "A rectangular garden has length (2x+3)m and width (x+1)m. If the perimeter is 34m, find x, length, width, and area. Draw a labelled diagram. Upload a clear photo.", "marks": 5}
+    ],
+  },
+  {
+    "id": 5,
+    "number": "5",
+    "title": "Parallel and Intersecting Lines",
+    "description": "Understanding parallel lines, perpendicular lines, transversals, corresponding and alternate angles, and optical illusions with parallel lines",
+    "topics": [
+      {
+        "name": "5.1 Across the Line",
+        "content": "A line extends infinitely in both directions. When we draw a line on paper, we are actually drawing a line segment. This section explores what happens when we cross a line and the angles formed.\n\n**Points and Lines:**\nA point has no dimensions - just a position. A line has one dimension - length (infinite). A line segment has two endpoints and a definite length.\n\n**Angles Formed by Intersecting Lines:**\nWhen two lines cross each other, they form 4 angles at the point of intersection. These angles have special properties:\n• **Vertically opposite angles** are equal\n• **Adjacent angles** on a straight line add up to 180° (supplementary)\n\n**Example:** If two lines intersect and one angle is 60°, then:\n• The vertically opposite angle = 60°\n• The adjacent angles = 180° - 60° = 120°\n\n**Linear Pair:**\nTwo adjacent angles that form a straight line are called a linear pair. They always add up to 180°.\n\n**Real-World Examples:**\n• Scissors form intersecting lines when opened\n• Railroad crossings (X-shaped) show intersecting lines\n• Clock hands intersect at the center\n\n**Practice Tip:** When two lines intersect, you only need to find ONE angle - the rest can be calculated using vertically opposite angles and linear pairs!"
+      },
+      {
+        "name": "5.2 Perpendicular Lines",
+        "content": "Perpendicular lines are a special case of intersecting lines where the angle between them is exactly 90° (a right angle).\n\n**Definition:**\nTwo lines are perpendicular if they intersect at right angles (90°). We write: line AB ⊥ line CD\n\n**Properties of Perpendicular Lines:**\n• They form four 90° angles at the intersection point\n• They create four equal angles (all 90°)\n• The symbol for a right angle is a small square at the corner\n\n**Drawing Perpendicular Lines:**\nMethod 1: Using a protractor - draw a line, measure 90° at a point, draw another line\nMethod 2: Using a set square - align one edge with the line, draw along the perpendicular edge\nMethod 3: Paper folding - fold a line onto itself to create a perpendicular crease\n\n**Perpendicular from a Point to a Line:**\nThe shortest distance from a point to a line is always along the perpendicular. This is why we measure the height of a triangle perpendicular to its base.\n\n**Real-World Examples:**\n• Walls are perpendicular to the floor\n• The hands of a clock at 3 o'clock or 9 o'clock\n• The corner of a book, a door frame, a window\n• Cross-roads meeting at right angles\n\n**Practice Tip:** The letter 'L' and '+' symbol naturally show perpendicular lines!"
+      },
+      {
+        "name": "5.3 Between Lines",
+        "content": "This section explores what happens in the space between two lines - whether they get closer, farther, or stay the same distance apart.\n\n**Three Possibilities for Two Lines:**\n1. **Intersecting lines:** They meet at exactly one point\n2. **Parallel lines:** They never meet (same distance apart everywhere)\n3. **Coincident lines:** They overlap completely (same line)\n\n**Parallel Lines:**\n• Two lines in the same plane that never intersect\n• They maintain a constant distance between them\n• Symbol: AB ∥ CD (AB is parallel to CD)\n• They go in the same direction\n\n**How to Check if Lines are Parallel:**\n• Measure the distance between them at two different points\n• If the distances are equal, the lines are parallel\n• Use a ruler and set square to verify\n\n**Real-World Examples of Parallel Lines:**\n• Railway tracks\n• Opposite edges of a ruler, book, or door\n• Lines on ruled notebook paper\n• Lanes on a highway\n• Opposite sides of a rectangle\n\n**Important Note:** Parallel lines must be in the same plane. In 3D space, lines can be neither parallel nor intersecting (called skew lines) - like two edges of a box that don't share a face."
+      },
+      {
+        "name": "5.4 Parallel and Perpendicular Lines in Paper Folding",
+        "content": "Paper folding is a hands-on way to understand geometric concepts. By folding paper, we can create parallel and perpendicular lines without any measuring tools!\n\n**Creating Perpendicular Lines by Folding:**\n1. Take a rectangular sheet of paper\n2. Fold it so one edge falls exactly on itself\n3. The fold line (crease) is perpendicular to the edge!\n4. Open it up - you have two perpendicular lines\n\n**Creating Parallel Lines by Folding:**\n1. Make a fold (crease 1)\n2. Make another fold perpendicular to crease 1 (crease 2)\n3. Make a third fold perpendicular to crease 2 (crease 3)\n4. Crease 1 and crease 3 are parallel!\n\n**Key Insight:**\nIf two lines are both perpendicular to a third line, then they are parallel to each other. This is a fundamental property of Euclidean geometry.\n\n**Paper Folding Properties:**\n• A fold creates a line of symmetry\n• Folding a line onto itself creates a perpendicular bisector\n• Multiple parallel folds create evenly spaced parallel lines\n\n**Activity:** Take a piece of paper and create a set of parallel lines using only folding (no ruler). You should be able to make 4 or more evenly spaced parallel lines!\n\n**Practice Tip:** Paper folding helps verify geometric constructions - if your drawn perpendicular/parallel lines don't match the fold lines, something needs correction."
+      },
+      {
+        "name": "5.5 Transversals",
+        "content": "A transversal is a line that crosses two or more lines at distinct points. When a transversal cuts two lines, it creates 8 angles with special relationships.\n\n**Definition:**\nA transversal is a line that intersects two or more lines at different points. It 'cuts across' the lines.\n\n**Angles Formed:**\nWhen a transversal cuts two lines, it creates:\n• 8 angles in total (4 at each intersection point)\n• 4 interior angles (between the two lines)\n• 4 exterior angles (outside the two lines)\n\n**Naming the Angles:**\nAt each intersection, the four angles are typically labeled using numbers (1-8) or letters. The angles are classified as:\n• **Interior angles:** angles 3, 4, 5, 6 (between the lines)\n• **Exterior angles:** angles 1, 2, 7, 8 (outside the lines)\n• **Co-interior angles:** angles on the same side between the lines (3&5, 4&6)\n\n**Special Case - Parallel Lines with Transversal:**\nWhen the two lines are parallel, the transversal creates angle pairs with special properties (discussed in next sections).\n\n**Real-World Examples:**\n• A road crossing two railway tracks\n• A diagonal line cutting through ruled paper\n• A staircase railing crossing the horizontal steps\n\n**Practice Tip:** When working with transversals, always mark which angles are interior and which are exterior first. This helps identify the special angle pairs."
+      },
+      {
+        "name": "5.6 Corresponding Angles",
+        "content": "Corresponding angles are in the same position at each intersection when a transversal cuts two lines. If the lines are parallel, corresponding angles are equal.\n\n**What Are Corresponding Angles?**\nAt each intersection, there are 4 angles. Corresponding angles are the ones in matching positions:\n• Angles 1 and 5 (both above-right of intersection)\n• Angles 2 and 6 (both above-left)\n• Angles 3 and 7 (both below-right)\n• Angles 4 and 8 (both below-left)\n\n**The Corresponding Angles Property:**\nIf two parallel lines are cut by a transversal, then each pair of corresponding angles is equal.\n• ∠1 = ∠5\n• ∠2 = ∠6\n• ∠3 = ∠7\n• ∠4 = ∠8\n\n**Converse:** If corresponding angles are equal, then the lines are parallel. This gives us a way to CHECK if lines are parallel!\n\n**Finding Angles:**\nIf line l ∥ line m and a transversal makes 70° with line l, then:\n• Corresponding angle at line m = 70°\n• Adjacent angle at line l = 110°\n• Corresponding adjacent angle at line m = 110°\n\n**Think of it like:** If you're standing at one intersection facing the transversal, the angle you see is the same as what someone standing at the other intersection (in the same position) would see."
+      },
+      {
+        "name": "5.7 Drawing Parallel Lines",
+        "content": "There are several methods to draw parallel lines accurately. This section teaches the construction methods used in geometry.\n\n**Method 1: Using Set Squares**\n1. Place one edge of the set square along the given line\n2. Place a ruler along another edge of the set square\n3. Slide the set square along the ruler to the desired position\n4. Draw along the edge - this line is parallel to the first\n\n**Method 2: Using Ruler and Compass**\n1. Draw the given line l and mark a point P not on l\n2. Draw any transversal through P intersecting l at point Q\n3. At P, construct an angle equal to the angle at Q (corresponding angle)\n4. The new line through P is parallel to l\n\n**Method 3: Using Corresponding Angles**\n1. Draw a transversal to the given line\n2. Measure the angle at the first intersection\n3. Replicate this angle at the desired point on the transversal\n4. The new line is parallel to the given line\n\n**Checking Your Construction:**\n• Measure the distance between the lines at multiple points\n• If the distance is constant, the lines are parallel\n• Use the set square method to verify\n\n**Practice Tip:** When drawing parallel lines with a compass, make sure the compass width doesn't change between the two angle constructions!"
+      },
+      {
+        "name": "5.8 Alternate Angles",
+        "content": "Alternate angles are on opposite sides of the transversal and between the two lines. When the lines are parallel, alternate angles are equal.\n\n**Types of Alternate Angles:**\n• **Alternate interior angles:** Between the lines, on opposite sides of the transversal\n  - Angles 3 and 6, Angles 4 and 5\n• **Alternate exterior angles:** Outside the lines, on opposite sides of the transversal\n  - Angles 1 and 8, Angles 2 and 7\n\n**The Alternate Angles Property:**\nIf two parallel lines are cut by a transversal:\n• Alternate interior angles are equal: ∠3 = ∠6, ∠4 = ∠5\n• Alternate exterior angles are equal: ∠1 = ∠8, ∠2 = ∠7\n\n**Co-Interior Angles (Same-Side Interior):**\nCo-interior angles are between the lines and on the SAME side of the transversal.\n• For parallel lines: co-interior angles add up to 180°\n• ∠3 + ∠5 = 180° and ∠4 + ∠6 = 180°\n\n**Example:** If parallel lines are cut by a transversal and one alternate interior angle is 55°, then:\n• The other alternate interior angle = 55°\n• Co-interior angle = 180° - 55° = 125°\n\n**Real-World Application:** The Z-shape made by alternate angles appears in zigzag patterns, staircases, and the letter Z itself! That's why alternate angles are sometimes called 'Z-angles'."
+      },
+      {
+        "name": "5.9 Parallel Illusions",
+        "content": "Our eyes can be tricked into thinking parallel lines are not parallel! These optical illusions teach us about perception and the importance of precise measurement.\n\n**Famous Parallel Illusions:**\n• **Zollner Illusion:** Parallel lines crossed by short diagonal lines appear to converge or diverge\n• **Hering Illusion:** Parallel horizontal lines appear curved when crossed by radial lines\n• **Cafe Wall Illusion:** Parallel horizontal lines appear slanted due to offset black and white tiles\n• **Ponzo Illusion:** Converging lines make parallel objects appear different sizes\n\n**Why Do These Illusions Work?**\nOur brain interprets visual information based on context. When additional lines or patterns surround parallel lines, our brain is 'tricked' into seeing angles and curves that don't exist.\n\n**Lessons from Illusions:**\n1. Visual estimation of parallelism can be unreliable\n2. We need mathematical tools (rulers, protractors, set squares) to verify parallelism\n3. Corresponding angles and alternate angles are reliable tests - not our eyes\n\n**Creating Your Own Illusion:**\nDraw two parallel horizontal lines. Then add short diagonal lines crossing them at different angles. The parallel lines will appear to tilt!\n\n**Connection to Architecture:**\nAncient Greek architects used optical corrections in buildings like the Parthenon. They made columns slightly thicker in the middle and tilted inward to counteract the illusion that straight columns appear thinner in the middle and to lean outward.\n\n**Practice Tip:** When checking if lines are parallel in geometry problems, NEVER rely on how they look. Always use angle properties or measurements!"
+      }
+    ],
+    "questions": [
+      { "section": "A",
+        "q": "When two lines intersect, vertically opposite angles are:",
+        "options": [
+          "Supplementary",
+          "Equal",
+          "Complementary",
+          "None of these"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "If two parallel lines are cut by a transversal and one angle is 65°, its corresponding angle is:",
+        "options": [
+          "65°",
+          "115°",
+          "25°",
+          "90°"
+        ],
+        "answer": 0
+      },
+      { "section": "A",
+        "q": "Two lines that never meet and are always the same distance apart are:",
+        "options": [
+          "Intersecting",
+          "Perpendicular",
+          "Parallel",
+          "Coincident"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "A right angle measures:",
+        "options": [
+          "45°",
+          "90°",
+          "180°",
+          "360°"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Alternate interior angles for parallel lines are:",
+        "options": [
+          "Supplementary",
+          "Equal",
+          "Complementary",
+          "Unrelated"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "A transversal cutting two lines creates how many angles?",
+        "options": [
+          "4",
+          "6",
+          "8",
+          "12"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "Co-interior angles for parallel lines add up to:",
+        "options": [
+          "90°",
+          "180°",
+          "270°",
+          "360°"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "The symbol for parallel is:",
+        "options": [
+          "⊥",
+          "∥",
+          "∠",
+          "∆"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "If a transversal makes 70° with a line, the adjacent angle is:",
+        "options": [
+          "70°",
+          "110°",
+          "20°",
+          "90°"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Perpendicular lines form angles of:",
+        "options": [
+          "45°",
+          "60°",
+          "90°",
+          "180°"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "Which of these shows parallel lines in daily life?",
+        "options": [
+          "Scissors",
+          "Railway tracks",
+          "Clock hands",
+          "Letter X"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "If two corresponding angles are equal, the lines are:",
+        "options": [
+          "Perpendicular",
+          "Parallel",
+          "Intersecting",
+          "Coincident"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "A linear pair of angles adds up to:",
+        "options": [
+          "90°",
+          "180°",
+          "270°",
+          "360°"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Alternate angles are sometimes called:",
+        "options": [
+          "F-angles",
+          "Z-angles",
+          "C-angles",
+          "X-angles"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "If one angle of intersecting lines is 40°, the vertically opposite angle is:",
+        "options": [
+          "140°",
+          "40°",
+          "50°",
+          "320°"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Two lines perpendicular to the same line are:",
+        "options": [
+          "Perpendicular to each other",
+          "Parallel to each other",
+          "Intersecting",
+          "None of these"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "If co-interior angles are 75° and x°, find x:",
+        "options": [
+          "75",
+          "105",
+          "115",
+          "85"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "The shortest distance from a point to a line is:",
+        "options": [
+          "Along a parallel",
+          "Along the perpendicular",
+          "Along a diagonal",
+          "Along a transversal"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "How many pairs of corresponding angles are formed by a transversal?",
+        "options": [
+          "2",
+          "4",
+          "6",
+          "8"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "If alternate angles are 3x and 60° (lines parallel), x = ?",
+        "options": [
+          "10",
+          "15",
+          "20",
+          "30"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "Which illusion makes parallel lines appear curved?",
+        "options": [
+          "Zollner",
+          "Hering",
+          "Ponzo",
+          "Cafe Wall"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Interior angles are between:",
+        "options": [
+          "The two lines",
+          "Outside the lines",
+          "On the transversal",
+          "At one intersection"
+        ],
+        "answer": 0
+      },
+      { "section": "A",
+        "q": "If angle 1 = 120° and angle 5 are corresponding, angle 5 = ?",
+        "options": [
+          "60°",
+          "120°",
+          "180°",
+          "30°"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "The letter that represents corresponding angles pattern is:",
+        "options": [
+          "Z",
+          "F",
+          "C",
+          "X"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Two angles adding to 90° are:",
+        "options": [
+          "Supplementary",
+          "Complementary",
+          "Vertically opposite",
+          "Linear pair"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "Two parallel railway tracks are cut by a road (transversal) at 65 degrees. Use this for the next 3 questions.",
+        "q": "If a transversal is perpendicular to one of two parallel lines, it is:",
+        "options": [
+          "Parallel to the other",
+          "Perpendicular to the other too",
+          "At 45° to the other",
+          "Not related to the other"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "Two parallel railway tracks are cut by a road (transversal) at 65 degrees. Use this for the next 3 questions.",
+        "q": "Angle at 3 o'clock position of a clock is:",
+        "options": [
+          "60°",
+          "90°",
+          "120°",
+          "180°"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "Two parallel railway tracks are cut by a road (transversal) at 65 degrees. Use this for the next 3 questions.",
+        "q": "If two lines intersect at 90°, all four angles are:",
+        "options": [
+          "Different",
+          "All 90°",
+          "Two 90° and two 0°",
+          "Unknown"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "In a building design, two horizontal beams (parallel) are connected by a diagonal support making 70 degrees with the lower beam. Use this for the next 4 questions.",
+        "q": "Exterior angles are:",
+        "options": [
+          "Between the two lines",
+          "Outside the two lines",
+          "On the transversal",
+          "Equal to 90°"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "In a building design, two horizontal beams (parallel) are connected by a diagonal support making 70 degrees with the lower beam. Use this for the next 4 questions.",
+        "q": "Co-interior angles are also called:",
+        "options": [
+          "Z-angles",
+          "F-angles",
+          "C-angles or U-angles",
+          "X-angles"
+        ],
+        "answer": 2
+      },
+      { "section": "B", "case": "In a building design, two horizontal beams (parallel) are connected by a diagonal support making 70 degrees with the lower beam. Use this for the next 4 questions.",
+        "q": "If lines are NOT parallel, corresponding angles are:",
+        "options": [
+          "Always equal",
+          "Never equal",
+          "Not necessarily equal",
+          "Always 90°"
+        ],
+        "answer": 2
+      },
+      { "section": "B", "case": "In a building design, two horizontal beams (parallel) are connected by a diagonal support making 70 degrees with the lower beam. Use this for the next 4 questions.",
+        "q": "Paper folding creates a:",
+        "options": [
+          "Parallel line",
+          "Perpendicular bisector",
+          "Curve",
+          "Circle"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "Three lines meet at a single point forming 6 angles. One angle is 40 degrees and another is 80 degrees. Use this for the next 3 questions.",
+        "q": "How many pairs of alternate interior angles does a transversal create?",
+        "options": [
+          "1",
+          "2",
+          "3",
+          "4"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "Three lines meet at a single point forming 6 angles. One angle is 40 degrees and another is 80 degrees. Use this for the next 3 questions.",
+        "q": "If angle 3 = 55°, its co-interior angle = ?",
+        "options": [
+          "55°",
+          "125°",
+          "145°",
+          "35°"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "Three lines meet at a single point forming 6 angles. One angle is 40 degrees and another is 80 degrees. Use this for the next 3 questions.",
+        "q": "The Cafe Wall illusion involves:",
+        "options": [
+          "Circles",
+          "Offset tiles making lines look slanted",
+          "Curved lines",
+          "Missing lines"
+        ],
+        "answer": 1
+      }
+    ],
+    "penPaper": [
+      {"section": "C", "q": "Draw two parallel lines with a transversal. Label and find all 8 angles if one angle is 55 degrees. Name all pairs of corresponding, alternate, and co-interior angles. Upload a photo.", "marks": 2},
+      {"section": "C", "q": "Draw two intersecting lines. Measure all four angles and verify: (a) vertically opposite angles are equal, (b) adjacent angles are supplementary. Upload a photo.", "marks": 2},
+      {"section": "D", "q": "Construct two parallel lines 4cm apart using a compass and ruler (not set-square). Show all construction marks. Upload a photo.", "marks": 3},
+      {"section": "D", "q": "In a figure, line l is parallel to line m. A transversal makes angle 72 degrees with l. Find all angles. If another transversal makes angle 108 degrees with m, find all angles for it too. Upload a photo.", "marks": 3},
+      {"section": "E", "q": "Draw a real-world diagram (e.g., railway tracks with a crossing road) showing parallel lines, transversals, and label all angle relationships. Explain each property used. Upload a photo.", "marks": 5}
+    ],
+  },
+  {
+    "id": 6,
+    "number": "6",
+    "title": "Number Play",
+    "description": "Exploring numbers through patterns, parity, grid explorations, the Virahanka-Fibonacci sequence, and cryptarithmetic puzzles",
+    "topics": [
+      {
+        "name": "6.1 Numbers Tell Us Things",
+        "content": "Numbers carry information about themselves in their digits. By examining a number's digits, we can discover many properties without doing complex calculations.\n\n**Divisibility Rules:**\n• **By 2:** Last digit is 0, 2, 4, 6, or 8 (even number)\n• **By 3:** Sum of digits is divisible by 3\n• **By 4:** Last two digits form a number divisible by 4\n• **By 5:** Last digit is 0 or 5\n• **By 9:** Sum of digits is divisible by 9\n• **By 10:** Last digit is 0\n• **By 11:** Difference between sum of alternate digits is 0 or divisible by 11\n\n**Digit Sum Properties:**\n• The digit sum of any multiple of 9 is always 9 (or a multiple of 9): 18→1+8=9, 81→8+1=9, 108→1+0+8=9\n• Any number and its digit sum give the same remainder when divided by 9\n\n**Palindromic Numbers:**\nNumbers that read the same forwards and backwards: 121, 1331, 12321\n• All single-digit numbers are palindromes\n• There are 9 two-digit palindromes: 11, 22, 33, ..., 99\n\n**Real-World Use:** Phone numbers, PIN codes, postal codes - numbers tell us location, identity, and much more!\n\n**Practice Tip:** Memorize divisibility rules - they save enormous time in mental math and simplifying fractions."
+      },
+      {
+        "name": "6.2 Picking Parity",
+        "content": "Parity refers to whether a number is even or odd. Understanding parity helps solve many mathematical problems without actual computation.\n\n**Even and Odd Numbers:**\n• Even: Divisible by 2 (0, 2, 4, 6, 8, 10, 12...)\n• Odd: Not divisible by 2 (1, 3, 5, 7, 9, 11...)\n• Zero is even!\n\n**Parity Rules for Operations:**\n• Even + Even = Even (4 + 6 = 10)\n• Odd + Odd = Even (3 + 5 = 8)\n• Even + Odd = Odd (4 + 5 = 9)\n• Even × Even = Even\n• Odd × Odd = Odd\n• Even × Odd = Even\n\n**Powerful Parity Arguments:**\n• Can the sum of 5 odd numbers be 100? No! (odd+odd=even, +odd=odd, +odd=even, +odd=odd) - 5 odds always give odd sum\n• Can 15 people shake hands so each person shakes exactly 3 hands? No! (15×3=45 is odd, but handshake count must be even since each handshake involves 2 people)\n\n**Consecutive Number Properties:**\n• Two consecutive numbers: one is even, one is odd\n• Their sum is always odd\n• Their product is always even\n\n**Practice Tip:** Before solving complex problems, check parity first. It can sometimes tell you the answer (or that no answer exists) immediately!"
+      },
+      {
+        "name": "6.3 Some Explorations in Grids",
+        "content": "Number grids reveal fascinating patterns when we look at rows, columns, diagonals, and special arrangements of numbers.\n\n**Magic Squares:**\nA magic square is a grid where every row, column, and diagonal adds to the same sum (the magic constant).\n• 3×3 magic square with 1-9: magic constant = 15\n• 4×4 magic square with 1-16: magic constant = 34\n• Formula for n×n magic square using 1 to n²: magic constant = n(n²+1)/2\n\n**Example 3×3 Magic Square:**\n2 7 6\n9 5 1\n4 3 8\nEvery row, column, diagonal = 15\n\n**Number Patterns in Grids:**\n• Multiplication tables form a grid with interesting diagonal patterns\n• Pascal's Triangle can be arranged as a grid with binomial coefficients\n• Sudoku is a 9×9 grid puzzle based on number placement\n\n**Grid Coloring and Paths:**\n• How many paths exist from one corner of a grid to the opposite corner?\n• Chess problems: How many squares can a knight reach in n moves?\n\n**Practice Tip:** When working with magic squares, remember that the center number in a 3×3 magic square using 1-9 is always 5, and the magic constant is always 15."
+      },
+      {
+        "name": "6.4 Nature's Favourite Sequence: The Virahanka-Fibonacci",
+        "content": "The Fibonacci sequence (known in India as the Virahanka sequence, named after the ancient Indian mathematician) appears throughout nature and mathematics.\n\n**The Sequence:**\n1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233...\nRule: Each number = sum of the two before it\n\n**Indian Origins:**\nVirahanka (around 700 CE) and later Hemachandra (around 1150 CE) discovered this sequence while studying poetic meters in Sanskrit. It was later studied by Fibonacci in Italy (1202 CE).\n\n**In Nature:**\n• **Sunflower seeds:** Spiral in Fibonacci numbers (21, 34, or 55 spirals)\n• **Pine cones:** Spirals in 8 and 13 rows\n• **Flower petals:** Lilies have 3, buttercups have 5, daisies have 34 or 55\n• **Branching:** Trees often branch in Fibonacci patterns\n• **Shell spirals:** Nautilus shells follow the golden spiral\n\n**The Golden Ratio:**\nWhen you divide consecutive Fibonacci numbers, the ratio approaches 1.618... (called the Golden Ratio, φ):\n8/5 = 1.6, 13/8 = 1.625, 21/13 = 1.615, 34/21 = 1.619...\n\n**Properties:**\n• Sum of first n Fibonacci numbers = F(n+2) – 1\n• Every 3rd number is even, every 4th is divisible by 3, every 5th by 5\n\n**Practice Tip:** Generate the first 20 Fibonacci numbers and check which are even, which are divisible by 3, and verify the patterns!"
+      },
+      {
+        "name": "6.5 Digits in Disguise",
+        "content": "Cryptarithmetic puzzles replace digits with letters. Each letter represents a unique digit. Solving these puzzles develops logical reasoning and number sense.\n\n**What is Cryptarithmetic?**\nIn puzzles like SEND + MORE = MONEY, each letter stands for a different digit (0-9). Your job is to figure out which digit each letter represents.\n\n**Solving Strategy:**\n1. Look at the leftmost column first (it often reveals carries)\n2. Note that the leading digit of a number can't be 0\n3. Each letter represents a unique digit\n4. Use logical deduction, not just trial and error\n\n**Example: AB + BA = CDC**\n• A and B are single digits, CDC is a 3-digit number\n• Maximum: 98 + 89 = 187, Minimum: 12 + 21 = 33, so C = 1\n• AB + BA = (10A+B) + (10B+A) = 11(A+B) = 100+10D+1\n• So 11(A+B) must give a number like 1D1\n• If A+B = 10: 11×10 = 110, so D=1, but C=D=1 conflict\n• If A+B = 11: 11×11 = 121, D=2. Works! A=2,B=9 or A=9,B=2 etc.\n\n**Classic Puzzles to Try:**\n• EAT + THAT = APPLE\n• CROSS + ROADS = DANGER\n• BASE + BALL = GAMES\n\n**Practice Tip:** Start with simpler puzzles (2-digit + 2-digit) and work up to harder ones. Always list what you know and use elimination."
+      }
+    ],
+    "questions": [
+      { "section": "A",
+        "q": "A number divisible by 2 is called:",
+        "options": [
+          "Odd",
+          "Even",
+          "Prime",
+          "Composite"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "The digit sum of 108 is:",
+        "options": [
+          "8",
+          "9",
+          "10",
+          "18"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Which number is a palindrome?",
+        "options": [
+          "123",
+          "121",
+          "132",
+          "312"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Even + Odd = ?",
+        "options": [
+          "Even",
+          "Odd",
+          "Zero",
+          "Cannot determine"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "The Fibonacci sequence starts with:",
+        "options": [
+          "0, 1, 1, 2",
+          "1, 1, 2, 3",
+          "1, 2, 3, 4",
+          "Both A and B are accepted"
+        ],
+        "answer": 3
+      },
+      { "section": "A",
+        "q": "The magic constant of a 3x3 magic square using 1-9 is:",
+        "options": [
+          "10",
+          "12",
+          "15",
+          "20"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "Is 0 even or odd?",
+        "options": [
+          "Even",
+          "Odd",
+          "Neither",
+          "Both"
+        ],
+        "answer": 0
+      },
+      { "section": "A",
+        "q": "Odd x Odd = ?",
+        "options": [
+          "Even",
+          "Odd",
+          "Cannot tell",
+          "Zero"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Which is divisible by 9?",
+        "options": [
+          "123",
+          "234",
+          "432",
+          "531"
+        ],
+        "answer": 3
+      },
+      { "section": "A",
+        "q": "The 7th Fibonacci number is:",
+        "options": [
+          "8",
+          "13",
+          "21",
+          "34"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Can 3 odd numbers add up to 20?",
+        "options": [
+          "Yes",
+          "No",
+          "Sometimes",
+          "Need more info"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "What is the divisibility rule for 3?",
+        "options": [
+          "Last digit divisible by 3",
+          "Sum of digits divisible by 3",
+          "Last two digits divisible by 3",
+          "Number is odd"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "The Golden Ratio is approximately:",
+        "options": [
+          "1.414",
+          "1.618",
+          "2.718",
+          "3.14"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "In a magic square, which sums are equal?",
+        "options": [
+          "Only rows",
+          "Only diagonals",
+          "Rows, columns, and diagonals",
+          "Only columns"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "Divisibility rule for 11: check the ___ of alternate digits.",
+        "options": [
+          "Sum",
+          "Product",
+          "Difference",
+          "Average"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "Even x Even = ?",
+        "options": [
+          "Even",
+          "Odd",
+          "Cannot tell",
+          "Prime"
+        ],
+        "answer": 0
+      },
+      { "section": "A",
+        "q": "The next Fibonacci number after 8, 13 is:",
+        "options": [
+          "18",
+          "20",
+          "21",
+          "26"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "Which is divisible by 4?",
+        "options": [
+          "322",
+          "514",
+          "732",
+          "918"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "A 2-digit palindrome example is:",
+        "options": [
+          "12",
+          "21",
+          "33",
+          "45"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "Sum of two consecutive numbers is always:",
+        "options": [
+          "Even",
+          "Odd",
+          "Prime",
+          "Composite"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "In cryptarithmetic, the leading digit of a number cannot be:",
+        "options": [
+          "1",
+          "0",
+          "9",
+          "5"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "The center of a 3x3 magic square (1-9) is always:",
+        "options": [
+          "1",
+          "5",
+          "9",
+          "Any number"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "How many 2-digit palindromes exist?",
+        "options": [
+          "5",
+          "9",
+          "10",
+          "18"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Sunflower seeds spiral in ___ numbers:",
+        "options": [
+          "Prime",
+          "Even",
+          "Fibonacci",
+          "Square"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "Is 1001 divisible by 11?",
+        "options": [
+          "Yes (1-0+0-1=0)",
+          "No",
+          "Cannot determine",
+          "Only by 7"
+        ],
+        "answer": 0
+      },
+      { "section": "B", "case": "A three-digit number has digits a, b, c. The number is 100a + 10b + c. If the digits are reversed, the new number is 100c + 10b + a. Use this for the next 3 questions.",
+        "q": "Product of two consecutive numbers is always:",
+        "options": [
+          "Odd",
+          "Even",
+          "Prime",
+          "Square"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "A three-digit number has digits a, b, c. The number is 100a + 10b + c. If the digits are reversed, the new number is 100c + 10b + a. Use this for the next 3 questions.",
+        "q": "The Virahanka sequence was discovered in:",
+        "options": [
+          "Greece",
+          "India",
+          "Italy",
+          "China"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "A three-digit number has digits a, b, c. The number is 100a + 10b + c. If the digits are reversed, the new number is 100c + 10b + a. Use this for the next 3 questions.",
+        "q": "Which number is divisible by both 2 and 3?",
+        "options": [
+          "8",
+          "9",
+          "12",
+          "15"
+        ],
+        "answer": 2
+      },
+      { "section": "B", "case": "The product of two 2-digit numbers is 1,260. One number is between 30 and 40. Use this for the next 4 questions.",
+        "q": "In a 4x4 magic square using 1-16, the magic constant is:",
+        "options": [
+          "20",
+          "30",
+          "34",
+          "40"
+        ],
+        "answer": 2
+      },
+      { "section": "B", "case": "The product of two 2-digit numbers is 1,260. One number is between 30 and 40. Use this for the next 4 questions.",
+        "q": "What digit does each letter represent in cryptarithmetic?",
+        "options": [
+          "Any digit, repeated allowed",
+          "A unique digit 0-9",
+          "Only prime digits",
+          "Only even digits"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "The product of two 2-digit numbers is 1,260. One number is between 30 and 40. Use this for the next 4 questions.",
+        "q": "Sum of first 6 Fibonacci numbers (1,1,2,3,5,8) is:",
+        "options": [
+          "18",
+          "20",
+          "21",
+          "23"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "The product of two 2-digit numbers is 1,260. One number is between 30 and 40. Use this for the next 4 questions.",
+        "q": "Is 2024 divisible by 4?",
+        "options": [
+          "Yes (24 is divisible by 4)",
+          "No",
+          "Cannot determine",
+          "Only by 2"
+        ],
+        "answer": 0
+      },
+      { "section": "B", "case": "A palindrome number reads the same forwards and backwards (e.g., 12321). Use this for the next 3 questions.",
+        "q": "Odd + Odd + Odd = ?",
+        "options": [
+          "Even",
+          "Odd",
+          "Cannot tell",
+          "Zero"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "A palindrome number reads the same forwards and backwards (e.g., 12321). Use this for the next 3 questions.",
+        "q": "The digit sum of any multiple of 9 is:",
+        "options": [
+          "Always 9",
+          "A multiple of 9",
+          "Always odd",
+          "Always even"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "A palindrome number reads the same forwards and backwards (e.g., 12321). Use this for the next 3 questions.",
+        "q": "11 x 11 = 121. Is 121 a palindrome?",
+        "options": [
+          "Yes",
+          "No",
+          "Cannot determine",
+          "Sometimes"
+        ],
+        "answer": 0
+      }
+    ],
+    "penPaper": [
+      {"section": "C", "q": "Find a 3-digit number where: digit sum = 15, tens digit is twice the units digit, hundreds digit is 3 less than tens digit. Show reasoning. Upload a photo.", "marks": 2},
+      {"section": "C", "q": "Take any 3-digit number, reverse it, subtract the smaller from larger. What do you notice? Try 3 examples and find the pattern. Upload a photo.", "marks": 2},
+      {"section": "D", "q": "Find all 3-digit palindrome numbers divisible by 7. Explain your method. Show systematic working. Upload a photo.", "marks": 3},
+      {"section": "D", "q": "A two-digit number is 3 times the sum of its digits. When 45 is added, the digits are reversed. Find the number. Show algebraic solution. Upload a photo.", "marks": 3},
+      {"section": "E", "q": "Explore the Kaprekar routine: Take any 4-digit number (not all digits same), arrange digits descending and ascending, subtract. Repeat. Show it always reaches 6174. Try 3 starting numbers. Upload a photo.", "marks": 5}
+    ],
+  },
+  {
+    "id": 7,
+    "number": "7",
+    "title": "A Tale of Three Intersecting Lines",
+    "description": "Exploring triangles through construction, types of triangles, properties of sides and angles, and altitude constructions",
+    "topics": [
+      {
+        "name": "7.1 Equilateral Triangles",
+        "content": "An equilateral triangle is the most symmetric of all triangles - all three sides are equal and all three angles are 60°.\n\n**Properties of Equilateral Triangles:**\n• All 3 sides are equal in length\n• All 3 angles are equal = 60° each\n• All 3 medians, altitudes, angle bisectors, and perpendicular bisectors are equal\n• It has 3 lines of symmetry\n• Rotational symmetry of order 3 (looks the same after 120°, 240°, 360° rotation)\n\n**Constructing an Equilateral Triangle:**\nGiven side length = 5 cm:\n1. Draw a line segment AB = 5 cm\n2. With compass at A, radius 5 cm, draw an arc above AB\n3. With compass at B, radius 5 cm, draw another arc cutting the first at point C\n4. Join AC and BC\n\n**Area of Equilateral Triangle:**\nArea = (√3/4) × side²\nFor side = 6 cm: Area = (√3/4) × 36 = 9√3 ≈ 15.59 cm²\n\n**Perimeter:** P = 3 × side\n\n**In Nature and Design:**\n• Honeycomb cells are made of equilateral triangles\n• The yield sign is an equilateral triangle\n• Many logos use equilateral triangles for balance and symmetry\n\n**Practice Tip:** When constructing equilateral triangles with compass, make sure the compass opening stays the SAME as the side length throughout."
+      },
+      {
+        "name": "7.2 Constructing a Triangle When its Sides are Known",
+        "content": "When all three sides of a triangle are given (SSS - Side-Side-Side), we can construct it uniquely using ruler and compass.\n\n**SSS Construction Method:**\nGiven sides a = 5 cm, b = 4 cm, c = 6 cm:\n1. Draw the longest side as base: AB = 6 cm (side c)\n2. With compass at A, radius = 4 cm (side b), draw an arc\n3. With compass at B, radius = 5 cm (side a), draw an arc\n4. Mark the intersection point as C\n5. Join AC and BC to complete the triangle\n\n**Triangle Inequality Rule:**\nNot any three lengths can form a triangle! The sum of any two sides must be greater than the third side:\n• a + b > c\n• b + c > a\n• a + c > b\n\n**Examples:**\n• 3, 4, 5 - Valid! (3+4>5, 4+5>3, 3+5>4)\n• 1, 2, 5 - Invalid! (1+2=3 < 5)\n• 5, 5, 5 - Valid! (equilateral)\n• 3, 3, 6 - Invalid! (3+3=6, not greater than 6)\n\n**Why SSS Gives a Unique Triangle:**\nWhen all three sides are fixed, there's only ONE possible triangle (up to position and orientation). This is because the arcs in step 2 and 3 can only intersect at one point above the base.\n\n**Practice Tip:** Always check the triangle inequality before attempting construction. If it fails, tell your teacher the triangle is impossible!"
+      },
+      {
+        "name": "7.3 Construction When Some Sides and Angles are Known",
+        "content": "We can construct triangles when given combinations of sides and angles: SAS (Side-Angle-Side) or ASA (Angle-Side-Angle).\n\n**SAS Construction:**\nGiven: Two sides and the included angle (the angle between them)\nExample: a = 5 cm, b = 4 cm, included angle C = 60°\n1. Draw one side: AB = 5 cm\n2. At point A, measure angle of 60° using protractor\n3. Along the angle ray, mark AC = 4 cm\n4. Join B to C\n\n**ASA Construction:**\nGiven: Two angles and the included side (the side between them)\nExample: Angle A = 50°, Angle B = 70°, side AB = 6 cm\n1. Draw AB = 6 cm\n2. At A, construct angle of 50°\n3. At B, construct angle of 70°\n4. The rays from A and B meet at C\n\n**Important Note:**\nThe third angle = 180° - 50° - 70° = 60° (angle sum property)\n\n**Why These Give Unique Triangles:**\nSAS and ASA each fix a triangle completely. Given the same measurements, everyone will construct the exact same triangle.\n\n**Angle Sum Property:**\nThe three angles of any triangle always add up to 180°. This is a fundamental property used in many geometry problems.\n\n**Practice Tip:** When using a protractor, make sure the center is exactly on the vertex and the base line aligns with one side of the angle."
+      },
+      {
+        "name": "7.4 Constructions Related to Altitudes of Triangles",
+        "content": "An altitude of a triangle is a perpendicular line from a vertex to the opposite side (or its extension). Every triangle has three altitudes.\n\n**What is an Altitude?**\n• A line segment from a vertex perpendicular to the opposite side\n• It represents the 'height' of the triangle from that vertex\n• Every triangle has exactly 3 altitudes\n\n**Constructing an Altitude:**\n1. From vertex A, you need a perpendicular to side BC\n2. With compass at A, draw arcs cutting BC at two points P and Q\n3. With compass at P, draw an arc below BC\n4. With compass at Q (same radius), draw an arc crossing the previous one at point D\n5. Join AD - this line is perpendicular to BC through A\n6. Mark the foot of the altitude where AD meets BC as H\n7. AH is the altitude from vertex A\n\n**Orthocentre:**\nThe three altitudes of a triangle always meet at a single point called the orthocentre (H).\n• For acute triangle: H is inside the triangle\n• For right triangle: H is at the vertex of the right angle\n• For obtuse triangle: H is outside the triangle\n\n**Area Connection:**\nArea = ½ × base × height (altitude)\nSince any side can be the base, each altitude gives the same area!\n\n**Practice Tip:** When drawing altitudes of obtuse triangles, extend the base line beyond the triangle so the perpendicular from the vertex can reach it."
+      },
+      {
+        "name": "7.5 Types of Triangles",
+        "content": "Triangles are classified based on their sides and angles. Understanding these classifications helps identify properties and solve problems quickly.\n\n**Classification by Sides:**\n• **Equilateral:** All 3 sides equal (also all angles = 60°)\n• **Isosceles:** Exactly 2 sides equal (the angles opposite equal sides are also equal)\n• **Scalene:** All 3 sides different (all angles different too)\n\n**Classification by Angles:**\n• **Acute:** All 3 angles less than 90°\n• **Right:** One angle exactly 90° (the side opposite the right angle is the hypotenuse)\n• **Obtuse:** One angle greater than 90°\n\n**Special Combinations:**\n• Right isosceles: 90°, 45°, 45° triangle (two equal sides)\n• Equilateral is always acute (60°, 60°, 60°)\n• A triangle CANNOT be both right and obtuse\n• A triangle CANNOT have more than one right angle or more than one obtuse angle\n\n**Angle Sum Property:**\nSum of all angles = 180°. This limits possible angle combinations:\n• Maximum one angle can be ≥ 90°\n• Two angles of a triangle must always be acute\n\n**Exterior Angle Theorem:**\nAn exterior angle of a triangle equals the sum of the two non-adjacent interior angles.\n\n**Practice Tip:** To quickly classify a triangle, check: are any sides equal? Then check: are any angles 90° or more?"
+      }
+    ],
+    "questions": [
+      { "section": "A",
+        "q": "An equilateral triangle has all angles equal to:",
+        "options": [
+          "45°",
+          "60°",
+          "90°",
+          "120°"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "The sum of angles in a triangle is:",
+        "options": [
+          "90°",
+          "180°",
+          "270°",
+          "360°"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Can sides 2, 3, and 6 form a triangle?",
+        "options": [
+          "Yes",
+          "No (2+3 < 6)",
+          "Sometimes",
+          "Only right triangle"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "A triangle with all different sides is:",
+        "options": [
+          "Equilateral",
+          "Isosceles",
+          "Scalene",
+          "Right"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "How many altitudes does a triangle have?",
+        "options": [
+          "1",
+          "2",
+          "3",
+          "4"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "In a right triangle, the longest side is called:",
+        "options": [
+          "Base",
+          "Height",
+          "Hypotenuse",
+          "Median"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "An isosceles triangle has:",
+        "options": [
+          "All sides equal",
+          "Two sides equal",
+          "No sides equal",
+          "All angles 60°"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "If two angles of a triangle are 50° and 60°, the third is:",
+        "options": [
+          "50°",
+          "60°",
+          "70°",
+          "80°"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "SSS stands for:",
+        "options": [
+          "Side-Side-Side",
+          "Sum-Side-Sum",
+          "Side-Sum-Side",
+          "Same-Same-Same"
+        ],
+        "answer": 0
+      },
+      { "section": "A",
+        "q": "The point where all 3 altitudes meet is the:",
+        "options": [
+          "Centroid",
+          "Circumcentre",
+          "Orthocentre",
+          "Incentre"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "An equilateral triangle has how many lines of symmetry?",
+        "options": [
+          "1",
+          "2",
+          "3",
+          "6"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "Can a triangle have two right angles?",
+        "options": [
+          "Yes",
+          "No",
+          "Sometimes",
+          "Only isosceles"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Perimeter of equilateral triangle with side 8 cm:",
+        "options": [
+          "16 cm",
+          "24 cm",
+          "32 cm",
+          "64 cm"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "A triangle with angles 90°, 45°, 45° is:",
+        "options": [
+          "Right isosceles",
+          "Right scalene",
+          "Equilateral",
+          "Obtuse"
+        ],
+        "answer": 0
+      },
+      { "section": "A",
+        "q": "Can sides 3, 4, 5 form a triangle?",
+        "options": [
+          "Yes",
+          "No",
+          "Only right triangle",
+          "Both A and C"
+        ],
+        "answer": 3
+      },
+      { "section": "A",
+        "q": "In an obtuse triangle, the orthocentre lies:",
+        "options": [
+          "Inside",
+          "On a vertex",
+          "Outside",
+          "On a side"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "SAS construction needs:",
+        "options": [
+          "3 sides",
+          "2 sides and included angle",
+          "2 angles and included side",
+          "3 angles"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "An exterior angle of a triangle equals:",
+        "options": [
+          "Sum of all interior angles",
+          "Sum of two non-adjacent interior angles",
+          "The adjacent interior angle",
+          "180°"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Area of triangle = ?",
+        "options": [
+          "base x height",
+          "1/2 x base x height",
+          "2 x base x height",
+          "base + height"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "If exterior angle is 110°, the adjacent interior angle is:",
+        "options": [
+          "110°",
+          "70°",
+          "90°",
+          "180°"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Triangle inequality states that sum of any two sides must be:",
+        "options": [
+          "Equal to third side",
+          "Less than third side",
+          "Greater than third side",
+          "Double the third side"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "A triangle with one angle > 90° is:",
+        "options": [
+          "Acute",
+          "Right",
+          "Obtuse",
+          "Equilateral"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "How many unique triangles can SSS give?",
+        "options": [
+          "0",
+          "1",
+          "2",
+          "Infinite"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "In a right triangle, orthocentre is at:",
+        "options": [
+          "Centre",
+          "The right angle vertex",
+          "Outside",
+          "On hypotenuse"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "An equilateral triangle is also:",
+        "options": [
+          "Always acute",
+          "Always right",
+          "Always obtuse",
+          "Sometimes right"
+        ],
+        "answer": 0
+      },
+      { "section": "B", "case": "Triangle PQR has PQ=8cm, QR=6cm, PR=10cm. Use this for the next 3 questions.",
+        "q": "If isosceles triangle has equal sides of 5 cm and base 6 cm, perimeter = ?",
+        "options": [
+          "11 cm",
+          "16 cm",
+          "15 cm",
+          "17 cm"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "Triangle PQR has PQ=8cm, QR=6cm, PR=10cm. Use this for the next 3 questions.",
+        "q": "To construct a triangle, minimum information needed:",
+        "options": [
+          "1 side",
+          "2 sides",
+          "3 elements (sides/angles)",
+          "All 6 elements"
+        ],
+        "answer": 2
+      },
+      { "section": "B", "case": "Triangle PQR has PQ=8cm, QR=6cm, PR=10cm. Use this for the next 3 questions.",
+        "q": "Two angles in a triangle MUST be:",
+        "options": [
+          "Obtuse",
+          "Right",
+          "Acute",
+          "Equal"
+        ],
+        "answer": 2
+      },
+      { "section": "B", "case": "In triangle ABC, the exterior angle at C is 130 degrees. Angle A is 20 degrees more than angle B. Use this for the next 4 questions.",
+        "q": "ASA gives ___ triangle(s):",
+        "options": [
+          "No",
+          "Exactly 1",
+          "2",
+          "Infinite"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "In triangle ABC, the exterior angle at C is 130 degrees. Angle A is 20 degrees more than angle B. Use this for the next 4 questions.",
+        "q": "Altitude is ___ to the base:",
+        "options": [
+          "Parallel",
+          "Perpendicular",
+          "Equal",
+          "Adjacent"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "In triangle ABC, the exterior angle at C is 130 degrees. Angle A is 20 degrees more than angle B. Use this for the next 4 questions.",
+        "q": "If all angles of a triangle are less than 90°, it is:",
+        "options": [
+          "Right",
+          "Obtuse",
+          "Acute",
+          "Equilateral"
+        ],
+        "answer": 2
+      },
+      { "section": "B", "case": "In triangle ABC, the exterior angle at C is 130 degrees. Angle A is 20 degrees more than angle B. Use this for the next 4 questions.",
+        "q": "Can sides 5, 5, 10 form a triangle?",
+        "options": [
+          "Yes, isosceles",
+          "No (5+5 = 10, not greater)",
+          "Yes, equilateral",
+          "Cannot determine"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "Two triangles have sides: Triangle 1 (3,4,5) and Triangle 2 (5,12,13). Use this for the next 3 questions.",
+        "q": "The angle sum property works for:",
+        "options": [
+          "Only equilateral triangles",
+          "Only right triangles",
+          "All triangles",
+          "Only isosceles triangles"
+        ],
+        "answer": 2
+      },
+      { "section": "B", "case": "Two triangles have sides: Triangle 1 (3,4,5) and Triangle 2 (5,12,13). Use this for the next 3 questions.",
+        "q": "In an equilateral triangle, each altitude also bisects:",
+        "options": [
+          "Only the base",
+          "Only the angle",
+          "Both the base and angle",
+          "Neither"
+        ],
+        "answer": 2
+      },
+      { "section": "B", "case": "Two triangles have sides: Triangle 1 (3,4,5) and Triangle 2 (5,12,13). Use this for the next 3 questions.",
+        "q": "A scalene triangle has ___ lines of symmetry:",
+        "options": [
+          "0",
+          "1",
+          "2",
+          "3"
+        ],
+        "answer": 0
+      }
+    ],
+    "penPaper": [
+      {"section": "C", "q": "Construct a triangle with sides 5cm, 6cm, and 7cm. Measure all angles and verify the angle sum property. Upload a photo.", "marks": 2},
+      {"section": "C", "q": "Draw a triangle. Construct the three medians. Verify that they are concurrent (meet at one point). Upload a photo.", "marks": 2},
+      {"section": "D", "q": "Prove that the exterior angle of a triangle equals the sum of the two non-adjacent interior angles. Use a diagram with measurements. Upload a photo.", "marks": 3},
+      {"section": "D", "q": "Can the following be sides of a triangle? (a) 3, 4, 8 (b) 5, 5, 5 (c) 7, 10, 5 (d) 2, 3, 6. Check using the triangle inequality. Upload a photo.", "marks": 3},
+      {"section": "E", "q": "Construct triangle ABC with BC=7cm, angle B=45 degrees, angle C=60 degrees. Draw the perpendicular bisectors of all sides and the angle bisectors of all angles. Verify they are concurrent. Upload a photo.", "marks": 5}
+    ],
+  },
+  {
+    "id": 8,
+    "number": "8",
+    "title": "Working with Fractions",
+    "description": "Multiplication and division of fractions, word problems involving fractions, and real-world applications",
+    "topics": [
+      {
+        "name": "8.1 Multiplication of Fractions",
+        "content": "Multiplying fractions is straightforward: multiply numerators together and denominators together. Understanding why this works helps with word problems.\n\n**Rule: a/b × c/d = (a×c)/(b×d)**\n\n**Examples:**\n• 2/3 × 4/5 = 8/15\n• 3/4 × 2/7 = 6/28 = 3/14\n• 5 × 3/4 = 15/4 = 3¾\n\n**Meaning of Fraction Multiplication:**\n'1/2 of 1/3' means 1/2 × 1/3 = 1/6. If you take a third of something and then half of that, you get one-sixth.\n\n**Multiplying Mixed Numbers:**\nFirst convert to improper fractions:\n2½ × 1⅓ = 5/2 × 4/3 = 20/6 = 10/3 = 3⅓\n\n**Simplification Before Multiplying (Cross-Cancellation):**\n2/3 × 9/4: Cancel 2 and 4 (both ÷2), cancel 3 and 9 (both ÷3)\n= 1/1 × 3/2 = 3/2 = 1½\n\n**Properties:**\n• Multiplying by a fraction less than 1 makes the number smaller\n• Multiplying by a fraction greater than 1 makes the number larger\n• Multiplying by 1 (or any form of 1 like 3/3) keeps the number same\n• a/b × b/a = 1 (multiplicative inverse)\n\n**Real-World Applications:**\n• 'Half price' means multiplying by 1/2\n• 'Two-thirds of the class passed' means 2/3 × total students\n• Recipe scaling: 3/4 of a recipe that needs 2/3 cup sugar = 3/4 × 2/3 = 1/2 cup\n\n**Practice Tip:** Always simplify before multiplying when possible - it keeps numbers small and reduces errors."
+      },
+      {
+        "name": "8.2 Division of Fractions",
+        "content": "Dividing by a fraction is the same as multiplying by its reciprocal. This seemingly odd rule makes perfect sense when you understand what division really means.\n\n**Rule: a/b ÷ c/d = a/b × d/c**\n(Flip the second fraction and multiply)\n\n**Why Does This Work?**\n'How many 1/4's are in 3?' means 3 ÷ 1/4 = 3 × 4/1 = 12. Yes! There are 12 quarter-pieces in 3 wholes.\n\n**Examples:**\n• 3/4 ÷ 2/3 = 3/4 × 3/2 = 9/8 = 1⅛\n• 5 ÷ 1/3 = 5 × 3 = 15\n• 1/2 ÷ 3 = 1/2 × 1/3 = 1/6\n• 2½ ÷ 1¼ = 5/2 ÷ 5/4 = 5/2 × 4/5 = 20/10 = 2\n\n**Reciprocal (Multiplicative Inverse):**\n• Reciprocal of 3/4 is 4/3\n• Reciprocal of 5 is 1/5\n• Reciprocal of 1/7 is 7\n• A number × its reciprocal = 1\n• Zero has NO reciprocal (cannot divide by zero!)\n\n**Properties:**\n• Dividing by a fraction  1 makes the number SMALLER\n• Dividing any number by itself = 1\n\n**Practice Tip:** Remember KFC - Keep the first fraction, Flip the second, Change division to multiplication!"
+      },
+      {
+        "name": "8.3 Some Problems Involving Fractions",
+        "content": "Word problems with fractions require careful reading to identify whether you need to add, subtract, multiply, or divide.\n\n**Type 1: Finding a Fraction of a Quantity**\n'3/5 of 40 students like cricket' → 3/5 × 40 = 24 students\n'Raju spent 2/7 of Rs. 350' → 2/7 × 350 = Rs. 100\n\n**Type 2: Finding the Whole from a Part**\n'If 3/4 of a number is 27, find the number' → 27 ÷ 3/4 = 27 × 4/3 = 36\n'2/5 of the students = 16. Total students?' → 16 ÷ 2/5 = 16 × 5/2 = 40\n\n**Type 3: Successive Fractions**\n'Meera had Rs. 600. She spent 1/3 on books and 1/4 of the remainder on food.'\nBooks: 1/3 × 600 = Rs. 200. Remainder = Rs. 400.\nFood: 1/4 × 400 = Rs. 100. Final remainder = Rs. 300.\n\n**Type 4: Fraction of Area/Length**\n'A rope 8½ meters long is cut into pieces of 1¼ m each. How many pieces?'\n8½ ÷ 1¼ = 17/2 ÷ 5/4 = 17/2 × 4/5 = 68/10 = 6.8 → 6 complete pieces\n\n**Type 5: Comparing Fractions**\n'Who ate more: Ram (3/8 of pizza) or Shyam (2/5 of pizza)?'\n3/8 = 15/40, 2/5 = 16/40. Shyam ate more!\n\n**Practice Tip:** In word problems, 'of' usually means multiplication, 'shared equally' means division, and 'how much more/less' means subtraction."
+      }
+    ],
+    "questions": [
+      { "section": "A",
+        "q": "2/3 x 4/5 = ?",
+        "options": [
+          "6/8",
+          "8/15",
+          "6/15",
+          "8/8"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "The reciprocal of 3/7 is:",
+        "options": [
+          "3/7",
+          "7/3",
+          "-3/7",
+          "1"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "3/4 / 2/3 = ?",
+        "options": [
+          "6/12",
+          "9/8",
+          "1/2",
+          "6/7"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Half of 2/5 is:",
+        "options": [
+          "1/5",
+          "4/5",
+          "2/10",
+          "1/10"
+        ],
+        "answer": 0
+      },
+      { "section": "A",
+        "q": "5 / (1/3) = ?",
+        "options": [
+          "5/3",
+          "15",
+          "3/5",
+          "1/15"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "2 1/2 x 1 1/3 = ?",
+        "options": [
+          "2 2/5",
+          "3 1/3",
+          "3 1/6",
+          "2 1/6"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "3/5 of 40 = ?",
+        "options": [
+          "8",
+          "24",
+          "30",
+          "15"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Reciprocal of 5 is:",
+        "options": [
+          "5",
+          "-5",
+          "1/5",
+          "0"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "1/2 / 3 = ?",
+        "options": [
+          "3/2",
+          "1/6",
+          "6",
+          "2/3"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "If 3/4 of a number is 27, the number is:",
+        "options": [
+          "20",
+          "36",
+          "81",
+          "9"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Multiplying by 1/2 is the same as:",
+        "options": [
+          "Doubling",
+          "Halving",
+          "Adding 1/2",
+          "Subtracting 1/2"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "4/7 x 7/4 = ?",
+        "options": [
+          "0",
+          "1",
+          "16/49",
+          "49/16"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "A rope 8 1/2 m cut into 1 1/4 m pieces gives:",
+        "options": [
+          "6 pieces",
+          "7 pieces",
+          "8 pieces",
+          "6 complete pieces"
+        ],
+        "answer": 3
+      },
+      { "section": "A",
+        "q": "Which is greater: 3/8 or 2/5?",
+        "options": [
+          "3/8",
+          "2/5",
+          "Equal",
+          "Cannot compare"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "2/3 x 9/4 simplified first gives:",
+        "options": [
+          "18/12",
+          "3/2",
+          "6/4",
+          "9/6"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Dividing by 1/4 is the same as:",
+        "options": [
+          "Multiplying by 4",
+          "Dividing by 4",
+          "Multiplying by 1/4",
+          "Subtracting 4"
+        ],
+        "answer": 0
+      },
+      { "section": "A",
+        "q": "3/8 x 0 = ?",
+        "options": [
+          "3/8",
+          "0",
+          "8/3",
+          "Undefined"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "If 2/5 of students = 16, total students = ?",
+        "options": [
+          "32",
+          "8",
+          "40",
+          "80"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "Mixed number 3 2/5 as improper fraction:",
+        "options": [
+          "32/5",
+          "17/5",
+          "15/2",
+          "6/5"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "1/3 x 1/3 = ?",
+        "options": [
+          "2/3",
+          "1/6",
+          "1/9",
+          "2/9"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "Zero has a reciprocal:",
+        "options": [
+          "Yes, it's 0",
+          "Yes, it's infinity",
+          "No",
+          "Yes, it's 1"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "2/3 / 2/3 = ?",
+        "options": [
+          "0",
+          "1",
+          "4/9",
+          "2/3"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Raju spent 2/7 of Rs. 350. He spent:",
+        "options": [
+          "Rs. 50",
+          "Rs. 100",
+          "Rs. 150",
+          "Rs. 200"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "5/6 x 12 = ?",
+        "options": [
+          "10",
+          "60/6",
+          "17/6",
+          "Both A and B"
+        ],
+        "answer": 3
+      },
+      { "section": "A",
+        "q": "Multiplying a number by a fraction > 1:",
+        "options": [
+          "Decreases it",
+          "Increases it",
+          "Keeps it same",
+          "Makes it zero"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "A tank is filled 3/5 by pipe A in 1 hour and 2/7 by pipe B in 1 hour. Both pipes are opened together. Use this for the next 3 questions.",
+        "q": "3 1/4 / 1/2 = ?",
+        "options": [
+          "1 5/8",
+          "6 1/2",
+          "3/8",
+          "13/8"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "A tank is filled 3/5 by pipe A in 1 hour and 2/7 by pipe B in 1 hour. Both pipes are opened together. Use this for the next 3 questions.",
+        "q": "What fraction of 1 hour is 20 minutes?",
+        "options": [
+          "1/2",
+          "1/3",
+          "1/4",
+          "2/5"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "A tank is filled 3/5 by pipe A in 1 hour and 2/7 by pipe B in 1 hour. Both pipes are opened together. Use this for the next 3 questions.",
+        "q": "7/8 x 8/7 = ?",
+        "options": [
+          "56/56",
+          "1",
+          "15/15",
+          "All of these"
+        ],
+        "answer": 3
+      },
+      { "section": "B", "case": "A recipe for 6 people needs 3/4 kg flour, 1/2 litre milk, and 2/3 cup sugar. It is being made for 9 people. Use this for the next 4 questions.",
+        "q": "If she spent 1/3 of Rs. 600 on books, remainder = ?",
+        "options": [
+          "Rs. 200",
+          "Rs. 300",
+          "Rs. 400",
+          "Rs. 500"
+        ],
+        "answer": 2
+      },
+      { "section": "B", "case": "A recipe for 6 people needs 3/4 kg flour, 1/2 litre milk, and 2/3 cup sugar. It is being made for 9 people. Use this for the next 4 questions.",
+        "q": "1/5 / 1/5 = ?",
+        "options": [
+          "1/25",
+          "25",
+          "1",
+          "0"
+        ],
+        "answer": 2
+      },
+      { "section": "B", "case": "A recipe for 6 people needs 3/4 kg flour, 1/2 litre milk, and 2/3 cup sugar. It is being made for 9 people. Use this for the next 4 questions.",
+        "q": "3/4 of a pizza shared by 3 people. Each gets:",
+        "options": [
+          "1/4",
+          "3/12",
+          "9/4",
+          "Both A and B"
+        ],
+        "answer": 3
+      },
+      { "section": "B", "case": "A recipe for 6 people needs 3/4 kg flour, 1/2 litre milk, and 2/3 cup sugar. It is being made for 9 people. Use this for the next 4 questions.",
+        "q": "Which is larger: 5/6 or 7/8?",
+        "options": [
+          "5/6",
+          "7/8",
+          "Equal",
+          "Cannot tell"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "Ravi spends 1/4 of his salary on rent, 1/5 on food, 1/10 on transport. His salary is Rs.30,000. Use this for the next 3 questions.",
+        "q": "2 / (2/3) = ?",
+        "options": [
+          "4/3",
+          "3",
+          "1/3",
+          "6"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "Ravi spends 1/4 of his salary on rent, 1/5 on food, 1/10 on transport. His salary is Rs.30,000. Use this for the next 3 questions.",
+        "q": "Product of a number and its reciprocal is always:",
+        "options": [
+          "0",
+          "1",
+          "The number itself",
+          "2"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "Ravi spends 1/4 of his salary on rent, 1/5 on food, 1/10 on transport. His salary is Rs.30,000. Use this for the next 3 questions.",
+        "q": "3/5 x 5/3 x 7 = ?",
+        "options": [
+          "7",
+          "105/15",
+          "1",
+          "Both A and B"
+        ],
+        "answer": 3
+      }
+    ],
+    "penPaper": [
+      {"section": "C", "q": "Simplify: (2 1/3 + 1 3/4) / (3/5 - 1/4). Convert mixed numbers, find common denominators, and compute. Upload a photo.", "marks": 2},
+      {"section": "C", "q": "Find a fraction between 3/7 and 4/7. Then find a fraction between 3/7 and your answer. Show the method. Upload a photo.", "marks": 2},
+      {"section": "D", "q": "Three pipes fill a pool: Pipe A fills 1/3 per hour, Pipe B fills 1/4 per hour, Pipe C drains 1/6 per hour. If all three are open, how long to fill the pool? Upload a photo.", "marks": 3},
+      {"section": "D", "q": "Divide 1200 among A, B, C so that A gets 1/2 of what B gets, and C gets 1/3 of what A gets. Find each person's share. Upload a photo.", "marks": 3},
+      {"section": "E", "q": "Create a real-life problem involving all four operations on fractions (+, -, x, /). Solve it showing every step with clear explanations. The problem must use at least 4 different fractions. Upload a photo.", "marks": 5}
+    ],
+  },
+  {
+    "id": 9,
+    "number": "9",
+    "title": "Geometric Twins",
+    "description": "Understanding symmetry, congruence, reflection, and rotation - how geometric shapes can be identical twins",
+    "topics": [
+      {
+        "name": "9.1 Line Symmetry",
+        "content": "A figure has line symmetry if it can be folded along a line so that one half matches exactly with the other half. This fold line is called the line of symmetry or axis of symmetry.\n\n**Definition:**\nA figure is symmetric about a line if, when folded along that line, the two halves overlap perfectly. The fold line is the line of symmetry.\n\n**Examples of Line Symmetry:**\n• A square has 4 lines of symmetry (2 diagonals + 2 midpoint lines)\n• A rectangle has 2 lines of symmetry (through midpoints of opposite sides)\n• An equilateral triangle has 3 lines of symmetry\n• A circle has infinite lines of symmetry (every diameter)\n• A regular pentagon has 5 lines of symmetry\n\n**Symmetry in English Alphabets:**\n• Vertical line symmetry: A, H, I, M, O, T, U, V, W, X, Y\n• Horizontal line symmetry: B, C, D, E, H, I, K, O, X\n• Both: H, I, O, X\n• No symmetry: F, G, J, L, N, P, Q, R, S, Z\n\n**Symmetry in Nature:**\n• Butterflies (bilateral symmetry)\n• Leaves (midrib is the line of symmetry)\n• Human face (approximately symmetric)\n• Snowflakes (6 lines of symmetry)\n\n**Mirror Test:** Place a mirror along the supposed line of symmetry. If the reflection plus the visible half recreates the full figure, it's a line of symmetry!\n\n**Practice Tip:** To check symmetry, trace the figure on paper, fold along the suspected line, and see if both halves match."
+      },
+      {
+        "name": "9.2 Congruent Figures",
+        "content": "Two figures are congruent if they have the same shape AND the same size. One can be placed on top of the other to match perfectly.\n\n**Definition:**\nCongruent figures are identical in shape and size. They can be superimposed (placed on top of each other) to match exactly. The symbol for congruence is ≅.\n\n**Congruence vs Similarity:**\n• **Congruent:** Same shape AND same size (exact copies)\n• **Similar:** Same shape but possibly different sizes (scaled copies)\nAll congruent figures are similar, but not all similar figures are congruent!\n\n**Congruence of Line Segments:**\nTwo line segments are congruent if they have the same length.\nAB ≅ CD means AB = CD (same length)\n\n**Congruence of Angles:**\nTwo angles are congruent if they have the same measure.\n∠A ≅ ∠B means ∠A = ∠B (same degrees)\n\n**Congruence of Triangles:**\nTwo triangles are congruent if all corresponding sides and angles match. Tests:\n• SSS: All 3 sides equal\n• SAS: 2 sides and included angle equal\n• ASA: 2 angles and included side equal\n• RHS: Right angle, Hypotenuse, one Side equal\n\n**Real-World Examples:**\n• Two coins of the same denomination are congruent\n• Tiles of the same type are congruent\n• Mass-produced objects (same mold) are congruent\n\n**Practice Tip:** To check if two figures are congruent, trace one on paper and try to place it on the other. You may need to flip or rotate it."
+      },
+      {
+        "name": "9.3 Flips and Turns",
+        "content": "Geometric transformations like reflections (flips), rotations (turns), and translations (slides) move figures while preserving their shape and size.\n\n**Reflection (Flip):**\n• A mirror image of the figure across a line (mirror line)\n• Every point moves to the other side, same distance from the mirror line\n• The figure appears 'flipped' or reversed\n• Left and right are swapped, but shape and size stay the same\n\n**Rotation (Turn):**\n• Turning a figure around a fixed point (center of rotation)\n• Measured by the angle of rotation (90°, 180°, 270°, etc.)\n• Clockwise or counter-clockwise direction\n• Shape and size remain unchanged\n\n**Translation (Slide):**\n• Moving a figure in a straight line without rotating or flipping\n• Every point moves the same distance in the same direction\n• Like sliding a chess piece straight across the board\n\n**Rotational Symmetry:**\nA figure has rotational symmetry if it looks the same after rotation by less than 360°:\n• Square: Order 4 (looks same at 90°, 180°, 270°, 360°)\n• Equilateral triangle: Order 3 (120°, 240°, 360°)\n• Rectangle: Order 2 (180°, 360°)\n• Circle: Infinite order\n\n**Key Insight:** Reflections, rotations, and translations all produce congruent figures. The original and the transformed figure are always congruent!\n\n**Practice Tip:** Use tracing paper to test transformations - trace the figure and physically flip, turn, or slide it to see the result."
+      }
+    ],
+    "questions": [
+      { "section": "A",
+        "q": "How many lines of symmetry does a square have?",
+        "options": [
+          "1",
+          "2",
+          "4",
+          "8"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "Two figures with same shape and size are:",
+        "options": [
+          "Similar",
+          "Congruent",
+          "Symmetric",
+          "Equal"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "A circle has ___ lines of symmetry:",
+        "options": [
+          "1",
+          "4",
+          "8",
+          "Infinite"
+        ],
+        "answer": 3
+      },
+      { "section": "A",
+        "q": "The letter 'A' has:",
+        "options": [
+          "Vertical line symmetry",
+          "Horizontal line symmetry",
+          "Both",
+          "No symmetry"
+        ],
+        "answer": 0
+      },
+      { "section": "A",
+        "q": "A reflection is also called a:",
+        "options": [
+          "Slide",
+          "Turn",
+          "Flip",
+          "Stretch"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "An equilateral triangle has ___ lines of symmetry:",
+        "options": [
+          "1",
+          "2",
+          "3",
+          "6"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "The symbol for congruence is:",
+        "options": [
+          "=",
+          "~",
+          "≅",
+          "≈"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "A rotation is also called a:",
+        "options": [
+          "Flip",
+          "Turn",
+          "Slide",
+          "Scale"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Rotational symmetry order of a square is:",
+        "options": [
+          "2",
+          "3",
+          "4",
+          "8"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "Which letter has both horizontal and vertical symmetry?",
+        "options": [
+          "A",
+          "B",
+          "H",
+          "T"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "Two congruent triangles have:",
+        "options": [
+          "Same shape only",
+          "Same size only",
+          "Same shape and size",
+          "Different shapes"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "A rectangle has ___ lines of symmetry:",
+        "options": [
+          "1",
+          "2",
+          "3",
+          "4"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "A translation is also called a:",
+        "options": [
+          "Flip",
+          "Turn",
+          "Slide",
+          "Rotation"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "Which has NO line of symmetry?",
+        "options": [
+          "Circle",
+          "Square",
+          "Scalene triangle",
+          "Rectangle"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "A butterfly shows ___ symmetry:",
+        "options": [
+          "No",
+          "Bilateral (line)",
+          "Rotational",
+          "Point"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "SSS test for congruence means:",
+        "options": [
+          "Side-Side-Side",
+          "Same-Same-Same",
+          "Similar-Similar-Similar",
+          "Sum-Sum-Sum"
+        ],
+        "answer": 0
+      },
+      { "section": "A",
+        "q": "After a reflection, the figure is:",
+        "options": [
+          "Bigger",
+          "Smaller",
+          "Congruent to original",
+          "Similar only"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "A regular hexagon has ___ lines of symmetry:",
+        "options": [
+          "3",
+          "4",
+          "6",
+          "12"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "Which transformation changes left-right orientation?",
+        "options": [
+          "Translation",
+          "Rotation",
+          "Reflection",
+          "None"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "The letter 'O' has ___ lines of symmetry:",
+        "options": [
+          "1",
+          "2",
+          "4",
+          "Infinite"
+        ],
+        "answer": 3
+      },
+      { "section": "A",
+        "q": "All congruent figures are similar:",
+        "options": [
+          "True",
+          "False",
+          "Sometimes",
+          "Never"
+        ],
+        "answer": 0
+      },
+      { "section": "A",
+        "q": "A snowflake typically has ___ lines of symmetry:",
+        "options": [
+          "2",
+          "4",
+          "6",
+          "8"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "Rotational symmetry order of an equilateral triangle:",
+        "options": [
+          "1",
+          "2",
+          "3",
+          "6"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "Which test is NOT for triangle congruence?",
+        "options": [
+          "SSS",
+          "SAS",
+          "AAA",
+          "ASA"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "A parallelogram has ___ lines of symmetry:",
+        "options": [
+          "0",
+          "1",
+          "2",
+          "4"
+        ],
+        "answer": 0
+      },
+      { "section": "B", "case": "Two triangles: ABC (AB=5, BC=7, CA=8) and PQR (PQ=5, QR=7, RP=8). Use this for the next 3 questions.",
+        "q": "After 180° rotation, a rectangle looks:",
+        "options": [
+          "Different",
+          "The same",
+          "Bigger",
+          "Flipped"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "Two triangles: ABC (AB=5, BC=7, CA=8) and PQR (PQ=5, QR=7, RP=8). Use this for the next 3 questions.",
+        "q": "Two line segments are congruent if they have:",
+        "options": [
+          "Same direction",
+          "Same length",
+          "Same position",
+          "Same color"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "Two triangles: ABC (AB=5, BC=7, CA=8) and PQR (PQ=5, QR=7, RP=8). Use this for the next 3 questions.",
+        "q": "A regular pentagon has rotational symmetry of order:",
+        "options": [
+          "3",
+          "4",
+          "5",
+          "10"
+        ],
+        "answer": 2
+      },
+      { "section": "B", "case": "In the figure, ABCD is a rectangle. Diagonal AC divides it into two triangles. Use this for the next 4 questions.",
+        "q": "Which shape has the most lines of symmetry?",
+        "options": [
+          "Square",
+          "Rectangle",
+          "Circle",
+          "Triangle"
+        ],
+        "answer": 2
+      },
+      { "section": "B", "case": "In the figure, ABCD is a rectangle. Diagonal AC divides it into two triangles. Use this for the next 4 questions.",
+        "q": "In a reflection, the distance from mirror line is:",
+        "options": [
+          "Doubled",
+          "Halved",
+          "Same on both sides",
+          "Zero"
+        ],
+        "answer": 2
+      },
+      { "section": "B", "case": "In the figure, ABCD is a rectangle. Diagonal AC divides it into two triangles. Use this for the next 4 questions.",
+        "q": "An isosceles triangle has ___ line(s) of symmetry:",
+        "options": [
+          "0",
+          "1",
+          "2",
+          "3"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "In the figure, ABCD is a rectangle. Diagonal AC divides it into two triangles. Use this for the next 4 questions.",
+        "q": "Which transformation doesn't change orientation?",
+        "options": [
+          "Reflection",
+          "Translation",
+          "Glide reflection",
+          "None"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "Two circles of equal radius 5cm overlap such that each passes through the other's centre. Use this for the next 3 questions.",
+        "q": "A rhombus has ___ lines of symmetry:",
+        "options": [
+          "0",
+          "1",
+          "2",
+          "4"
+        ],
+        "answer": 2
+      },
+      { "section": "B", "case": "Two circles of equal radius 5cm overlap such that each passes through the other's centre. Use this for the next 3 questions.",
+        "q": "Two circles with the same radius are:",
+        "options": [
+          "Similar only",
+          "Congruent",
+          "Neither",
+          "Cannot determine"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "Two circles of equal radius 5cm overlap such that each passes through the other's centre. Use this for the next 3 questions.",
+        "q": "The letter 'S' has:",
+        "options": [
+          "Line symmetry",
+          "Rotational symmetry",
+          "Both",
+          "Neither"
+        ],
+        "answer": 1
+      }
+    ],
+    "penPaper": [
+      {"section": "C", "q": "Draw two congruent triangles using SSS criterion (sides 4cm, 5cm, 6cm). Cut out one and place it over the other to verify. Upload a photo.", "marks": 2},
+      {"section": "C", "q": "Identify which congruence criterion (SSS, SAS, ASA, RHS) applies: Triangle 1 has sides 3,4,5 and Triangle 2 has sides 3,4,5. Explain. Upload a photo.", "marks": 2},
+      {"section": "D", "q": "Construct triangle ABC with AB=6cm, angle A=50 degrees, AC=5cm. Then construct a congruent triangle PQR using SAS criterion. Verify by superimposing. Upload a photo.", "marks": 3},
+      {"section": "D", "q": "In a rectangle ABCD, prove that diagonal AC = diagonal BD, and triangle ABC is congruent to triangle DCB. State the congruence criterion used. Upload a photo.", "marks": 3},
+      {"section": "E", "q": "Draw 4 pairs of congruent figures - one pair for each criterion (SSS, SAS, ASA, RHS). For each pair, label measurements and state the correspondence. Upload a photo.", "marks": 5}
+    ],
+  },
+  {
+    "id": 10,
+    "number": "10",
+    "title": "Operations with Integers",
+    "description": "Understanding positive and negative numbers, number line operations, addition, subtraction, and multiplication of integers",
+    "topics": [
+      {
+        "name": "10.1 Integers and the Number Line",
+        "content": "Integers extend our number system to include negative numbers. The number line stretches infinitely in both directions, with zero in the middle.\n\n**What are Integers?**\nIntegers = {..., -3, -2, -1, 0, 1, 2, 3, ...}\n• Positive integers: 1, 2, 3, 4, ... (right of zero)\n• Negative integers: -1, -2, -3, -4, ... (left of zero)\n• Zero is neither positive nor negative\n\n**The Number Line:**\n\n• Numbers increase from left to right\n• Numbers decrease from right to left\n• Every positive number has a negative counterpart\n\n**Comparing Integers:**\n• Any positive integer > 0 > any negative integer\n• Among negatives: -1 > -2 > -3 (closer to zero = larger)\n• -100 < -1 (further from zero = smaller for negatives)\n\n**Absolute Value:**\nThe distance of a number from zero (always positive):\n• |5| = 5, |-5| = 5\n• |0| = 0\n• |-100| = 100\n\n**Real-World Integers:**\n• Temperature: -5°C (5 degrees below zero)\n• Altitude: -200 m (200 meters below sea level, like the Dead Sea)\n• Bank balance: -Rs. 500 (overdrawn/debt of Rs. 500)\n• Floors: -2 (second basement level)\n• Timeline: -500 BCE (500 years before common era)\n\n**Practice Tip:** Think of the number line as a thermometer - above zero is positive (warm), below zero is negative (cold). The further below zero, the colder (smaller) it is."
+      },
+      {
+        "name": "10.2 Operations on Integers",
+        "content": "Adding, subtracting, and multiplying integers follows specific rules. Understanding these rules through the number line makes them intuitive.\n\n**Addition of Integers:**\n• Same signs: Add the absolute values, keep the sign\n  (+3) + (+5) = +8, (-3) + (-5) = -8\n• Different signs: Subtract smaller absolute value from larger, keep sign of larger\n  (+7) + (-3) = +4, (-7) + (+3) = -4\n  (+3) + (-7) = -4, (-3) + (+7) = +4\n\n**Subtraction of Integers:**\nSubtracting is the same as adding the opposite (additive inverse):\na - b = a + (-b)\n• 5 - 8 = 5 + (-8) = -3\n• -3 - 4 = -3 + (-4) = -7\n• -3 - (-4) = -3 + 4 = 1\n\n**Multiplication of Integers:**\n• Positive × Positive = Positive: 3 × 4 = 12\n• Negative × Negative = Positive: (-3) × (-4) = 12\n• Positive × Negative = Negative: 3 × (-4) = -12\n• Negative × Positive = Negative: (-3) × 4 = -12\n\n**Memory Aid:** Same signs → Positive product, Different signs → Negative product\n\n**Properties:**\n• a + 0 = a (zero is additive identity)\n• a + (-a) = 0 (additive inverse)\n• a × 1 = a (one is multiplicative identity)\n• a × 0 = 0\n• Addition and multiplication are commutative and associative\n• Subtraction and division are NOT commutative\n\n**Practice Tip:** For subtraction, always convert to addition first: a - b = a + (-b). This reduces mistakes with negative numbers."
+      }
+    ],
+    "questions": [
+      { "section": "A",
+        "q": "(-3) + (-5) = ?",
+        "options": [
+          "-8",
+          "8",
+          "-2",
+          "2"
+        ],
+        "answer": 0
+      },
+      { "section": "A",
+        "q": "Which is greater: -3 or -7?",
+        "options": [
+          "-3",
+          "-7",
+          "Both equal",
+          "Cannot compare"
+        ],
+        "answer": 0
+      },
+      { "section": "A",
+        "q": "The additive inverse of 5 is:",
+        "options": [
+          "5",
+          "-5",
+          "1/5",
+          "0"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "(-4) x (-3) = ?",
+        "options": [
+          "-12",
+          "12",
+          "-7",
+          "7"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "7 + (-10) = ?",
+        "options": [
+          "17",
+          "-17",
+          "-3",
+          "3"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "|−8| = ?",
+        "options": [
+          "-8",
+          "8",
+          "0",
+          "-1"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "(-5) - (-3) = ?",
+        "options": [
+          "-8",
+          "-2",
+          "2",
+          "8"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Zero is:",
+        "options": [
+          "Positive",
+          "Negative",
+          "Neither positive nor negative",
+          "Both"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "3 x (-7) = ?",
+        "options": [
+          "21",
+          "-21",
+          "10",
+          "-10"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "(-15) + 15 = ?",
+        "options": [
+          "30",
+          "-30",
+          "0",
+          "15"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "Which is smallest: -1, -100, 0, 1?",
+        "options": [
+          "-1",
+          "-100",
+          "0",
+          "1"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "(-6) - 4 = ?",
+        "options": [
+          "-10",
+          "-2",
+          "2",
+          "10"
+        ],
+        "answer": 0
+      },
+      { "section": "A",
+        "q": "(-2) x (-2) x (-2) = ?",
+        "options": [
+          "8",
+          "-8",
+          "6",
+          "-6"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "The integer between -3 and -1 is:",
+        "options": [
+          "-4",
+          "-2",
+          "0",
+          "2"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "8 - (-3) = ?",
+        "options": [
+          "5",
+          "11",
+          "-5",
+          "-11"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Negative x Negative = ?",
+        "options": [
+          "Negative",
+          "Positive",
+          "Zero",
+          "Cannot determine"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "(-20) / 4 = ?",
+        "options": [
+          "5",
+          "-5",
+          "24",
+          "-24"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Temperature drops from 5°C by 8°C. New temp:",
+        "options": [
+          "13°C",
+          "-3°C",
+          "3°C",
+          "-13°C"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "(-1) x (-1) x (-1) x (-1) = ?",
+        "options": [
+          "-1",
+          "1",
+          "-4",
+          "4"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Arrange in ascending order: -5, 3, -1, 0",
+        "options": [
+          "-5,-1,0,3",
+          "3,0,-1,-5",
+          "-1,-5,0,3",
+          "0,-1,-5,3"
+        ],
+        "answer": 0
+      },
+      { "section": "A",
+        "q": "Is subtraction of integers commutative?",
+        "options": [
+          "Yes",
+          "No",
+          "Sometimes",
+          "Only for positives"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "(-9) + 4 = ?",
+        "options": [
+          "-13",
+          "13",
+          "-5",
+          "5"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "The absolute value of 0 is:",
+        "options": [
+          "0",
+          "1",
+          "Undefined",
+          "-1"
+        ],
+        "answer": 0
+      },
+      { "section": "A",
+        "q": "(-6) x 5 = ?",
+        "options": [
+          "30",
+          "-30",
+          "11",
+          "-11"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "A submarine at -200m rises 50m. New depth:",
+        "options": [
+          "-250m",
+          "-150m",
+          "150m",
+          "250m"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "The temperature on a mountain changes: starts at -8C, rises 15C by noon, drops 20C by midnight. Use this for the next 3 questions.",
+        "q": "(-3) + (-3) + (-3) = ?",
+        "options": [
+          "-9",
+          "9",
+          "-6",
+          "6"
+        ],
+        "answer": 0
+      },
+      { "section": "B", "case": "The temperature on a mountain changes: starts at -8C, rises 15C by noon, drops 20C by midnight. Use this for the next 3 questions.",
+        "q": "Which operation gives positive: (-5) ? (-5)?",
+        "options": [
+          "Addition",
+          "Subtraction",
+          "Multiplication",
+          "None"
+        ],
+        "answer": 2
+      },
+      { "section": "B", "case": "The temperature on a mountain changes: starts at -8C, rises 15C by noon, drops 20C by midnight. Use this for the next 3 questions.",
+        "q": "0 - (-7) = ?",
+        "options": [
+          "-7",
+          "7",
+          "0",
+          "14"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "A lift starts at floor 0 (ground). It goes up 5 floors, down 8 floors, up 3 floors, down 2 floors. Use this for the next 4 questions.",
+        "q": "(-4)² = ?",
+        "options": [
+          "-16",
+          "16",
+          "-8",
+          "8"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "A lift starts at floor 0 (ground). It goes up 5 floors, down 8 floors, up 3 floors, down 2 floors. Use this for the next 4 questions.",
+        "q": "Sum of all integers from -5 to 5 is:",
+        "options": [
+          "-5",
+          "5",
+          "0",
+          "10"
+        ],
+        "answer": 2
+      },
+      { "section": "B", "case": "A lift starts at floor 0 (ground). It goes up 5 floors, down 8 floors, up 3 floors, down 2 floors. Use this for the next 4 questions.",
+        "q": "(-12) / (-3) = ?",
+        "options": [
+          "-4",
+          "4",
+          "-36",
+          "36"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "A lift starts at floor 0 (ground). It goes up 5 floors, down 8 floors, up 3 floors, down 2 floors. Use this for the next 4 questions.",
+        "q": "a + (-a) always equals:",
+        "options": [
+          "2a",
+          "-2a",
+          "0",
+          "a²"
+        ],
+        "answer": 2
+      },
+      { "section": "B", "case": "A company's quarterly profits/losses in lakhs: Q1: +12, Q2: -8, Q3: -3, Q4: +15. Use this for the next 3 questions.",
+        "q": "Which is true: -3 > -2 or -3 < -2?",
+        "options": [
+          "-3 > -2",
+          "-3 < -2",
+          "They are equal",
+          "Cannot compare"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "A company's quarterly profits/losses in lakhs: Q1: +12, Q2: -8, Q3: -3, Q4: +15. Use this for the next 3 questions.",
+        "q": "(-7) x 0 = ?",
+        "options": [
+          "-7",
+          "7",
+          "0",
+          "Undefined"
+        ],
+        "answer": 2
+      },
+      { "section": "B", "case": "A company's quarterly profits/losses in lakhs: Q1: +12, Q2: -8, Q3: -3, Q4: +15. Use this for the next 3 questions.",
+        "q": "15 + (-20) + 5 = ?",
+        "options": [
+          "40",
+          "-40",
+          "0",
+          "10"
+        ],
+        "answer": 2
+      }
+    ],
+    "penPaper": [
+      {"section": "C", "q": "Evaluate: (-5) x (-3) + (-12) / 4 - (-7). Show each step applying BODMAS. Upload a photo.", "marks": 2},
+      {"section": "C", "q": "Verify the distributive property: (-4) x (6 + (-3)) = (-4) x 6 + (-4) x (-3). Show both sides. Upload a photo.", "marks": 2},
+      {"section": "D", "q": "The product of two integers is -36 and their sum is -5. Find the two integers. Show algebraic or systematic approach. Upload a photo.", "marks": 3},
+      {"section": "D", "q": "A diver is at -30m. She rises 12m, dives 8m, rises 5m. Express each movement as an integer operation and find final depth. Draw on a vertical number line. Upload a photo.", "marks": 3},
+      {"section": "E", "q": "Explain with examples all properties of integer operations: closure, commutativity, associativity, distributivity, identity, and inverse. Show which properties hold for +, -, x, /. Upload a photo.", "marks": 5}
+    ],
+  },
+  {
+    "id": 11,
+    "number": "11",
+    "title": "Finding Common Ground",
+    "description": "Understanding factors, multiples, HCF (GCD), LCM, prime factorization, and their real-world applications",
+    "topics": [
+      {
+        "name": "11.1 Prime Numbers and Factorisation",
+        "content": "Every number greater than 1 is either prime or can be expressed as a product of prime numbers. This fundamental idea is the basis of all number theory.\n\n**Prime Numbers:**\nA number greater than 1 that has exactly two factors (1 and itself):\n2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47...\n\n**Important Facts about Primes:**\n• 2 is the only even prime number\n• 1 is NOT a prime (it has only one factor)\n• There are infinitely many primes\n• Every even number > 2 can be written as a sum of two primes (Goldbach's conjecture, unproven but verified up to very large numbers)\n\n**Composite Numbers:**\nNumbers with more than 2 factors: 4, 6, 8, 9, 10, 12, 14, 15...\n\n**Prime Factorisation:**\nWriting a number as a product of its prime factors:\n• 12 = 2 × 2 × 3 = 2² × 3\n• 60 = 2² × 3 × 5\n• 100 = 2² × 5²\n\n**Factor Tree Method:**\n60 → 2 × 30 → 2 × 2 × 15 → 2 × 2 × 3 × 5\n\n**Division Method:**\nDivide by smallest prime repeatedly: 60 ÷ 2 = 30, 30 ÷ 2 = 15, 15 ÷ 3 = 5, 5 ÷ 5 = 1\nSo 60 = 2 × 2 × 3 × 5\n\n**Fundamental Theorem of Arithmetic:**\nEvery number > 1 has a UNIQUE prime factorisation (up to order). This is one of the most important theorems in mathematics!\n\n**Practice Tip:** Always start dividing by the smallest prime (2), then try 3, 5, 7, etc. This systematic approach ensures you don't miss any factors."
+      },
+      {
+        "name": "11.2 HCF (Highest Common Factor)",
+        "content": "The HCF (also called GCD - Greatest Common Divisor) of two or more numbers is the largest number that divides all of them exactly.\n\n**Finding HCF - Method 1: Listing Factors**\nFactors of 12: 1, 2, 3, 4, 6, 12\nFactors of 18: 1, 2, 3, 6, 9, 18\nCommon factors: 1, 2, 3, 6\nHCF = 6 (the highest common factor)\n\n**Finding HCF - Method 2: Prime Factorisation**\n12 = 2² × 3\n18 = 2 × 3²\nHCF = Product of common prime factors with LOWEST powers\n= 2¹ × 3¹ = 6\n\n**Finding HCF - Method 3: Division Method (Euclid's Algorithm)**\nHCF(48, 18): 48 = 2 × 18 + 12, then 18 = 1 × 12 + 6, then 12 = 2 × 6 + 0\nHCF = 6 (the last non-zero remainder)\n\n**Properties of HCF:**\n• HCF(a, b) ≤ min(a, b)\n• If HCF(a, b) = 1, then a and b are coprime (no common factor except 1)\n• HCF(a, a) = a\n• HCF(a, 0) = a\n\n**Real-World Applications:**\n• Cutting rope into equal pieces: HCF tells the longest possible piece length\n• Arranging items in equal rows: HCF gives the maximum row size\n• Simplifying fractions: Divide both numerator and denominator by their HCF\n\n**Practice Tip:** The prime factorisation method is most reliable for HCF. Write out the factorisation, circle common primes, and multiply with lowest powers."
+      },
+      {
+        "name": "11.3 LCM (Least Common Multiple)",
+        "content": "The LCM of two or more numbers is the smallest number that is a multiple of all of them.\n\n**Finding LCM - Method 1: Listing Multiples**\nMultiples of 4: 4, 8, 12, 16, 20, 24, 28, 32, 36...\nMultiples of 6: 6, 12, 18, 24, 30, 36...\nCommon multiples: 12, 24, 36...\nLCM = 12 (the least common multiple)\n\n**Finding LCM - Method 2: Prime Factorisation**\n4 = 2²\n6 = 2 × 3\nLCM = Product of ALL prime factors with HIGHEST powers\n= 2² × 3 = 12\n\n**Finding LCM - Method 3: Division Method**\nWrite both numbers, divide by common primes:\n2 | 4, 6\n2 | 2, 3\n3 | 1, 3\n  | 1, 1\nLCM = 2 × 2 × 3 = 12\n\n**HCF-LCM Relationship:**\nFor any two numbers a and b:\nHCF(a,b) × LCM(a,b) = a × b\nExample: HCF(4,6)=2, LCM(4,6)=12, and 2×12 = 4×6 = 24 ✓\n\n**Real-World Applications:**\n• When will two events coincide? (LCM of their intervals)\n• Two lights blink every 4 and 6 seconds - when do they blink together? LCM(4,6) = 12 seconds\n• Buying items to get equal quantities: LCM of pack sizes\n\n**Practice Tip:** For LCM, use ALL prime factors with HIGHEST powers. For HCF, use only COMMON prime factors with LOWEST powers. Don't mix them up!"
+      }
+    ],
+    "questions": [
+      { "section": "A",
+        "q": "Is 1 a prime number?",
+        "options": [
+          "Yes",
+          "No",
+          "Sometimes",
+          "It's special"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "The only even prime number is:",
+        "options": [
+          "1",
+          "2",
+          "4",
+          "0"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Prime factorisation of 60 is:",
+        "options": [
+          "2x30",
+          "4x15",
+          "2²x3x5",
+          "6x10"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "HCF of 12 and 18 is:",
+        "options": [
+          "2",
+          "3",
+          "6",
+          "36"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "LCM of 4 and 6 is:",
+        "options": [
+          "2",
+          "12",
+          "24",
+          "10"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Two numbers with HCF = 1 are called:",
+        "options": [
+          "Prime",
+          "Composite",
+          "Coprime",
+          "Twin primes"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "HCF(a,b) x LCM(a,b) = ?",
+        "options": [
+          "a + b",
+          "a - b",
+          "a x b",
+          "a / b"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "Prime factorisation of 100:",
+        "options": [
+          "2x50",
+          "4x25",
+          "10x10",
+          "2²x5²"
+        ],
+        "answer": 3
+      },
+      { "section": "A",
+        "q": "LCM of 3 and 7 is:",
+        "options": [
+          "3",
+          "7",
+          "10",
+          "21"
+        ],
+        "answer": 3
+      },
+      { "section": "A",
+        "q": "HCF of 15 and 25 is:",
+        "options": [
+          "5",
+          "15",
+          "25",
+          "75"
+        ],
+        "answer": 0
+      },
+      { "section": "A",
+        "q": "Which is prime: 51, 53, 55, 57?",
+        "options": [
+          "51",
+          "53",
+          "55",
+          "57"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "LCM of 5 and 10 is:",
+        "options": [
+          "5",
+          "10",
+          "50",
+          "15"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "How many prime numbers between 1 and 10?",
+        "options": [
+          "3",
+          "4",
+          "5",
+          "6"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "HCF of 48 and 36 is:",
+        "options": [
+          "6",
+          "12",
+          "24",
+          "144"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "If HCF(a,b) = a, then:",
+        "options": [
+          "a = b",
+          "a divides b",
+          "b divides a",
+          "a and b are prime"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "LCM of 12 and 15 is:",
+        "options": [
+          "3",
+          "60",
+          "180",
+          "30"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "36 = 2² x 3². Number of factors of 36:",
+        "options": [
+          "6",
+          "7",
+          "8",
+          "9"
+        ],
+        "answer": 3
+      },
+      { "section": "A",
+        "q": "To simplify 24/36, divide by HCF:",
+        "options": [
+          "2",
+          "6",
+          "12",
+          "4"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "LCM(6,8,12) = ?",
+        "options": [
+          "24",
+          "48",
+          "96",
+          "12"
+        ],
+        "answer": 0
+      },
+      { "section": "A",
+        "q": "Two lights blink every 4s and 6s. They blink together every:",
+        "options": [
+          "10s",
+          "12s",
+          "24s",
+          "2s"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Is 91 prime?",
+        "options": [
+          "Yes",
+          "No (7x13)",
+          "No (9x11)",
+          "Cannot determine"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "HCF of two prime numbers is always:",
+        "options": [
+          "0",
+          "1",
+          "Their product",
+          "Their sum"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "LCM of two prime numbers is:",
+        "options": [
+          "1",
+          "Their sum",
+          "Their product",
+          "Their HCF"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "Prime factorisation of 72:",
+        "options": [
+          "8x9",
+          "2³x3²",
+          "2²x18",
+          "4x18"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "HCF(100, 75) = ?",
+        "options": [
+          "5",
+          "25",
+          "50",
+          "75"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "Three traffic lights turn green every 36s, 48s, and 60s respectively. They all turn green together at 8:00 AM. Use this for the next 3 questions.",
+        "q": "If LCM = 60 and HCF = 5 for two numbers, their product is:",
+        "options": [
+          "65",
+          "300",
+          "12",
+          "55"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "Three traffic lights turn green every 36s, 48s, and 60s respectively. They all turn green together at 8:00 AM. Use this for the next 3 questions.",
+        "q": "Which pair is coprime?",
+        "options": [
+          "4 and 6",
+          "8 and 15",
+          "12 and 18",
+          "9 and 21"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "Three traffic lights turn green every 36s, 48s, and 60s respectively. They all turn green together at 8:00 AM. Use this for the next 3 questions.",
+        "q": "LCM is always:",
+        "options": [
+          "Less than both numbers",
+          "Equal to smaller number",
+          ">= the larger number",
+          "Equal to HCF"
+        ],
+        "answer": 2
+      },
+      { "section": "B", "case": "A florist has 72 roses, 48 lilies, and 96 carnations. She wants to make identical bouquets using all flowers. Use this for the next 4 questions.",
+        "q": "Goldbach's conjecture states every even number > 2 is:",
+        "options": [
+          "Prime",
+          "Sum of two primes",
+          "Product of two primes",
+          "Power of 2"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "A florist has 72 roses, 48 lilies, and 96 carnations. She wants to make identical bouquets using all flowers. Use this for the next 4 questions.",
+        "q": "HCF(0, 5) = ?",
+        "options": [
+          "0",
+          "1",
+          "5",
+          "Undefined"
+        ],
+        "answer": 2
+      },
+      { "section": "B", "case": "A florist has 72 roses, 48 lilies, and 96 carnations. She wants to make identical bouquets using all flowers. Use this for the next 4 questions.",
+        "q": "Number of primes between 10 and 20:",
+        "options": [
+          "2",
+          "3",
+          "4",
+          "5"
+        ],
+        "answer": 2
+      },
+      { "section": "B", "case": "A florist has 72 roses, 48 lilies, and 96 carnations. She wants to make identical bouquets using all flowers. Use this for the next 4 questions.",
+        "q": "LCM(1, any number n) = ?",
+        "options": [
+          "1",
+          "n",
+          "n+1",
+          "0"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "Two gears: Gear A has 36 teeth, Gear B has 48 teeth. They mesh together. Use this for the next 3 questions.",
+        "q": "24/36 simplified = ?",
+        "options": [
+          "4/6",
+          "2/3",
+          "12/18",
+          "All of these simplify to 2/3"
+        ],
+        "answer": 3
+      },
+      { "section": "B", "case": "Two gears: Gear A has 36 teeth, Gear B has 48 teeth. They mesh together. Use this for the next 3 questions.",
+        "q": "Prime factorisation of 180:",
+        "options": [
+          "2²x3²x5",
+          "2x3x30",
+          "4x45",
+          "18x10"
+        ],
+        "answer": 0
+      },
+      { "section": "B", "case": "Two gears: Gear A has 36 teeth, Gear B has 48 teeth. They mesh together. Use this for the next 3 questions.",
+        "q": "HCF(a, a) = ?",
+        "options": [
+          "0",
+          "1",
+          "a",
+          "2a"
+        ],
+        "answer": 2
+      }
+    ],
+    "penPaper": [
+      {"section": "C", "q": "Find HCF and LCM of 120 and 180 using: (a) prime factorisation (b) division method. Verify HCF x LCM = product. Upload a photo.", "marks": 2},
+      {"section": "C", "q": "Find the smallest number divisible by 12, 15, and 20. Also find the largest number that divides 12, 15, and 20. Upload a photo.", "marks": 2},
+      {"section": "D", "q": "Two bells toll at intervals of 9 and 12 minutes. If they toll together at 7:00 AM, how many times will they toll together before 12:00 noon? Show working. Upload a photo.", "marks": 3},
+      {"section": "D", "q": "Find the largest number that divides 398, 436, and 542 leaving remainders 7, 11, and 15 respectively. Show the method. Upload a photo.", "marks": 3},
+      {"section": "E", "q": "Three runners start together and take 36, 45, and 60 seconds per lap. (a) When do they meet at start again? (b) How many laps has each completed? (c) Create a timeline showing their positions. Upload a photo.", "marks": 5}
+    ],
+  },
+  {
+    "id": 12,
+    "number": "12",
+    "title": "Another Peek Beyond the Point",
+    "description": "Advanced decimal operations - multiplication and division of decimals, decimal patterns, and real-world problem solving",
+    "topics": [
+      {
+        "name": "12.1 Multiplying Decimals",
+        "content": "Multiplying decimals extends the multiplication rules we know for whole numbers. The key is keeping track of decimal places in the answer.\n\n**Rule for Multiplying Decimals:**\n1. Ignore the decimal points and multiply as whole numbers\n2. Count the total decimal places in both numbers\n3. Place the decimal point in the answer with that many decimal places\n\n**Examples:**\n• 0.3 × 0.4 = 0.12 (1 + 1 = 2 decimal places)\n• 2.5 × 0.3 = 0.75 (1 + 1 = 2 decimal places: 25 × 3 = 75 → 0.75)\n• 1.2 × 3.5 = 4.20 = 4.2 (1 + 1 = 2 decimal places: 12 × 35 = 420 → 4.20)\n• 0.06 × 0.7 = 0.042 (2 + 1 = 3 decimal places: 6 × 7 = 42 → 0.042)\n\n**Multiplying by Powers of 10:**\n• 3.456 × 10 = 34.56 (move decimal 1 place right)\n• 3.456 × 100 = 345.6 (move decimal 2 places right)\n• 3.456 × 1000 = 3456 (move decimal 3 places right)\n\n**Multiplying Decimals by Whole Numbers:**\n• 2.5 × 4 = 10.0 = 10\n• 0.75 × 8 = 6.00 = 6\n\n**Real-World Applications:**\n• Cost: 2.5 kg of apples at Rs. 80 per kg = 2.5 × 80 = Rs. 200\n• Area: Room 4.5 m × 3.2 m = 14.4 m²\n• Speed-Time: Walking 4.5 km/hr for 2.5 hours = 11.25 km\n\n**Practice Tip:** When unsure about decimal placement, estimate first. 2.5 × 3.5 should be close to 3 × 4 = 12, so 8.75 makes sense, but 87.5 or 0.875 wouldn't!"
+      },
+      {
+        "name": "12.2 Dividing Decimals",
+        "content": "Dividing decimals requires converting the division into a simpler form by removing the decimal from the divisor.\n\n**Dividing a Decimal by a Whole Number:**\nJust divide normally and place the decimal point in the quotient directly above where it is in the dividend:\n• 4.8 ÷ 2 = 2.4\n• 15.6 ÷ 3 = 5.2\n• 0.45 ÷ 5 = 0.09\n\n**Dividing by a Decimal:**\nMake the divisor a whole number by multiplying both numbers by 10, 100, etc.:\n• 4.8 ÷ 0.2 = 48 ÷ 2 = 24 (multiply both by 10)\n• 3.6 ÷ 0.04 = 360 ÷ 4 = 90 (multiply both by 100)\n• 7.5 ÷ 2.5 = 75 ÷ 25 = 3 (multiply both by 10)\n\n**Dividing by Powers of 10:**\n• 345.6 ÷ 10 = 34.56 (move decimal 1 place left)\n• 345.6 ÷ 100 = 3.456 (move decimal 2 places left)\n• 345.6 ÷ 1000 = 0.3456 (move decimal 3 places left)\n\n**Converting Fractions to Decimals:**\nDivide the numerator by the denominator:\n• 3/8 = 3 ÷ 8 = 0.375\n• 5/6 = 5 ÷ 6 = 0.8333...\n\n**Real-World Applications:**\n• Sharing a bill: Rs. 457.50 among 3 people = 457.50 ÷ 3 = Rs. 152.50 each\n• Unit price: Rs. 67.50 for 2.5 kg = 67.50 ÷ 2.5 = Rs. 27 per kg\n\n**Practice Tip:** Always make the divisor a whole number first - it makes the division much easier and less error-prone."
+      },
+      {
+        "name": "12.3 Decimal Patterns and Problem Solving",
+        "content": "Decimals reveal beautiful patterns when we explore multiplication tables, recurring decimals, and systematic calculations.\n\n**Patterns in Decimal Products:**\n• 0.1 × 0.1 = 0.01\n• 0.1 × 0.01 = 0.001\n• 0.01 × 0.01 = 0.0001\nPattern: The number of decimal places ADDS up!\n\n**Repeating Decimal Patterns:**\n• 1/9 = 0.111...\n• 2/9 = 0.222...\n• 1/7 = 0.142857142857... (period of 6 digits!)\n• 1/11 = 0.090909...\n• 1/99 = 0.010101...\n\n**Interesting Pattern:**\n• 1/9 = 0.111..., so 9 × 0.111... = 0.999... = 1 (yes, 0.999... = 1!)\n\n**Problem-Solving with Decimals:**\nType 1: Multi-step problems\nA shopkeeper buys 12.5 kg of rice at Rs. 42.40/kg and sells at Rs. 48.60/kg.\nCost = 12.5 × 42.40 = Rs. 530\nSelling = 12.5 × 48.60 = Rs. 607.50\nProfit = 607.50 - 530 = Rs. 77.50\n\nType 2: Estimation and checking\nIs 3.7 × 2.8 closer to 10 or 11? Estimate: 4 × 3 = 12, so answer ≈ 10.36\n\n**Decimal Representations of Common Values:**\n• π ≈ 3.14159\n• √2 ≈ 1.414\n• √3 ≈ 1.732\n• e ≈ 2.718\n\n**Practice Tip:** Always estimate your answer before calculating with decimals. This helps catch errors in decimal point placement."
+      }
+    ],
+    "questions": [
+      { "section": "A",
+        "q": "0.3 x 0.4 = ?",
+        "options": [
+          "0.12",
+          "1.2",
+          "12",
+          "0.012"
+        ],
+        "answer": 0
+      },
+      { "section": "A",
+        "q": "4.8 / 0.2 = ?",
+        "options": [
+          "2.4",
+          "24",
+          "0.24",
+          "240"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "3.456 x 100 = ?",
+        "options": [
+          "34.56",
+          "345.6",
+          "3456",
+          "0.03456"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "15.6 / 3 = ?",
+        "options": [
+          "5.2",
+          "52",
+          "0.52",
+          "5.02"
+        ],
+        "answer": 0
+      },
+      { "section": "A",
+        "q": "0.06 x 0.7 = ?",
+        "options": [
+          "0.42",
+          "0.042",
+          "4.2",
+          "0.0042"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "345.6 / 100 = ?",
+        "options": [
+          "34.56",
+          "3.456",
+          "0.3456",
+          "3456"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "2.5 x 4 = ?",
+        "options": [
+          "10",
+          "1.0",
+          "100",
+          "6.5"
+        ],
+        "answer": 0
+      },
+      { "section": "A",
+        "q": "7.5 / 2.5 = ?",
+        "options": [
+          "3",
+          "30",
+          "0.3",
+          "5"
+        ],
+        "answer": 0
+      },
+      { "section": "A",
+        "q": "How many decimal places in 0.3 x 0.04?",
+        "options": [
+          "1",
+          "2",
+          "3",
+          "4"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "1.2 x 3.5 = ?",
+        "options": [
+          "42",
+          "4.2",
+          "0.42",
+          "4.20"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "0.45 / 5 = ?",
+        "options": [
+          "0.9",
+          "0.09",
+          "9",
+          "0.009"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Area of room 4.5m x 3.2m = ?",
+        "options": [
+          "7.7 m²",
+          "14.4 m²",
+          "144 m²",
+          "1.44 m²"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "3.6 / 0.04 = ?",
+        "options": [
+          "9",
+          "90",
+          "0.9",
+          "900"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "0.1 x 0.01 = ?",
+        "options": [
+          "0.01",
+          "0.001",
+          "0.1",
+          "0.0001"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "1/9 as a decimal is:",
+        "options": [
+          "0.1",
+          "0.111...",
+          "0.9",
+          "0.19"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "67.50 / 2.5 = ?",
+        "options": [
+          "2.7",
+          "27",
+          "270",
+          "0.27"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "0.75 x 8 = ?",
+        "options": [
+          "6",
+          "60",
+          "0.6",
+          "6.0"
+        ],
+        "answer": 0
+      },
+      { "section": "A",
+        "q": "2.5 kg at Rs. 80/kg costs:",
+        "options": [
+          "Rs. 200",
+          "Rs. 82.50",
+          "Rs. 77.50",
+          "Rs. 32"
+        ],
+        "answer": 0
+      },
+      { "section": "A",
+        "q": "0.999... (repeating) equals:",
+        "options": [
+          "Less than 1",
+          "Exactly 1",
+          "More than 1",
+          "Undefined"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "3/8 as decimal:",
+        "options": [
+          "0.38",
+          "0.375",
+          "0.3",
+          "0.83"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Estimate 3.7 x 2.8:",
+        "options": [
+          "About 6",
+          "About 10",
+          "About 12",
+          "About 8"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "12.5 x 0.8 = ?",
+        "options": [
+          "100",
+          "10",
+          "1.0",
+          "10.0"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "0.01 x 0.01 = ?",
+        "options": [
+          "0.01",
+          "0.001",
+          "0.0001",
+          "0.1"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "Rs. 457.50 / 3 = ?",
+        "options": [
+          "Rs. 150",
+          "Rs. 152.50",
+          "Rs. 155",
+          "Rs. 145.50"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "1/7 has a repeating period of:",
+        "options": [
+          "1 digit",
+          "3 digits",
+          "6 digits",
+          "7 digits"
+        ],
+        "answer": 2
+      },
+      { "section": "B", "case": "A carpenter cuts wood pieces: 2.35m, 1.78m, 3.04m from a 10m plank. Use this for the next 3 questions.",
+        "q": "5.6 x 10 = ?",
+        "options": [
+          "0.56",
+          "56",
+          "560",
+          "5.60"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "A carpenter cuts wood pieces: 2.35m, 1.78m, 3.04m from a 10m plank. Use this for the next 3 questions.",
+        "q": "8.4 / 0.7 = ?",
+        "options": [
+          "1.2",
+          "12",
+          "120",
+          "0.12"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "A carpenter cuts wood pieces: 2.35m, 1.78m, 3.04m from a 10m plank. Use this for the next 3 questions.",
+        "q": "0.5 x 0.5 = ?",
+        "options": [
+          "0.25",
+          "2.5",
+          "0.025",
+          "1.0"
+        ],
+        "answer": 0
+      },
+      { "section": "B", "case": "Exchange rates: 1 USD = 83.25 INR, 1 EUR = 90.50 INR. A tourist has 500 USD and 300 EUR. Use this for the next 4 questions.",
+        "q": "1/11 as decimal:",
+        "options": [
+          "0.11",
+          "0.0909...",
+          "0.111...",
+          "0.99"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "Exchange rates: 1 USD = 83.25 INR, 1 EUR = 90.50 INR. A tourist has 500 USD and 300 EUR. Use this for the next 4 questions.",
+        "q": "Profit = selling - cost. If cost = Rs. 530 and selling = Rs. 607.50:",
+        "options": [
+          "Rs. 77.50",
+          "Rs. 137.50",
+          "Rs. 1137.50",
+          "Rs. 77"
+        ],
+        "answer": 0
+      },
+      { "section": "B", "case": "Exchange rates: 1 USD = 83.25 INR, 1 EUR = 90.50 INR. A tourist has 500 USD and 300 EUR. Use this for the next 4 questions.",
+        "q": "6.3 / 0.9 = ?",
+        "options": [
+          "7",
+          "70",
+          "0.7",
+          "63"
+        ],
+        "answer": 0
+      },
+      { "section": "B", "case": "Exchange rates: 1 USD = 83.25 INR, 1 EUR = 90.50 INR. A tourist has 500 USD and 300 EUR. Use this for the next 4 questions.",
+        "q": "0.2 x 0.2 x 0.2 = ?",
+        "options": [
+          "0.6",
+          "0.06",
+          "0.008",
+          "0.8"
+        ],
+        "answer": 2
+      },
+      { "section": "B", "case": "A student scores: English 78.5, Math 92.25, Science 85.75, Hindi 70.5. Maximum marks per subject is 100. Use this for the next 3 questions.",
+        "q": "4.56 x 1000 = ?",
+        "options": [
+          "45.6",
+          "456",
+          "4560",
+          "45600"
+        ],
+        "answer": 2
+      },
+      { "section": "B", "case": "A student scores: English 78.5, Math 92.25, Science 85.75, Hindi 70.5. Maximum marks per subject is 100. Use this for the next 3 questions.",
+        "q": "Which is larger: 0.5 x 0.5 or 0.5 + 0.5?",
+        "options": [
+          "0.5 x 0.5",
+          "0.5 + 0.5",
+          "They are equal",
+          "Cannot compare"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "A student scores: English 78.5, Math 92.25, Science 85.75, Hindi 70.5. Maximum marks per subject is 100. Use this for the next 3 questions.",
+        "q": "9.9 / 0.3 = ?",
+        "options": [
+          "3.3",
+          "33",
+          "330",
+          "0.33"
+        ],
+        "answer": 1
+      }
+    ],
+    "penPaper": [
+      {"section": "C", "q": "Compute: 12.56 x 3.4 / 0.08. Show long multiplication and long division with decimal points. Upload a photo.", "marks": 2},
+      {"section": "C", "q": "Convert to fractions in lowest terms: 0.375, 0.1666..., 2.45. Show all steps. Upload a photo.", "marks": 2},
+      {"section": "D", "q": "A car odometer reads 45,678.9 km. After a trip it reads 45,923.4 km. If it used 18.5 litres of petrol, find mileage. At Rs.105.75/litre, find trip cost. Upload a photo.", "marks": 3},
+      {"section": "D", "q": "Express as decimals and arrange in descending order: 3/8, 5/12, 7/16, 11/24. Show division for each. Upload a photo.", "marks": 3},
+      {"section": "E", "q": "Create a shopping bill with at least 8 items (with decimal prices and quantities). Calculate subtotal, 5% discount, 18% GST, and final amount. Show all calculations. Upload a photo.", "marks": 5}
+    ],
+  },
+  {
+    "id": 13,
+    "number": "13",
+    "title": "Connecting the Dots",
+    "description": "Understanding data handling through pictographs, bar graphs, tally marks, and interpreting real-world data",
+    "topics": [
+      {
+        "name": "13.1 Collecting and Organising Data",
+        "content": "Data is raw information collected from observations, surveys, or experiments. Organising data makes it easier to understand and draw conclusions.\n\n**What is Data?**\nData is a collection of facts, numbers, or information gathered for a purpose. Examples:\n• Heights of students in a class\n• Marks scored in a test\n• Favourite fruits of 30 children\n• Temperature recorded over a week\n\n**Types of Data:**\n• **Qualitative (Categorical):** Describes qualities - colours, names, types (e.g., favourite sport)\n• **Quantitative (Numerical):** Describes quantities using numbers (e.g., height, weight, marks)\n\n**Collecting Data:**\n• **Survey:** Asking people questions (How many siblings do you have?)\n• **Observation:** Recording what you see (counting vehicles on a road)\n• **Experiment:** Performing tests and recording results (tossing a coin 50 times)\n\n**Organising Data - Tally Marks:**\nTally marks help count data efficiently:\n• | = 1, || = 2, ||| = 3, |||| = 4, ⃠ = 5 (cross the four with a diagonal)\n\n**Frequency Table:**\nA table showing how often each value appears:\nFruit | Tally | Frequency\nApple | |||| ||| | 8\nBanana | |||| | 5\nOrange | |||| || | 7\n\n**Practice Tip:** When collecting data, always be clear about what you're measuring and keep your records organized from the start."
+      },
+      {
+        "name": "13.2 Pictographs and Bar Graphs",
+        "content": "Visual representations of data make patterns and comparisons much easier to understand than raw numbers. Pictographs and bar graphs are two fundamental types.\n\n**Pictographs:**\nUse pictures or symbols to represent data. Each picture represents a fixed number of items.\n• Key: 🍎 = 10 apples\n• Monday: 🍎🍎🍎 = 30 apples sold\n• Half symbol means half the value: 🍎🍎½ = 25 apples\n\n**Creating a Pictograph:**\n1. Choose an appropriate symbol\n2. Decide the scale (each symbol = how many?)\n3. Draw the correct number of symbols for each category\n4. Include a key/legend\n\n**Bar Graphs:**\nUse rectangular bars to represent data. The height (or length) of each bar shows the frequency/value.\n\n**Rules for Bar Graphs:**\n• All bars should have equal width\n• Equal gaps between bars\n• The scale on the y-axis should be uniform\n• Label both axes clearly\n• Give the graph a title\n\n**Reading Bar Graphs:**\n• Compare bar heights to compare values\n• The tallest bar shows the maximum value\n• The shortest bar shows the minimum value\n• The difference in heights shows the difference in values\n\n**Pictograph vs Bar Graph:**\n• Pictographs are visually appealing but less precise\n• Bar graphs are more precise and can handle larger data ranges\n• Both are good for comparing categories\n\n**Practice Tip:** When drawing bar graphs, always start the y-axis from 0 to avoid misleading representations. A break symbol (//) can be used if values are very large."
+      },
+      {
+        "name": "13.3 Drawing Conclusions from Data",
+        "content": "The real power of data handling lies in interpreting graphs and drawing meaningful conclusions that help in decision-making.\n\n**Types of Questions to Ask:**\n• What is the most common/popular item? (Mode)\n• What is the total? (Sum of all values)\n• What is the average? (Sum ÷ number of items)\n• What is the range? (Maximum - Minimum)\n• Are there any trends or patterns?\n\n**Mean (Average):**\nSum of all values ÷ Number of values\nExample: Marks 45, 67, 89, 56, 78\nMean = (45+67+89+56+78) ÷ 5 = 335 ÷ 5 = 67\n\n**Mode:**\nThe value that appears most frequently\nData: 3, 5, 7, 5, 8, 5, 9 → Mode = 5 (appears 3 times)\n\n**Range:**\nMaximum value - Minimum value\nData: 12, 45, 23, 67, 34 → Range = 67 - 12 = 55\n\n**Making Predictions:**\nIf ice cream sales increase every summer, we can predict high sales next summer too.\nIf a student's marks show an upward trend, they are likely improving.\n\n**Misleading Graphs:**\nWatch out for:\n• Y-axis not starting from 0 (makes differences look bigger)\n• Unequal bar widths\n• Inappropriate scale\n• Missing labels\n\n**Real-World Applications:**\n• Election results displayed as bar graphs\n• Weather forecasts use data analysis\n• Sports statistics help teams strategize\n• Business decisions based on sales data\n\n**Practice Tip:** Always check the scale and labels before interpreting any graph. A graph without proper labels can be misleading!"
+      }
+    ],
+    "questions": [
+      { "section": "A",
+        "q": "In a pictograph, if one symbol = 5, three symbols mean:",
+        "options": [
+          "3",
+          "5",
+          "15",
+          "8"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "In a bar graph, the height of a bar represents:",
+        "options": [
+          "The category",
+          "The frequency/value",
+          "The width",
+          "The colour"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Tally marks for 7: |||| ||",
+        "options": [
+          "True",
+          "False",
+          "Incomplete",
+          "Wrong format"
+        ],
+        "answer": 0
+      },
+      { "section": "A",
+        "q": "Mean of 10, 20, 30 is:",
+        "options": [
+          "10",
+          "20",
+          "30",
+          "60"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Mode of 3, 5, 5, 7, 5, 8 is:",
+        "options": [
+          "3",
+          "5",
+          "7",
+          "8"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Range of 12, 45, 23, 67, 34 is:",
+        "options": [
+          "33",
+          "45",
+          "55",
+          "67"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "In a bar graph, bars should have:",
+        "options": [
+          "Different widths",
+          "Equal widths",
+          "No gaps",
+          "Random widths"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Qualitative data is:",
+        "options": [
+          "Numbers",
+          "Categories/qualities",
+          "Always large",
+          "Always small"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "If pictograph shows 2.5 symbols and 1 symbol = 10, the value is:",
+        "options": [
+          "2.5",
+          "10",
+          "25",
+          "12.5"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "A frequency table shows:",
+        "options": [
+          "How often each value appears",
+          "The total of data",
+          "Only the average",
+          "Only the maximum"
+        ],
+        "answer": 0
+      },
+      { "section": "A",
+        "q": "The y-axis in a bar graph should start from:",
+        "options": [
+          "1",
+          "10",
+          "0",
+          "Any number"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "Mean of 5 numbers that sum to 100:",
+        "options": [
+          "5",
+          "10",
+          "20",
+          "50"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "Which is NOT a way to collect data?",
+        "options": [
+          "Survey",
+          "Observation",
+          "Guessing",
+          "Experiment"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "In a pictograph, the key tells us:",
+        "options": [
+          "The title",
+          "What each symbol represents",
+          "The total",
+          "The date"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Tally marks for 13:",
+        "options": [
+          "|||| |||| |||",
+          "|||| |||| ||",
+          "13 lines",
+          "|||| ||||||| |"
+        ],
+        "answer": 0
+      },
+      { "section": "A",
+        "q": "A misleading graph might have:",
+        "options": [
+          "Y-axis not from 0",
+          "Equal bars",
+          "Proper labels",
+          "Correct scale"
+        ],
+        "answer": 0
+      },
+      { "section": "A",
+        "q": "Data: 4, 7, 4, 8, 4, 9. Mode = ?",
+        "options": [
+          "4",
+          "7",
+          "8",
+          "9"
+        ],
+        "answer": 0
+      },
+      { "section": "A",
+        "q": "Pictographs are best for:",
+        "options": [
+          "Exact values",
+          "Visual comparison of categories",
+          "Showing trends",
+          "Complex data"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Mean = ?",
+        "options": [
+          "Most frequent",
+          "Middle value",
+          "Sum/Count",
+          "Max - Min"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "Which graph uses rectangular bars?",
+        "options": [
+          "Pie chart",
+          "Pictograph",
+          "Bar graph",
+          "Line graph"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "Range tells us:",
+        "options": [
+          "The average",
+          "The spread of data",
+          "The most common value",
+          "The total"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "If tallies show |||| |||| |||| |, the count is:",
+        "options": [
+          "14",
+          "15",
+          "16",
+          "17"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "Bar graphs are more precise than pictographs because:",
+        "options": [
+          "They use colours",
+          "Exact values can be read from scale",
+          "They are bigger",
+          "They use pictures"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Average marks of 3 students: 80, 90, 70 = ?",
+        "options": [
+          "70",
+          "80",
+          "90",
+          "240"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "A survey is:",
+        "options": [
+          "Asking people questions",
+          "A type of graph",
+          "A mathematical formula",
+          "A tally mark"
+        ],
+        "answer": 0
+      },
+      { "section": "B", "case": "On a coordinate grid, points A(2,3), B(6,3), C(6,7), D(2,7) are plotted. Use this for the next 3 questions.",
+        "q": "Temperature data over a week is best shown using:",
+        "options": [
+          "Pictograph",
+          "Bar graph",
+          "Both work",
+          "Neither"
+        ],
+        "answer": 2
+      },
+      { "section": "B", "case": "On a coordinate grid, points A(2,3), B(6,3), C(6,7), D(2,7) are plotted. Use this for the next 3 questions.",
+        "q": "If mode = 5 and data is 3, 5, 5, 7, x, the value of x could be:",
+        "options": [
+          "Only 5",
+          "Any number except 3 or 7",
+          "3 or 7 or any other number",
+          "Both A and C work"
+        ],
+        "answer": 3
+      },
+      { "section": "B", "case": "On a coordinate grid, points A(2,3), B(6,3), C(6,7), D(2,7) are plotted. Use this for the next 3 questions.",
+        "q": "Total students if mean = 25 and count = 4:",
+        "options": [
+          "25",
+          "50",
+          "100",
+          "6.25"
+        ],
+        "answer": 2
+      },
+      { "section": "B", "case": "A treasure map uses a grid. The treasure is 5 steps East and 3 steps North from the origin. Landmarks are at (2,1), (4,4), (1,5). Use this for the next 4 questions.",
+        "q": "What does a half-symbol in a pictograph represent?",
+        "options": [
+          "Nothing",
+          "Half the key value",
+          "Double the key value",
+          "Error"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "A treasure map uses a grid. The treasure is 5 steps East and 3 steps North from the origin. Landmarks are at (2,1), (4,4), (1,5). Use this for the next 4 questions.",
+        "q": "Mean of 0, 10, 0, 10, 0 is:",
+        "options": [
+          "0",
+          "4",
+          "5",
+          "10"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "A treasure map uses a grid. The treasure is 5 steps East and 3 steps North from the origin. Landmarks are at (2,1), (4,4), (1,5). Use this for the next 4 questions.",
+        "q": "Which is categorical data?",
+        "options": [
+          "Heights of students",
+          "Favourite colours",
+          "Test scores",
+          "Weight of bags"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "A treasure map uses a grid. The treasure is 5 steps East and 3 steps North from the origin. Landmarks are at (2,1), (4,4), (1,5). Use this for the next 4 questions.",
+        "q": "Bars in a bar graph must have:",
+        "options": [
+          "Equal gaps between them",
+          "No gaps",
+          "Overlapping bars",
+          "Random gaps"
+        ],
+        "answer": 0
+      },
+      { "section": "B", "case": "A shape has vertices at (0,0), (4,0), (4,3). Use this for the next 3 questions.",
+        "q": "If 50 coins are tossed and 23 show heads, frequency of heads:",
+        "options": [
+          "23",
+          "27",
+          "50",
+          "0.46"
+        ],
+        "answer": 0
+      },
+      { "section": "B", "case": "A shape has vertices at (0,0), (4,0), (4,3). Use this for the next 3 questions.",
+        "q": "Data: 10, 20, 30, 40, 50. Range = ?",
+        "options": [
+          "10",
+          "30",
+          "40",
+          "50"
+        ],
+        "answer": 2
+      },
+      { "section": "B", "case": "A shape has vertices at (0,0), (4,0), (4,3). Use this for the next 3 questions.",
+        "q": "A graph title should describe:",
+        "options": [
+          "The colours used",
+          "What the graph is about",
+          "Who made it",
+          "When it was made"
+        ],
+        "answer": 1
+      }
+    ],
+    "penPaper": [
+      {"section": "C", "q": "Plot the points A(1,2), B(5,2), C(5,6), D(1,6) on a grid. Connect them in order. Name the shape and find its area. Upload a photo.", "marks": 2},
+      {"section": "C", "q": "Plot a triangle with vertices P(0,0), Q(6,0), R(3,5). Find the perimeter by measuring or calculating distances. Upload a photo.", "marks": 2},
+      {"section": "D", "q": "Draw on a coordinate grid: (a) a line passing through (0,0) and (3,6) (b) a line passing through (0,4) and (6,0). Find their intersection point. Upload a photo.", "marks": 3},
+      {"section": "D", "q": "Plot a quadrilateral ABCD with A(1,1), B(7,1), C(5,5), D(3,5). Find the length of each side and both diagonals. Is it a parallelogram? Upload a photo.", "marks": 3},
+      {"section": "E", "q": "On a grid, design your name or a picture using straight line segments. List the coordinates of all points used and describe each line segment. Upload a clear photo.", "marks": 5}
+    ],
+  },
+  {
+    "id": 14,
+    "number": "14",
+    "title": "Constructions and Tilings",
+    "description": "Geometric constructions with ruler and compass, tessellations, tiling patterns, and understanding which shapes can tile a plane",
+    "topics": [
+      {
+        "name": "14.1 Geometric Constructions",
+        "content": "Geometric constructions use only a ruler (straightedge) and compass - no measuring of lengths or angles. These ancient techniques reveal deep mathematical truths.\n\n**Why Ruler and Compass Only?**\nAncient Greek mathematicians believed that the purest geometric constructions should use only these two tools. This limitation actually leads to deeper understanding of geometry!\n\n**Basic Constructions:**\n\n**1. Perpendicular Bisector of a Line Segment:**\nGiven AB:\na) Open compass more than half of AB\nb) With centre A, draw arcs above and below AB\nc) With centre B, same radius, draw arcs intersecting the first ones\nd) Connect the two intersection points - this line is the perpendicular bisector\nProperties: Every point on it is equidistant from A and B\n\n**2. Angle Bisector:**\nGiven angle PQR:\na) With centre Q, draw an arc cutting both rays at points A and B\nb) With centres A and B (equal radius), draw arcs intersecting at point C\nc) QC is the angle bisector\n\n**3. Constructing 60° Angle:**\nDraw a ray, open compass to any radius, draw arc from endpoint, then from where arc meets ray draw another arc with same radius. Connect = 60°\n\n**4. Constructing 90° Angle:**\nFirst construct 60°, then bisect 60° to get 30°, and construct 60° + 30° = 90°.\nOr: Use the perpendicular bisector method at the endpoint of a ray.\n\n**Practice Tip:** Never change the compass width in the middle of a construction unless the step specifically requires it. Many construction errors come from accidental compass width changes."
+      },
+      {
+        "name": "14.2 Tessellations and Tiling Patterns",
+        "content": "A tessellation (or tiling) is a pattern of shapes that covers a flat surface completely with no gaps and no overlaps. Understanding which shapes tessellate reveals important geometric properties.\n\n**What is a Tessellation?**\nA tessellation covers a plane completely using one or more shapes, with:\n• No gaps between shapes\n• No overlapping of shapes\n• The pattern can continue infinitely\n\n**Regular Tessellations:**\nUsing only ONE type of regular polygon:\n• **Equilateral triangles:** Yes! (6 meet at each vertex, 6×60° = 360°)\n• **Squares:** Yes! (4 meet at each vertex, 4×90° = 360°)\n• **Regular hexagons:** Yes! (3 meet at each vertex, 3×120° = 360°)\n• Regular pentagons, heptagons, etc.: NO! (their angles don't add to 360°)\n\n**The Key Rule:**\nShapes tessellate if the angles meeting at each vertex add up to exactly 360°.\n\n**Semi-Regular Tessellations:**\nUsing TWO or more types of regular polygons:\n• Squares + equilateral triangles\n• Hexagons + equilateral triangles\n• There are exactly 8 semi-regular tessellations\n\n**Tessellations in Real Life:**\n• Floor tiles (squares, hexagons)\n• Honeycomb (hexagons)\n• Brick walls (rectangles offset)\n• Islamic art patterns\n• M.C. Escher's famous artwork\n\n**Non-Regular Tessellations:**\n• Any triangle can tessellate! (rotate and flip to fill gaps)\n• Any quadrilateral can tessellate!\n• Most pentagons CANNOT tessellate (only 15 known types can)\n\n**Practice Tip:** To test if a shape tessellates, check if copies of it can surround a single point with angles adding to 360°."
+      }
+    ],
+    "questions": [
+      { "section": "A",
+        "q": "A perpendicular bisector of AB passes through:",
+        "options": [
+          "Point A",
+          "Point B",
+          "Midpoint of AB",
+          "None of these"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "Geometric constructions use only:",
+        "options": [
+          "Ruler and protractor",
+          "Ruler and compass",
+          "Protractor and compass",
+          "Set square and ruler"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Which regular polygon can tessellate?",
+        "options": [
+          "Pentagon",
+          "Hexagon",
+          "Octagon",
+          "Heptagon"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Angles at a vertex in a tessellation must add to:",
+        "options": [
+          "180°",
+          "270°",
+          "360°",
+          "90°"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "To construct 60°, we use:",
+        "options": [
+          "Protractor",
+          "Equilateral triangle construction",
+          "Set square",
+          "Ruler only"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "How many regular tessellations exist?",
+        "options": [
+          "1",
+          "2",
+          "3",
+          "Infinite"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "An angle bisector divides an angle into:",
+        "options": [
+          "Unequal parts",
+          "Two equal parts",
+          "Three equal parts",
+          "Random parts"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Can any triangle tessellate?",
+        "options": [
+          "Yes",
+          "Only equilateral",
+          "Only right triangles",
+          "No"
+        ],
+        "answer": 0
+      },
+      { "section": "A",
+        "q": "Every point on perpendicular bisector of AB is:",
+        "options": [
+          "Closer to A",
+          "Closer to B",
+          "Equidistant from A and B",
+          "On segment AB"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "4 squares meet at a vertex: 4 x 90° = ?",
+        "options": [
+          "270°",
+          "360°",
+          "450°",
+          "180°"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Regular pentagons cannot tessellate because:",
+        "options": [
+          "They are too small",
+          "Interior angle (108°) doesn't divide 360° evenly",
+          "They have 5 sides",
+          "They are curved"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "A tessellation has:",
+        "options": [
+          "Gaps between shapes",
+          "Overlapping shapes",
+          "No gaps and no overlaps",
+          "Only triangles"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "To bisect an angle, we need:",
+        "options": [
+          "Only a ruler",
+          "Only a compass",
+          "Ruler and compass",
+          "A protractor"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "Honeycomb cells are shaped like:",
+        "options": [
+          "Squares",
+          "Triangles",
+          "Hexagons",
+          "Pentagons"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "How many equilateral triangles meet at a vertex in tessellation?",
+        "options": [
+          "3",
+          "4",
+          "5",
+          "6"
+        ],
+        "answer": 3
+      },
+      { "section": "A",
+        "q": "Can any quadrilateral tessellate?",
+        "options": [
+          "Yes",
+          "Only rectangles",
+          "Only squares",
+          "No"
+        ],
+        "answer": 0
+      },
+      { "section": "A",
+        "q": "The interior angle of a regular hexagon is:",
+        "options": [
+          "90°",
+          "100°",
+          "108°",
+          "120°"
+        ],
+        "answer": 3
+      },
+      { "section": "A",
+        "q": "Semi-regular tessellations use:",
+        "options": [
+          "One type of polygon",
+          "Two or more types",
+          "Only triangles",
+          "Only curved shapes"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Constructing a perpendicular bisector: compass opening should be:",
+        "options": [
+          "Equal to AB",
+          "Less than half AB",
+          "More than half AB",
+          "Exactly half AB"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "M.C. Escher is famous for:",
+        "options": [
+          "Algebra",
+          "Tessellation art",
+          "Statistics",
+          "Calculus"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "How many semi-regular tessellations exist?",
+        "options": [
+          "3",
+          "5",
+          "8",
+          "Infinite"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "Which shapes tile a bathroom floor?",
+        "options": [
+          "Squares",
+          "Regular pentagons",
+          "Regular heptagons",
+          "Regular octagons alone"
+        ],
+        "answer": 0
+      },
+      { "section": "A",
+        "q": "To construct 30°, first construct:",
+        "options": [
+          "90° and bisect",
+          "60° and bisect",
+          "45° and bisect",
+          "120° and bisect"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "3 regular hexagons at a vertex: 3 x 120° = ?",
+        "options": [
+          "240°",
+          "300°",
+          "360°",
+          "480°"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "A straightedge differs from ruler because it has:",
+        "options": [
+          "Markings",
+          "No markings",
+          "A compass",
+          "A protractor"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "A tiling pattern uses regular hexagons. Each hexagon has side 3cm. Use this for the next 3 questions.",
+        "q": "Brick walls are an example of:",
+        "options": [
+          "Regular tessellation",
+          "Semi-regular tessellation",
+          "Non-regular tessellation",
+          "Not a tessellation"
+        ],
+        "answer": 2
+      },
+      { "section": "B", "case": "A tiling pattern uses regular hexagons. Each hexagon has side 3cm. Use this for the next 3 questions.",
+        "q": "Interior angle of equilateral triangle:",
+        "options": [
+          "45°",
+          "60°",
+          "90°",
+          "120°"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "A tiling pattern uses regular hexagons. Each hexagon has side 3cm. Use this for the next 3 questions.",
+        "q": "Can regular octagons alone tessellate?",
+        "options": [
+          "Yes",
+          "No (135° doesn't divide 360°)",
+          "Only with squares",
+          "Sometimes"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "An architect designs a floor using two shapes: squares (side 4cm) and equilateral triangles (side 4cm). Use this for the next 4 questions.",
+        "q": "The 3 regular tessellating shapes are:",
+        "options": [
+          "Triangle, square, pentagon",
+          "Triangle, square, hexagon",
+          "Square, pentagon, hexagon",
+          "Triangle, pentagon, hexagon"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "An architect designs a floor using two shapes: squares (side 4cm) and equilateral triangles (side 4cm). Use this for the next 4 questions.",
+        "q": "Constructing 90° can be done by:",
+        "options": [
+          "Constructing perpendicular",
+          "Bisecting 180°",
+          "Both A and B",
+          "Neither"
+        ],
+        "answer": 2
+      },
+      { "section": "B", "case": "An architect designs a floor using two shapes: squares (side 4cm) and equilateral triangles (side 4cm). Use this for the next 4 questions.",
+        "q": "Islamic art commonly features:",
+        "options": [
+          "Random patterns",
+          "Geometric tessellations",
+          "Only circles",
+          "No patterns"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "An architect designs a floor using two shapes: squares (side 4cm) and equilateral triangles (side 4cm). Use this for the next 4 questions.",
+        "q": "To construct 45°:",
+        "options": [
+          "Construct 90° and bisect",
+          "Construct 60° and subtract 15°",
+          "Draw a diagonal",
+          "Use protractor only"
+        ],
+        "answer": 0
+      },
+      { "section": "B", "case": "A circular design of radius 5cm is divided into 6 equal sectors. Use this for the next 3 questions.",
+        "q": "A tessellation can extend:",
+        "options": [
+          "Only to the edge of paper",
+          "Infinitely",
+          "Only 10 times",
+          "Only in one direction"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "A circular design of radius 5cm is divided into 6 equal sectors. Use this for the next 3 questions.",
+        "q": "Interior angle of a square:",
+        "options": [
+          "60°",
+          "90°",
+          "120°",
+          "150°"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "A circular design of radius 5cm is divided into 6 equal sectors. Use this for the next 3 questions.",
+        "q": "In a construction, compass is used to:",
+        "options": [
+          "Measure angles",
+          "Draw straight lines",
+          "Draw arcs and circles",
+          "Erase lines"
+        ],
+        "answer": 2
+      }
+    ],
+    "penPaper": [
+      {"section": "C", "q": "Construct a regular hexagon of side 3cm using only compass and ruler. Show all construction arcs. Upload a photo.", "marks": 2},
+      {"section": "C", "q": "Draw a tiling pattern using squares and equilateral triangles that covers an area without gaps or overlaps. Colour it. Upload a photo.", "marks": 2},
+      {"section": "D", "q": "Construct an angle of 135 degrees using only compass and ruler (hint: 135 = 90 + 45). Show all construction steps. Upload a photo.", "marks": 3},
+      {"section": "D", "q": "Create a tessellation using a single irregular quadrilateral. Show at least 6 copies fitting together. Explain why any quadrilateral can tessellate. Upload a photo.", "marks": 3},
+      {"section": "E", "q": "Design a floor tiling pattern using at least 2 different regular polygons. The pattern must cover the plane without gaps. Calculate the angles at each vertex. Upload a clear photo.", "marks": 5}
+    ],
+  },
+  {
+    "id": 15,
+    "number": "15",
+    "title": "Finding the Unknown",
+    "description": "Introduction to equations - forming equations, solving simple equations, balancing method, and word problems using equations",
+    "topics": [
+      {
+        "name": "15.1 What is an Equation?",
+        "content": "An equation is a mathematical statement that says two things are equal. It always has an equals sign (=) and often has an unknown value we need to find.\n\n**Expression vs Equation:**\n• Expression: 3x + 5 (no equals sign, represents a value)\n• Equation: 3x + 5 = 20 (has equals sign, can be solved)\n\n**Parts of an Equation:**\n• Left Hand Side (LHS): The expression on the left of =\n• Right Hand Side (RHS): The expression on the right of =\n• In 3x + 5 = 20: LHS = 3x + 5, RHS = 20\n\n**Solution of an Equation:**\nThe value of the variable that makes LHS = RHS\n• In x + 3 = 7: x = 4 (because 4 + 3 = 7 ✓)\n• In 2y = 10: y = 5 (because 2 × 5 = 10 ✓)\n\n**Forming Equations from Word Problems:**\n• 'A number plus 5 equals 12' → x + 5 = 12\n• 'Twice a number is 18' → 2x = 18\n• 'Three more than double a number is 17' → 2x + 3 = 17\n• 'Ravi's age after 5 years will be 20' → x + 5 = 20\n\n**The Balance Model:**\nThink of an equation as a balance scale. Both sides must be equal (balanced). Whatever you do to one side, you must do to the other to keep it balanced.\n\n**Practice Tip:** To verify your solution, always substitute it back into the original equation and check if LHS = RHS."
+      },
+      {
+        "name": "15.2 Solving Simple Equations",
+        "content": "Solving an equation means finding the value of the unknown variable that makes the equation true. We use inverse operations to isolate the variable.\n\n**The Balancing Method:**\nWhatever operation you perform on one side, you must perform on the other:\n• Add the same number to both sides\n• Subtract the same number from both sides\n• Multiply both sides by the same number\n• Divide both sides by the same number\n\n**Solving One-Step Equations:**\n• x + 5 = 12 → x + 5 - 5 = 12 - 5 → x = 7\n• x - 3 = 8 → x - 3 + 3 = 8 + 3 → x = 11\n• 3x = 15 → 3x/3 = 15/3 → x = 5\n• x/4 = 6 → x/4 × 4 = 6 × 4 → x = 24\n\n**Solving Two-Step Equations:**\n• 2x + 3 = 11\n  Step 1: Subtract 3: 2x = 8\n  Step 2: Divide by 2: x = 4\n  Check: 2(4) + 3 = 8 + 3 = 11 ✓\n\n• 3x - 7 = 14\n  Step 1: Add 7: 3x = 21\n  Step 2: Divide by 3: x = 7\n  Check: 3(7) - 7 = 21 - 7 = 14 ✓\n\n**Inverse Operations:**\n• Addition ↔ Subtraction (they undo each other)\n• Multiplication ↔ Division (they undo each other)\n\n**Common Mistakes:**\n• Performing operation on only one side\n• Using the wrong inverse operation\n• Not checking the answer\n\n**Practice Tip:** Always work systematically - first remove any constant added/subtracted, then handle the multiplication/division."
+      },
+      {
+        "name": "15.3 Applications of Equations",
+        "content": "Equations are one of the most powerful tools in mathematics. They let us solve real-world problems by converting words into mathematical statements.\n\n**Age Problems:**\n• Ravi is 5 years older than Sita. Their ages add to 25. Find their ages.\n  Let Sita's age = x. Then Ravi's age = x + 5.\n  x + (x + 5) = 25 → 2x + 5 = 25 → 2x = 20 → x = 10\n  Sita = 10, Ravi = 15\n\n**Number Problems:**\n• Three consecutive numbers add to 36. Find them.\n  Let numbers be n, n+1, n+2\n  n + (n+1) + (n+2) = 36 → 3n + 3 = 36 → 3n = 33 → n = 11\n  Numbers: 11, 12, 13\n\n**Geometry Problems:**\n• Perimeter of rectangle is 40 cm. Length is 3 times the breadth. Find dimensions.\n  Let breadth = x. Length = 3x.\n  2(x + 3x) = 40 → 2(4x) = 40 → 8x = 40 → x = 5\n  Breadth = 5 cm, Length = 15 cm\n\n**Money Problems:**\n• A pen costs Rs. 5 more than a pencil. 3 pens and 2 pencils cost Rs. 55. Find the cost of each.\n  Let pencil cost = x. Pen cost = x + 5.\n  3(x+5) + 2x = 55 → 3x + 15 + 2x = 55 → 5x = 40 → x = 8\n  Pencil = Rs. 8, Pen = Rs. 13\n\n**Steps for Word Problems:**\n1. Read carefully. What is unknown?\n2. Let the unknown = x\n3. Write other quantities in terms of x\n4. Form the equation from the given condition\n5. Solve the equation\n6. Check: Does the answer make sense?\n\n**Practice Tip:** The hardest part is forming the equation, not solving it. Practice translating English sentences into mathematical equations every day!"
+      }
+    ],
+    "questions": [
+      { "section": "A",
+        "q": "In x + 5 = 12, x = ?",
+        "options": [
+          "5",
+          "7",
+          "12",
+          "17"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "An equation has:",
+        "options": [
+          "No equals sign",
+          "An equals sign",
+          "Only numbers",
+          "Only letters"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "If 2x = 18, then x = ?",
+        "options": [
+          "9",
+          "16",
+          "20",
+          "36"
+        ],
+        "answer": 0
+      },
+      { "section": "A",
+        "q": "The LHS of 3x + 5 = 20 is:",
+        "options": [
+          "3x",
+          "5",
+          "3x + 5",
+          "20"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "'A number plus 5 equals 12' as equation:",
+        "options": [
+          "x - 5 = 12",
+          "x + 5 = 12",
+          "5x = 12",
+          "x/5 = 12"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "If x - 3 = 8, then x = ?",
+        "options": [
+          "5",
+          "8",
+          "11",
+          "24"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "Solve: 2x + 3 = 11",
+        "options": [
+          "x = 3",
+          "x = 4",
+          "x = 7",
+          "x = 14"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "The inverse of addition is:",
+        "options": [
+          "Multiplication",
+          "Division",
+          "Subtraction",
+          "Addition"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "If x/4 = 6, then x = ?",
+        "options": [
+          "2",
+          "10",
+          "24",
+          "1.5"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "Solve: 3x - 7 = 14",
+        "options": [
+          "x = 3",
+          "x = 7",
+          "x = 21",
+          "x = 63"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "'Twice a number is 18' means:",
+        "options": [
+          "x + 2 = 18",
+          "x - 2 = 18",
+          "2x = 18",
+          "x/2 = 18"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "If 5x = 0, then x = ?",
+        "options": [
+          "5",
+          "-5",
+          "0",
+          "Undefined"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "3 consecutive numbers add to 36. Smallest is:",
+        "options": [
+          "10",
+          "11",
+          "12",
+          "13"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "In the balance model, to keep balance we must:",
+        "options": [
+          "Do same thing to both sides",
+          "Only change LHS",
+          "Only change RHS",
+          "Do nothing"
+        ],
+        "answer": 0
+      },
+      { "section": "A",
+        "q": "Solve: x/3 + 2 = 7",
+        "options": [
+          "x = 3",
+          "x = 15",
+          "x = 27",
+          "x = 5"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Perimeter of square = 4x. If perimeter = 24, side = ?",
+        "options": [
+          "4",
+          "6",
+          "8",
+          "24"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "If 4x + 5 = 25, then x = ?",
+        "options": [
+          "5",
+          "7.5",
+          "20",
+          "30"
+        ],
+        "answer": 0
+      },
+      { "section": "A",
+        "q": "Ravi is x years old. In 5 years he'll be:",
+        "options": [
+          "x - 5",
+          "x + 5",
+          "5x",
+          "x/5"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Solve: 7x = 49",
+        "options": [
+          "x = 6",
+          "x = 7",
+          "x = 42",
+          "x = 56"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "If x + x + x = 27, then x = ?",
+        "options": [
+          "3",
+          "9",
+          "27",
+          "81"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Pen costs Rs. 5 more than pencil (x). Pen cost:",
+        "options": [
+          "5x",
+          "x - 5",
+          "x + 5",
+          "x/5"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "Solve: 2(x + 3) = 16",
+        "options": [
+          "x = 5",
+          "x = 6.5",
+          "x = 8",
+          "x = 10"
+        ],
+        "answer": 0
+      },
+      { "section": "A",
+        "q": "If the sum of two numbers is 20 and one is 8, the other is:",
+        "options": [
+          "8",
+          "12",
+          "20",
+          "28"
+        ],
+        "answer": 1
+      },
+      { "section": "A",
+        "q": "Solve: 5x - 10 = 30",
+        "options": [
+          "x = 4",
+          "x = 6",
+          "x = 8",
+          "x = 40"
+        ],
+        "answer": 2
+      },
+      { "section": "A",
+        "q": "Length = 3 x breadth. If breadth = x, perimeter = ?",
+        "options": [
+          "4x",
+          "6x",
+          "8x",
+          "12x"
+        ],
+        "answer": 2
+      },
+      { "section": "B", "case": "Anita is 5 years older than Bina. The sum of their ages is 35. Use this for the next 3 questions.",
+        "q": "If 3(x + 5) = 24, then x = ?",
+        "options": [
+          "3",
+          "8",
+          "13",
+          "19"
+        ],
+        "answer": 0
+      },
+      { "section": "B", "case": "Anita is 5 years older than Bina. The sum of their ages is 35. Use this for the next 3 questions.",
+        "q": "Check: Is x = 3 a solution of 2x + 1 = 7?",
+        "options": [
+          "Yes (7 = 7)",
+          "No (5 ≠ 7)",
+          "No (6 ≠ 7)",
+          "Cannot determine"
+        ],
+        "answer": 0
+      },
+      { "section": "B", "case": "Anita is 5 years older than Bina. The sum of their ages is 35. Use this for the next 3 questions.",
+        "q": "A number doubled and increased by 3 gives 15. The number:",
+        "options": [
+          "6",
+          "7.5",
+          "9",
+          "12"
+        ],
+        "answer": 0
+      },
+      { "section": "B", "case": "A number when multiplied by 5 and then reduced by 7 gives 28. Use this for the next 4 questions.",
+        "q": "Solve: x/2 - 3 = 7",
+        "options": [
+          "x = 8",
+          "x = 14",
+          "x = 20",
+          "x = 2"
+        ],
+        "answer": 2
+      },
+      { "section": "B", "case": "A number when multiplied by 5 and then reduced by 7 gives 28. Use this for the next 4 questions.",
+        "q": "Ages: Sister is x, brother is x+4. Sum = 24. x = ?",
+        "options": [
+          "8",
+          "10",
+          "12",
+          "14"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "A number when multiplied by 5 and then reduced by 7 gives 28. Use this for the next 4 questions.",
+        "q": "If 6x + 12 = 6, then x = ?",
+        "options": [
+          "0",
+          "-1",
+          "1",
+          "3"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "A number when multiplied by 5 and then reduced by 7 gives 28. Use this for the next 4 questions.",
+        "q": "Which is an equation?",
+        "options": [
+          "3x + 5",
+          "3x + 5 = 20",
+          "3 + 5 + x",
+          "3x"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "The length of a rectangle is 3 more than twice its width. The perimeter is 48cm. Use this for the next 3 questions.",
+        "q": "Solve: 4(x - 2) = 20",
+        "options": [
+          "x = 3",
+          "x = 5",
+          "x = 7",
+          "x = 22"
+        ],
+        "answer": 2
+      },
+      { "section": "B", "case": "The length of a rectangle is 3 more than twice its width. The perimeter is 48cm. Use this for the next 3 questions.",
+        "q": "Cost of 5 pens = Rs. 75. Cost of 1 pen:",
+        "options": [
+          "Rs. 10",
+          "Rs. 15",
+          "Rs. 70",
+          "Rs. 375"
+        ],
+        "answer": 1
+      },
+      { "section": "B", "case": "The length of a rectangle is 3 more than twice its width. The perimeter is 48cm. Use this for the next 3 questions.",
+        "q": "If x = 2 satisfies 3x + a = 10, then a = ?",
+        "options": [
+          "2",
+          "3",
+          "4",
+          "5"
+        ],
+        "answer": 2
+      }
+    ],
+    "penPaper": [
+      {"section": "C", "q": "Solve: 3(x - 4) + 2(x + 1) = 23. Show each step with the property used (distributive, combining like terms, etc.). Upload a photo.", "marks": 2},
+      {"section": "C", "q": "Solve: (2x + 3)/5 = (x - 1)/3. Cross-multiply and solve. Verify by substituting back. Upload a photo.", "marks": 2},
+      {"section": "D", "q": "The sum of three consecutive odd numbers is 93. Form an equation, solve it, find the numbers, and verify. Upload a photo.", "marks": 3},
+      {"section": "D", "q": "A father is 3 times as old as his son. After 12 years, he will be twice as old. Find their present ages. Form equations and solve. Upload a photo.", "marks": 3},
+      {"section": "E", "q": "Create and solve 3 different word problems that lead to linear equations: one about ages, one about money, one about geometry. Show the equation formation and complete solution for each. Upload a photo.", "marks": 5}
+    ],
+  }
+];
+
+// 5-section exam format per Ganita Prakash spec:
+//   Section A — MCQ (single best answer, 1 mark each)
+//   Section B — Case-Based (read a small scenario, then pick the best answer, 1 mark each)
+//   Section C — Very Short Answer (write on paper, photograph and upload, 2 marks each)
+//   Section D — Short Answer (write on paper, photograph and upload, 3 marks each)
+//   Section E — Long Answer (write on paper, photograph and upload, 5 marks each)
+// Each MCQ object also carries `section` ('A' or 'B') and `case` (case-based scenario,
+// shown above the question for Section B). The pen-paper objects carry `section`
+// ('C', 'D', or 'E') so the screen can label them correctly.
+
 const finalExamMCQ = [
-  { q: "What is the next number: 3, 6, 9, 12, ?", options: ["14", "15", "16", "18"], answer: 1 },
-  { q: "An angle of 45 degrees is:", options: ["Acute", "Right", "Obtuse", "Reflex"], answer: 0 },
-  { q: "The place value of 7 in 47,832 is:", options: ["7", "70", "700", "7000"], answer: 3 },
-  { q: "In a pictograph, if 1 symbol = 10, then 5 symbols = ?", options: ["15", "50", "100", "5"], answer: 1 },
-  { q: "The smallest prime number is:", options: ["0", "1", "2", "3"], answer: 2 },
-  { q: "Perimeter of square with side 9 cm:", options: ["18 cm", "27 cm", "36 cm", "81 cm"], answer: 2 },
-  { q: "3/4 is a _____ fraction:", options: ["Proper", "Improper", "Mixed", "Unit"], answer: 0 },
-  { q: "Tool used to draw circles:", options: ["Ruler", "Compass", "Protractor", "Divider"], answer: 1 },
-  { q: "Lines of symmetry in a rectangle:", options: ["1", "2", "3", "4"], answer: 1 },
-  { q: "The opposite of -8 is:", options: ["-8", "0", "8", "1/8"], answer: 2 },
-  { q: "1, 4, 9, 16, 25 are called:", options: ["Prime numbers", "Square numbers", "Odd numbers", "Even numbers"], answer: 1 },
-  { q: "Two perpendicular lines form angle of:", options: ["45", "60", "90", "180"], answer: 2 },
-  { q: "Round 6,789 to nearest thousand:", options: ["6,000", "6,800", "7,000", "6,790"], answer: 2 },
-  { q: "Factors of 15 are:", options: ["1, 3, 5, 15", "1, 5, 15", "3, 5, 15", "1, 3, 15"], answer: 0 },
-  { q: "Area of rectangle 6cm x 4cm:", options: ["10 sq cm", "20 sq cm", "24 sq cm", "48 sq cm"], answer: 2 },
-  { q: "1/2 + 1/2 = ?", options: ["2/4", "1/4", "1", "2"], answer: 2 },
-  { q: "Diameter = 2 x ?", options: ["Area", "Perimeter", "Radius", "Circumference"], answer: 2 },
-  { q: "Equilateral triangle has _____ lines of symmetry:", options: ["1", "2", "3", "6"], answer: 2 },
-  { q: "-3 + 5 = ?", options: ["-8", "-2", "2", "8"], answer: 2 },
-  { q: "Which is greater: -10 or -5?", options: ["-10", "-5", "Equal", "Cannot compare"], answer: 1 },
-  { q: "The Fibonacci sequence starts with:", options: ["0, 1", "1, 2", "2, 3", "1, 3"], answer: 0 },
-  { q: "A straight angle measures:", options: ["90", "180", "270", "360"], answer: 1 },
-  { q: "LCM of 4 and 6 is:", options: ["2", "12", "24", "10"], answer: 1 },
-  { q: "How many vertices does a triangle have?", options: ["2", "3", "4", "5"], answer: 1 },
-  { q: "(-4) x (-2) = ?", options: ["-8", "-6", "6", "8"], answer: 3 }
+  // ---------- SECTION A — straight MCQ (15 × 1 = 15 marks) ----------
+  { section: 'A', q: "What is the next number: 3, 6, 9, 12, ?", options: ["14", "15", "16", "18"], answer: 1 },
+  { section: 'A', q: "An angle of 45 degrees is:", options: ["Acute", "Right", "Obtuse", "Reflex"], answer: 0 },
+  { section: 'A', q: "The place value of 7 in 47,832 is:", options: ["7", "70", "700", "7000"], answer: 3 },
+  { section: 'A', q: "The smallest prime number is:", options: ["0", "1", "2", "3"], answer: 2 },
+  { section: 'A', q: "Perimeter of square with side 9 cm:", options: ["18 cm", "27 cm", "36 cm", "81 cm"], answer: 2 },
+  { section: 'A', q: "3/4 is a _____ fraction:", options: ["Proper", "Improper", "Mixed", "Unit"], answer: 0 },
+  { section: 'A', q: "Tool used to draw circles:", options: ["Ruler", "Compass", "Protractor", "Divider"], answer: 1 },
+  { section: 'A', q: "Lines of symmetry in a rectangle:", options: ["1", "2", "3", "4"], answer: 1 },
+  { section: 'A', q: "The opposite of -8 is:", options: ["-8", "0", "8", "1/8"], answer: 2 },
+  { section: 'A', q: "1, 4, 9, 16, 25 are called:", options: ["Prime numbers", "Square numbers", "Odd numbers", "Even numbers"], answer: 1 },
+  { section: 'A', q: "Two perpendicular lines form an angle of:", options: ["45", "60", "90", "180"], answer: 2 },
+  { section: 'A', q: "Round 6,789 to nearest thousand:", options: ["6,000", "6,800", "7,000", "6,790"], answer: 2 },
+  { section: 'A', q: "Factors of 15 are:", options: ["1, 3, 5, 15", "1, 5, 15", "3, 5, 15", "1, 3, 15"], answer: 0 },
+  { section: 'A', q: "1/2 + 1/2 = ?", options: ["2/4", "1/4", "1", "2"], answer: 2 },
+  { section: 'A', q: "How many vertices does a triangle have?", options: ["2", "3", "4", "5"], answer: 1 },
+
+  // ---------- SECTION B — case-based MCQ (10 × 1 = 10 marks) ----------
+  { section: 'B',
+    case: "Riya is fencing a rectangular vegetable garden. The garden is 12 metres long and 8 metres wide. Use this for the next 3 questions.",
+    q: "What is the perimeter of the garden?",
+    options: ["20 m", "40 m", "48 m", "96 m"], answer: 1 },
+  { section: 'B',
+    case: "Riya is fencing a rectangular vegetable garden. The garden is 12 metres long and 8 metres wide. Use this for the next 3 questions.",
+    q: "What is the area of the garden?",
+    options: ["20 sq m", "40 sq m", "96 sq m", "120 sq m"], answer: 2 },
+  { section: 'B',
+    case: "Riya is fencing a rectangular vegetable garden. The garden is 12 metres long and 8 metres wide. Use this for the next 3 questions.",
+    q: "If fencing wire costs Rs.50 per metre, what is the total cost of fencing once around?",
+    options: ["Rs.1000", "Rs.1500", "Rs.2000", "Rs.4800"], answer: 2 },
+  { section: 'B',
+    case: "A school class has 30 students. 12 students play cricket, 8 play football, and the remaining play kabaddi. Use this for the next 2 questions.",
+    q: "How many students play kabaddi?",
+    options: ["6", "8", "10", "12"], answer: 2 },
+  { section: 'B',
+    case: "A school class has 30 students. 12 students play cricket, 8 play football, and the remaining play kabaddi. Use this for the next 2 questions.",
+    q: "What fraction of the class plays cricket?",
+    options: ["2/5", "1/3", "1/2", "12/15"], answer: 0 },
+  { section: 'B',
+    case: "On a number line, point P is at -4 and point Q is at +7. Use this for the next 2 questions.",
+    q: "What is the distance between P and Q on the number line?",
+    options: ["3", "7", "11", "28"], answer: 2 },
+  { section: 'B',
+    case: "On a number line, point P is at -4 and point Q is at +7. Use this for the next 2 questions.",
+    q: "Which integer is the midpoint of P and Q?",
+    options: ["-1", "0", "1.5", "3"], answer: 2 },
+  { section: 'B',
+    case: "Aman buys 6 books at Rs.45 each. He gives the shopkeeper Rs.500 and asks for change. Use this for the next 2 questions.",
+    q: "What is the total cost of the 6 books?",
+    options: ["Rs.225", "Rs.250", "Rs.270", "Rs.300"], answer: 2 },
+  { section: 'B',
+    case: "Aman buys 6 books at Rs.45 each. He gives the shopkeeper Rs.500 and asks for change. Use this for the next 2 questions.",
+    q: "How much change should the shopkeeper return?",
+    options: ["Rs.200", "Rs.230", "Rs.250", "Rs.275"], answer: 1 },
+  { section: 'B',
+    case: "A bus journey starts at 9:45 AM and ends at 1:20 PM the same day.",
+    q: "How long does the journey take?",
+    options: ["2 h 35 min", "3 h 25 min", "3 h 35 min", "4 h 25 min"], answer: 2 }
 ];
 
 const finalExamPenPaper = [
-  { q: "A rectangular field is 120m long and 80m wide. Find its perimeter and area. If fencing costs Rs.50 per meter, find total fencing cost.", marks: 10 },
-  { q: "Find the prime factorization of 180 using factor tree method. Then find LCM and HCF of 180 and 144.", marks: 10 },
-  { q: "Add the fractions: 2/3 + 3/4 + 5/6. Show all steps clearly.", marks: 10 },
-  { q: "Draw a number line from -15 to +15. Mark these integers and arrange in ascending order: 8, -12, 5, -7, 0, -3, 11", marks: 10 },
-  { q: "Construct a triangle ABC where AB=6cm, BC=5cm, and angle B=60 degrees. Measure AC and find all lines of symmetry if any.", marks: 10 }
+  // ---------- SECTION C — Very Short Answer (2 × 2 = 4 marks) ----------
+  { section: 'C', q: "Write the prime factorisation of 84 using a factor tree. Show every step on paper and upload a photo of your work.", marks: 2 },
+  { section: 'C', q: "Find the HCF and LCM of 18 and 24. Show your working on paper and upload a photo.", marks: 2 },
+  // ---------- SECTION D — Short Answer (2 × 3 = 6 marks) ----------
+  { section: 'D', q: "A rectangular field is 120 m long and 80 m wide. Find its perimeter and area. Show all steps on paper, then upload a photo.", marks: 3 },
+  { section: 'D', q: "Add the fractions 2/3 + 3/4 + 5/6 and reduce to lowest terms. Write the full solution on paper and upload a photo.", marks: 3 },
+  // ---------- SECTION E — Long Answer (1 × 5 = 5 marks) ----------
+  { section: 'E', q: "Construct triangle ABC with AB = 6 cm, BC = 5 cm and angle B = 60 degrees. Measure AC and draw all lines of symmetry (if any). Upload a clear photo of your construction.", marks: 5 }
 ];
 
 export default function App() {
@@ -5386,12 +11047,14 @@ export default function App() {
   const [isFinalExam, setIsFinalExam] = useState(false);
   const [examPhase, setExamPhase] = useState('mcq');
   const [penPaperAnswers, setPenPaperAnswers] = useState({});
+  const [penPaperPhotos, setPenPaperPhotos] = useState({}); // {index: imageUri} — photo of handwritten answer for Sections C/D/E
   const [mcqScore, setMcqScore] = useState(0);
 
   // Auth state
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [authToken, setAuthToken] = useState(null);
+  const [myUserId, setMyUserId] = useState(null);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false); // Show/hide password toggle
@@ -5402,7 +11065,8 @@ export default function App() {
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
-  
+  const chatListRef = useRef(null);
+
   // Voice message recording state
   const [isRecording, setIsRecording] = useState(false);
   const [recording, setRecording] = useState(null);
@@ -5423,6 +11087,22 @@ export default function App() {
   const [adminUsers, setAdminUsers] = useState([]);
   const [adminStats, setAdminStats] = useState({});
   const [adminMessages, setAdminMessages] = useState([]);
+
+  // Profile modal state (change name / class selection / change password)
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [profileNameInput, setProfileNameInput] = useState('');
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profilePicture, setProfilePicture] = useState(null); // base64 data URI
+  const [profilePicUploading, setProfilePicUploading] = useState(false);
+  const [selectedClass, setSelectedClass] = useState('6'); // '6' or '7'
+  // Sync the module-level currentClass ref so top-level helpers (openPDF/openVideo) resolve the correct media map
+  useEffect(() => { setCurrentClassRef(selectedClass); }, [selectedClass]);
+  // Per-class chapter list (shadows the top-level `chapters` array below)
+  const chapters = selectedClass === '7' ? chaptersClass7 : topLevelChaptersClass6;
+  const [showPasswordSection, setShowPasswordSection] = useState(false);
+  const [currentPasswordInput, setCurrentPasswordInput] = useState('');
+  const [newPasswordInput, setNewPasswordInput] = useState('');
+  const [passwordChanging, setPasswordChanging] = useState(false);
 
   // 3D Models state
   const [selectedModel, setSelectedModel] = useState(null);
@@ -5463,11 +11143,19 @@ export default function App() {
   const [videoBase64, setVideoBase64] = useState('');
   const [videoTitle, setVideoTitle] = useState('');
   const [videoUrl, setVideoUrl] = useState('');
+  const [videoMinimized, setVideoMinimized] = useState(false);
+  const [videoControlsVisible, setVideoControlsVisible] = useState(true);
+  const videoControlsTimerRef = useRef(null);
   
   // In-app WebRTC calling state (using WebView)
   const [showCallWebView, setShowCallWebView] = useState(false);
   const [callWebViewUrl, setCallWebViewUrl] = useState('');
+  const [callWebViewHtml, setCallWebViewHtml] = useState('');
   const [callWebViewTitle, setCallWebViewTitle] = useState('');
+  // Local-content WebView modal for in-app whiteboard / fundamentals (no network).
+  const [showLocalWebView, setShowLocalWebView] = useState(false);
+  const [localWebViewHtml, setLocalWebViewHtml] = useState('');
+  const [localWebViewTitle, setLocalWebViewTitle] = useState('');
   
   // Screen sharing during exam state
   const [isScreenSharing, setIsScreenSharing] = useState(false);
@@ -5487,6 +11175,9 @@ export default function App() {
     
     const pollForNotifications = async () => {
       if (!authToken || !isLoggedIn) return;
+      // Pause outer poll when call WebView is open to avoid concurrent
+      // notification reads that could interfere with the WebView's own poll
+      if (showCallWebView) return;
       
       try {
         // Poll for incoming calls
@@ -5534,7 +11225,7 @@ export default function App() {
         clearInterval(pollInterval);
       }
     };
-  }, [isLoggedIn, authToken]);
+  }, [isLoggedIn, authToken, showCallWebView]);
 
   // State for colorful festival wish modal
   const [showFestivalModal, setShowFestivalModal] = useState(false);
@@ -5697,55 +11388,69 @@ export default function App() {
   const [callDuration, setCallDuration] = useState(0);
   const callTimerRef = useRef(null);
 
-  // Answer incoming call - shows native in-app call UI
+  // Answer incoming call - opens the in-app WebRTC WebView so real audio/video
+  // actually flows (the previous fake-timer UI never created a peer connection,
+  // which is why calls would ring but never connect).
   const answerCall = async () => {
-    if (incomingCall) {
-      Vibration.cancel();
-      
-      // Send answer notification back to caller
-      try {
-        await fetch(`${API_URL}/api/webrtc/answer`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-          body: JSON.stringify({
-            caller_user_id: incomingCall.callerId,
-            sdp: 'mobile_app_answer'
-          })
-        });
-      } catch (e) {
-        console.log('Error sending answer:', e);
+    if (!incomingCall) return;
+    Vibration.cancel();
+
+    const callerId = incomingCall.callerId;
+    const callerName = incomingCall.callerName || 'Admin';
+    const callType = incomingCall.callType || 'audio';
+    const callId = incomingCall.callId || '';
+
+    // Pre-request OS-level mic / camera permissions so the in-WebView WebRTC
+    // getUserMedia() call can actually succeed. Without this, Android denies
+    // the WebView access to mic/camera and no media flows.
+    try {
+      const micPerm = await Audio.requestPermissionsAsync();
+      if (!micPerm || micPerm.status !== 'granted') {
+        Alert.alert('Microphone permission required', 'Grant microphone access so the caller can hear you.');
+        return;
       }
-      
-      // Show native in-app call UI instead of WebView
-      setNativeCallData({
-        callerId: incomingCall.callerId,
-        callerName: incomingCall.callerName,
-        callType: incomingCall.callType,
-        callId: incomingCall.callId
-      });
-      setCallDuration(0);
-      setShowNativeCall(true);
-      setIncomingCall(null);
-      
-      // Start call duration timer
-      callTimerRef.current = setInterval(() => {
-        setCallDuration(prev => prev + 1);
-      }, 1000);
-    }
+      if (callType === 'video') {
+        const camPerm = await ImagePicker.requestCameraPermissionsAsync();
+        if (!camPerm || camPerm.status !== 'granted') {
+          Alert.alert('Camera permission required', 'Grant camera access so the caller can see you.');
+          return;
+        }
+      }
+    } catch (_) { /* old Android perm APIs may fail; WebView will prompt */ }
+
+    // Use the bundled, self-contained call HTML (no website redirect, no app
+    // shell). It runs real getUserMedia + RTCPeerConnection inside the WebView,
+    // pulls the offer SDP from /api/webrtc/pending-calls, and POSTs a real
+    // answer SDP back so the caller's peer can connect.
+    const html = buildCallHtml({
+      apiUrl: API_URL,
+      token: authToken,
+      myUserId: myUserId,
+      mode: 'answer',
+      peerUserId: callerId,
+      callType: callType,
+      callerName: callerName,
+      callId: callId,
+      offerSdp: incomingCall.sdp || '',
+    });
+    setCallWebViewHtml(html);
+    setCallWebViewUrl('');
+    setCallWebViewTitle(callType === 'video' ? 'Video Call with ' + callerName : 'Voice Call with ' + callerName);
+    setShowCallWebView(true);
+    setIncomingCall(null);
   };
 
-  // End native call
+  // End native call (legacy fake-UI path; kept so any stale state can still be cleared)
   const endNativeCall = async () => {
     if (callTimerRef.current) {
       clearInterval(callTimerRef.current);
       callTimerRef.current = null;
     }
-    if (nativeCallData) {
+    if (nativeCallData && nativeCallData.callerId) {
       try {
-        await fetch(`${API_URL}/api/webrtc/end-call`, {
+        await fetch(`${API_URL}/api/webrtc/end-call?target_user_id=${nativeCallData.callerId}`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-          body: JSON.stringify({ call_id: nativeCallData.callId })
+          headers: { 'Authorization': `Bearer ${authToken}` }
         });
       } catch (e) {
         console.log('Error ending call:', e);
@@ -5768,10 +11473,9 @@ export default function App() {
     if (incomingCall) {
       Vibration.cancel();
       try {
-        await fetch(`${API_URL}/api/webrtc/end-call`, {
+        await fetch(`${API_URL}/api/webrtc/end-call?target_user_id=${incomingCall.callerId}`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-          body: JSON.stringify({ call_id: incomingCall.callId })
+          headers: { 'Authorization': `Bearer ${authToken}` },
         });
       } catch (error) {
         console.log('Error declining call:', error);
@@ -5801,8 +11505,17 @@ export default function App() {
     // Auto-submit exam
     setIsMonitoring(false);
     if (isFinalExam) {
-      const totalScore = mcqScore + Object.keys(penPaperAnswers).length * 2;
-      showResults(totalScore, finalExamMCQ.length + finalExamPenPaper.length);
+      // Approximate partial credit for paper sections answered before time-out.
+      var ppScore = 0;
+      finalExamPenPaper.forEach(function(q, idx) {
+        var t = (penPaperAnswers[idx] || '').trim();
+        var hasPhoto = !!penPaperPhotos[idx];
+        var m = q.marks || 2;
+        if (hasPhoto && t.length > 0) ppScore += m;
+        else if (hasPhoto || t.length > 0) ppScore += Math.floor(m / 2);
+      });
+      const totalScore = mcqScore + ppScore;
+      showResults(totalScore, 40);
     } else {
       showResults(score, currentChapter?.questions?.length || 10);
     }
@@ -5855,14 +11568,116 @@ export default function App() {
       if (token && userData) {
         const user = JSON.parse(userData);
         setAuthToken(token);
+        setMyUserId(user.id);
         setStudentName(user.name);
         setIsAdmin(user.is_admin);
         setIsLoggedIn(true);
         setScreen('home');
         loadData();
+        fetchProfileFromServer(token);
       }
     } catch (e) {
       console.log('Auth check error:', e);
+    }
+  };
+
+  // Pull the latest profile (including profile_picture) from the backend.
+  // Safe to call after any login or app resume.
+  const fetchProfileFromServer = async (tokenOverride) => {
+    try {
+      // Load locally-cached profile picture first (instant, works offline).
+      const localPic = await AsyncStorage.getItem('profilePicture');
+      if (localPic) setProfilePicture(localPic);
+
+      const token = tokenOverride || authToken;
+      if (!token) return;
+      const res = await fetch(`${API_URL}/api/auth/me`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (!res.ok) return;
+      const me = await res.json();
+      if (me) {
+        if (me.profile_picture) {
+          setProfilePicture(me.profile_picture);
+          try { await AsyncStorage.setItem('profilePicture', me.profile_picture); } catch(_) {}
+        }
+        if (me.name) setStudentName(me.name);
+      }
+    } catch (e) {
+      console.log('fetchProfileFromServer error:', e);
+    }
+  };
+
+  // Open gallery/camera, downscale, and POST as a base64 data URI to
+  // /api/user/profile-picture. Updates UI optimistically.
+  const pickProfilePicture = async (source) => {
+    try {
+      if (source === 'camera') {
+        const perm = await ImagePicker.requestCameraPermissionsAsync();
+        if (!perm || perm.status !== 'granted') {
+          Alert.alert('Camera permission required', 'Grant camera access to take a profile photo.');
+          return;
+        }
+      } else {
+        const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!perm || perm.status !== 'granted') {
+          Alert.alert('Photos permission required', 'Grant access to photos to pick a profile picture.');
+          return;
+        }
+      }
+      const opts = {
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.4,
+        allowsEditing: true,
+        aspect: [1, 1],
+        base64: true,
+        exif: false,
+      };
+      const result = source === 'camera'
+        ? await ImagePicker.launchCameraAsync(opts)
+        : await ImagePicker.launchImageLibraryAsync(opts);
+      if (result.canceled || !result.assets || !result.assets[0]) return;
+      const asset = result.assets[0];
+      if (!asset.base64) {
+        Alert.alert('Error', 'Could not read image data.');
+        return;
+      }
+      const ext = (asset.uri || '').toLowerCase().endsWith('.png') ? 'png' : 'jpeg';
+      const dataUri = `data:image/${ext};base64,${asset.base64}`;
+      if (dataUri.length > 1_900_000) {
+        Alert.alert('Image too large', 'Please choose a smaller photo or crop it more tightly. Max size is ~1.5 MB.');
+        return;
+      }
+      setProfilePicUploading(true);
+      setProfilePicture(dataUri); // optimistic
+      // Always persist locally so the pic survives app restarts even if the
+      // backend endpoint is unavailable (e.g. older deployment without it).
+      try { await AsyncStorage.setItem('profilePicture', dataUri); } catch(_) {}
+      try {
+        const res = await fetch(`${API_URL}/api/user/profile-picture`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+          body: JSON.stringify({ profile_picture: dataUri }),
+        });
+        if (!res.ok) {
+          const status = res.status;
+          if (status === 404) {
+            // Backend doesn't have this endpoint yet — pic is saved locally.
+            console.log('profile-picture endpoint not deployed; saved locally');
+          } else {
+            let detail = '';
+            try { detail = (await res.text()).slice(0, 200); } catch(_) {}
+            Alert.alert('Upload failed', 'Could not sync profile picture to server.' + (detail ? ('\n' + detail) : ''));
+          }
+        }
+      } catch (netErr) {
+        console.log('profile-picture network error (saved locally):', netErr);
+      }
+    } catch (e) {
+      console.log('pickProfilePicture error:', e);
+      Alert.alert('Error', 'Failed to update profile picture.');
+    } finally {
+      setProfilePicUploading(false);
     }
   };
 
@@ -5887,11 +11702,13 @@ export default function App() {
         await AsyncStorage.setItem('authToken', data.access_token);
         await AsyncStorage.setItem('userData', JSON.stringify(data.user));
         setAuthToken(data.access_token);
+        setMyUserId(data.user.id);
         setStudentName(data.user.name);
         setIsAdmin(data.user.is_admin);
         setIsLoggedIn(true);
         setScreen('home');
         loadData();
+        fetchProfileFromServer(data.access_token);
       } else {
         Alert.alert('Error', data.detail || 'Login failed');
       }
@@ -5918,9 +11735,11 @@ export default function App() {
         await AsyncStorage.setItem('authToken', data.access_token);
         await AsyncStorage.setItem('userData', JSON.stringify(data.user));
         setAuthToken(data.access_token);
+        setMyUserId(data.user.id);
         setIsAdmin(data.user.is_admin);
         setIsLoggedIn(true);
         setScreen('home');
+        fetchProfileFromServer(data.access_token);
       } else {
         Alert.alert('Error', data.detail || 'Registration failed');
       }
@@ -5945,16 +11764,25 @@ export default function App() {
   // Chat functions
   const loadChatMessages = async () => {
     try {
-      // Admin sees all messages, users see only their own messages + admin replies
+      // Admin sees all messages; users see only their own + admin replies.
+      // Backend's two endpoints return opposite orderings (admin = DESC,
+      // user = ASC), so we always normalize to oldest-first (chat reads
+      // top → bottom, newest at the bottom).
       const endpoint = isAdmin ? `${API_URL}/api/messages` : `${API_URL}/api/user/messages`;
       const response = await fetch(endpoint, {
         headers: { 'Authorization': `Bearer ${authToken}` },
       });
       if (response.ok) {
         const data = await response.json();
-        // Handle different response formats
         const messages = isAdmin ? data : (data.messages || data);
-        setChatMessages(Array.isArray(messages) ? messages.reverse() : []);
+        const arr = Array.isArray(messages) ? messages.slice() : [];
+        arr.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+        const prevCount = chatMessages.length;
+        setChatMessages(arr);
+        if (arr.length > prevCount && chatListRef.current) {
+          // New messages arrived — scroll to the latest one.
+          setTimeout(() => { try { chatListRef.current.scrollToEnd({ animated: true }); } catch (_) {} }, 80);
+        }
       }
     } catch (e) {
       console.log('Chat load error:', e);
@@ -6064,42 +11892,105 @@ export default function App() {
     }
   };
   
-  const sendVoiceMessage = async (uri) => {
-    setChatLoading(true);
+  const pickAndSendChatImage = async () => {
     try {
-      // Read the audio file as base64
-      const base64Audio = await FileSystem.readAsStringAsync(uri, {
-        encoding: FileSystem.EncodingType.Base64,
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm || perm.status !== 'granted') {
+        Alert.alert('Permission needed', 'Photo library access is required to send an image.');
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.7,
+        base64: true,
       });
-      
-      // Send to backend
+      if (result.canceled || !result.assets || !result.assets.length) return;
+      const asset = result.assets[0];
+      let dataUri = '';
+      if (asset.base64) {
+        const ext = (asset.uri || '').toLowerCase().endsWith('.png') ? 'png' : 'jpeg';
+        dataUri = `data:image/${ext};base64,${asset.base64}`;
+      }
+      setChatLoading(true);
+      // Send a SHORT placeholder as `content` (backend caps content size) and put
+      // the base64 data URI in `media_url`. Older builds sent the data URI as
+      // content and hit the 4000-char cap, which is why images silently failed.
       const response = await fetch(`${API_URL}/api/messages`, {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json', 
-          'Authorization': `Bearer ${authToken}` 
-        },
-        body: JSON.stringify({ 
-          content: `[Voice Message - ${recordingDuration}s]`,
-          message_type: 'voice',
-          voice_data: base64Audio,
-          duration: recordingDuration
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+        body: JSON.stringify({
+          content: '[Image]',
+          message_type: 'image',
+          media_url: dataUri || asset.uri || null,
         }),
       });
-      
       if (response.ok) {
         loadChatMessages();
       } else {
-        Alert.alert('Error', 'Failed to send voice message');
+        let detail = '';
+        try { detail = (await response.text()).slice(0, 200); } catch(_) {}
+        Alert.alert('Error', 'Failed to send image' + (detail ? ('\n' + detail) : ''));
+      }
+    } catch (e) {
+      console.log('pickAndSendChatImage error:', e);
+      Alert.alert('Error', 'Failed to send image');
+    } finally {
+      setChatLoading(false);
+    }
+  };
+
+  const sendVoiceMessage = async (uri) => {
+    setChatLoading(true);
+    try {
+      const base64Audio = await FileSystem.readAsStringAsync(uri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+
+      if (!base64Audio || base64Audio.length === 0) {
+        Alert.alert('Error', 'Recording is empty. Please try again.');
+        setChatLoading(false);
+        return;
+      }
+
+      const audioDataUri = `data:audio/m4a;base64,${base64Audio}`;
+
+      // Guard against oversized payloads that would fail on the server.
+      if (audioDataUri.length > 8_000_000) {
+        Alert.alert('Recording too long', 'Please record a shorter voice message (under 60 seconds).');
+        setChatLoading(false);
+        return;
+      }
+
+      const response = await fetch(`${API_URL}/api/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        },
+        body: JSON.stringify({
+          content: `[Voice Message - ${recordingDuration}s]`,
+          message_type: 'audio',
+          media_url: audioDataUri,
+          voice_data: base64Audio,
+          duration: recordingDuration,
+        }),
+      });
+
+      if (response.ok) {
+        loadChatMessages();
+      } else {
+        let detail = '';
+        try { detail = (await response.text()).slice(0, 200); } catch(_) {}
+        Alert.alert('Error', 'Failed to send voice message' + (detail ? ('\n' + detail) : ''));
       }
     } catch (error) {
       console.log('Send voice error:', error);
-      Alert.alert('Error', 'Failed to send voice message');
+      Alert.alert('Error', 'Failed to send voice message. Check your connection and try again.');
     }
     setChatLoading(false);
   };
   
-  const playVoiceMessage = async (voiceData, messageId) => {
+  const playVoiceMessage = async (voiceSrc, messageId) => {
     try {
       // Stop any currently playing audio
       if (soundRef.current) {
@@ -6117,10 +12008,14 @@ export default function App() {
         allowsRecordingIOS: false,
         playsInSilentModeIOS: true,
       });
-      
-      // Create and play sound from base64
+
+      // voiceSrc may be either a full data URI / http URL (preferred) or a raw
+      // base64 string from the legacy voice_data field. Normalize to a URI.
+      const uri = (typeof voiceSrc === 'string' && (voiceSrc.startsWith('data:') || voiceSrc.startsWith('http')))
+        ? voiceSrc
+        : `data:audio/m4a;base64,${voiceSrc}`;
       const { sound } = await Audio.Sound.createAsync(
-        { uri: `data:audio/m4a;base64,${voiceData}` },
+        { uri },
         { shouldPlay: true }
       );
       
@@ -6169,15 +12064,21 @@ export default function App() {
     setAiMessages(prev => [...prev, { role: 'assistant', content: 'Thinking...' }]);
     
     try {
-      // Use backend API for AI chat
+      // Use backend API for AI chat. We pass the student's selected class
+      // (6 or 7) so the assistant restricts itself to the right syllabus, and
+      // we prepend a Class label to the message as a belt-and-braces hint.
+      const classNum = selectedClass === '7' ? 7 : 6;
       const response = await fetch(`${API_URL}/api/ai/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}),
         },
         body: JSON.stringify({
-          message: userMessage + (currentChapter ? ` (Context: Chapter ${currentChapter.id} - ${currentChapter.title})` : ''),
-          chapter_id: currentChapter?.id || null
+          message: `[Class ${classNum} student] ` + userMessage +
+            (currentChapter ? ` (Context: Chapter ${currentChapter.id} - ${currentChapter.title})` : ''),
+          chapter_id: currentChapter?.id || null,
+          class_num: classNum,
         }),
       });
       
@@ -6361,8 +12262,17 @@ export default function App() {
               setIsMonitoring(false);
               if (isFinalExam) {
                 // Auto-submit final exam with current scores
-                const totalScore = mcqScore + Object.keys(penPaperAnswers).length * 2;
-                showResults(totalScore, finalExamMCQ.length + finalExamPenPaper.length);
+                // Approximate partial credit for paper sections answered before bail.
+                var ppScore = 0;
+                finalExamPenPaper.forEach(function(q, idx) {
+                  var t = (penPaperAnswers[idx] || '').trim();
+                  var hasPhoto = !!penPaperPhotos[idx];
+                  var m = q.marks || 2;
+                  if (hasPhoto && t.length > 0) ppScore += m;
+                  else if (hasPhoto || t.length > 0) ppScore += Math.floor(m / 2);
+                });
+                const totalScore = mcqScore + ppScore;
+                showResults(totalScore, 40);
               } else {
                 // Auto-submit chapter quiz with current score
                 showResults(score, currentChapter?.questions?.length || 10);
@@ -6507,6 +12417,61 @@ export default function App() {
     }
   };
 
+  // Open Whiteboard / Fundamentals fully in-app (local HTML, no network, no
+  // website redirect). Other sections still fall back to the in-app browser tab.
+  const openInAppWeb = async (section, title) => {
+    try {
+      if (section === 'whiteboard') {
+        setLocalWebViewHtml(WHITEBOARD_HTML);
+        setLocalWebViewTitle(title || 'Whiteboard');
+        setShowLocalWebView(true);
+        return;
+      }
+      if (section === 'fundamentals') {
+        setLocalWebViewHtml(buildFundamentalsHtml(selectedClass));
+        setLocalWebViewTitle(title || 'Fundamentals');
+        setShowLocalWebView(true);
+        return;
+      }
+      if (section === 'formula-videos') {
+        setLocalWebViewHtml(buildFormulaVideosHtml(selectedClass));
+        setLocalWebViewTitle(title || 'Formula Videos');
+        setShowLocalWebView(true);
+        return;
+      }
+      var base = 'https://ganitaprakash-math.web.app';
+      var url = base + '?mode=section&section=' + encodeURIComponent(section || '');
+      if (authToken) url += '&token=' + encodeURIComponent(authToken);
+      await WebBrowser.openBrowserAsync(url, {
+        toolbarColor: '#0a0e27',
+        controlsColor: '#00d4ff',
+        dismissButtonStyle: 'close',
+        showTitle: true,
+      });
+    } catch (e) {
+      try { Linking.openURL('https://ganitaprakash-math.web.app?section=' + encodeURIComponent(section || '')); } catch (_) {}
+    }
+  };
+
+  // Request camera + microphone permissions explicitly (Android runtime prompt).
+  // Returns true only if both granted. Caller should block the exam if false.
+  const requestExamPermissions = async () => {
+    try {
+      if (Platform.OS !== 'android') return true;
+      const perms = [
+        PermissionsAndroid.PERMISSIONS.CAMERA,
+        PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+      ];
+      const res = await PermissionsAndroid.requestMultiple(perms);
+      const camOk = res[PermissionsAndroid.PERMISSIONS.CAMERA] === PermissionsAndroid.RESULTS.GRANTED;
+      const micOk = res[PermissionsAndroid.PERMISSIONS.RECORD_AUDIO] === PermissionsAndroid.RESULTS.GRANTED;
+      return camOk && micOk;
+    } catch (e) {
+      console.log('Permission request error:', e);
+      return false;
+    }
+  };
+
   const startQuiz = () => {
     // Show exam proctoring instructions first with screen sharing permission request
     Alert.alert(
@@ -6516,7 +12481,12 @@ export default function App() {
         { text: 'Cancel', style: 'cancel' },
         { 
           text: 'Allow & Start Exam', 
-          onPress: () => {
+          onPress: async () => {
+            const ok = await requestExamPermissions();
+            if (!ok) {
+              Alert.alert('Permissions Required', 'Camera and microphone access are required to start the exam. Please allow them in Settings and try again.');
+              return;
+            }
             // Start screen sharing and monitoring
             startScreenSharing();
             Alert.alert(
@@ -6526,8 +12496,12 @@ export default function App() {
                 setIsMonitoring(true);
                 setCurrentQuestion(0);
                 setScore(0);
+                setMcqScore(0);
                 setSelectedOption(null);
                 setIsFinalExam(false);
+                setExamPhase('mcq');
+                setPenPaperAnswers({});
+                setPenPaperPhotos({});
                 setScreen('quiz');
               }}]
             );
@@ -6540,18 +12514,23 @@ export default function App() {
   const startFinalExam = () => {
     const allCompleted = chapters.every(c => chapterProgress[c.id] === 'completed');
     if (!allCompleted && !isAdmin) {
-      Alert.alert('Locked', 'Complete all 10 chapters first!');
+      Alert.alert('Locked', `Complete all ${chapters.length} chapters first!`);
       return;
     }
     // Show screen sharing permission request first
     Alert.alert(
       'Screen & Camera Permission Required',
-      'GANITA PRAKASH needs to monitor your screen and camera during the Final Exam to ensure fair assessment.\n\nIMPORTANT RULES:\n\n1. Your screen and camera will be monitored\n2. If you leave the app, your exam will be auto-submitted\n3. Any cheating will result in automatic submission and failure\n4. This exam has MCQ and Written sections\n5. You need 80% to pass\n6. Make sure you are in a quiet, well-lit place\n\nBy clicking "Allow & Start", you agree to screen and camera monitoring.',
+      'GANITA PRAKASH needs to monitor your screen and camera during the Final Exam to ensure fair assessment.\n\nIMPORTANT RULES:\n\n1. Your screen and camera will be monitored\n2. If you leave the app, your exam will be auto-submitted\n3. Any cheating will result in automatic submission and failure\n4. This exam has MCQ and Written sections (A, B, C, D, E)\n5. You need 80% to pass\n6. Make sure you are in a quiet, well-lit place\n\nBy clicking "Allow & Start", you agree to screen and camera monitoring.',
       [
         { text: 'Cancel', style: 'cancel' },
         { 
           text: 'Allow & Start Final Exam', 
-          onPress: () => {
+          onPress: async () => {
+            const ok = await requestExamPermissions();
+            if (!ok) {
+              Alert.alert('Permissions Required', 'Camera and microphone access are required for the Final Exam. Please grant them and try again.');
+              return;
+            }
             // Start screen sharing and monitoring
             startScreenSharing();
             Alert.alert(
@@ -6566,6 +12545,7 @@ export default function App() {
                 setIsFinalExam(true);
                 setExamPhase('mcq');
                 setPenPaperAnswers({});
+                setPenPaperPhotos({});
                 setScreen('quiz');
               }}]
             );
@@ -6582,15 +12562,22 @@ export default function App() {
   const submitAnswer = () => {
     const questions = isFinalExam ? finalExamMCQ : currentChapter.questions;
     const question = questions[currentQuestion];
-    
+
+    // Final-exam scoring: Sections A + B award 1 mark each.
+    // Chapter quiz: 1 mark each.
     let newScore = score;
     if (selectedOption === question.answer) {
-      newScore = score + (isFinalExam ? 2 : 1);
+      newScore = score + 1;
       setScore(newScore);
     }
 
     if (currentQuestion + 1 >= questions.length) {
       if (isFinalExam) {
+        setMcqScore(newScore);
+        setExamPhase('penPaper');
+        setCurrentQuestion(0);
+        setSelectedOption(null);
+      } else if (!isFinalExam && currentChapter && currentChapter.penPaper && currentChapter.penPaper.length > 0) {
         setMcqScore(newScore);
         setExamPhase('penPaper');
         setCurrentQuestion(0);
@@ -6604,23 +12591,59 @@ export default function App() {
     }
   };
 
+  // Capture a photo of the handwritten answer (Sections C/D/E require photo verification).
+  // Uses expo-image-picker; falls back to gallery if camera denied.
+  const capturePhotoForAnswer = async (index) => {
+    try {
+      const camPerm = await ImagePicker.requestCameraPermissionsAsync();
+      if (camPerm.status !== 'granted') {
+        Alert.alert('Camera permission required', 'Grant camera access to photograph your handwritten answer, or use Gallery instead.');
+        const libPerm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (libPerm.status !== 'granted') return;
+        const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.6, allowsEditing: false });
+        if (!result.canceled && result.assets && result.assets[0]) {
+          setPenPaperPhotos(prev => ({ ...prev, [index]: result.assets[0].uri }));
+        }
+        return;
+      }
+      const result = await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.6, allowsEditing: false });
+      if (!result.canceled && result.assets && result.assets[0]) {
+        setPenPaperPhotos(prev => ({ ...prev, [index]: result.assets[0].uri }));
+      }
+    } catch (e) {
+      console.log('capturePhotoForAnswer error:', e);
+      Alert.alert('Camera error', 'Could not open camera. Try again.');
+    }
+  };
+
+  const clearPhotoForAnswer = (index) => {
+    setPenPaperPhotos(prev => { const n = { ...prev }; delete n[index]; return n; });
+  };
+
   const submitPenPaperAnswer = (index, answer) => {
     setPenPaperAnswers({ ...penPaperAnswers, [index]: answer });
   };
 
   const submitFinalExam = async () => {
+    // Paper sections (C/D/E) are scored by admin after photo upload review.
+    // We award partial provisional marks here: full marks if photo + answer text
+    // exist, half marks if only text. Admin can override later.
     let penPaperScore = 0;
-    Object.keys(penPaperAnswers).forEach(key => {
-      if (penPaperAnswers[key] && penPaperAnswers[key].trim().length > 20) {
-        penPaperScore += 10;
-      } else if (penPaperAnswers[key] && penPaperAnswers[key].trim().length > 0) {
-        penPaperScore += 5;
-      }
+    finalExamPenPaper.forEach((q, idx) => {
+      const text = (penPaperAnswers[idx] || '').trim();
+      const hasPhoto = !!penPaperPhotos[idx];
+      const maxMarks = q.marks || 2;
+      if (hasPhoto && text.length > 0) penPaperScore += maxMarks;
+      else if (hasPhoto || text.length > 0) penPaperScore += Math.floor(maxMarks / 2);
     });
 
     const totalScore = mcqScore + penPaperScore;
-    const percentage = totalScore;
+    // Total possible: 25 (A+B) + 15 (C+D+E) = 40 marks
+    const totalPossible = 40;
+    const percentage = Math.round((totalScore / totalPossible) * 100);
     const passed = percentage >= 80;
+    stopScreenSharing();
+    setIsMonitoring(false);
 
     setFinalExamScore(totalScore);
     setFinalExamCompleted(true);
@@ -6637,8 +12660,25 @@ export default function App() {
       await saveData('certificates', newCerts);
     }
 
-    setResultData({ score: totalScore, total: 100, percentage, passed, isFinal: true, mcqScore, penPaperScore });
+    setResultData({ score: totalScore, total: totalPossible, percentage, passed, isFinal: true, mcqScore, penPaperScore });
     setShowResult(true);
+  };
+
+  const submitChapterPenPaper = () => {
+    const ppQuestions = currentChapter && currentChapter.penPaper ? currentChapter.penPaper : [];
+    let penPaperScore = 0;
+    ppQuestions.forEach((q, idx) => {
+      const text = (penPaperAnswers[idx] || '').trim();
+      const hasPhoto = !!penPaperPhotos[idx];
+      const maxMarks = q.marks || 2;
+      if (hasPhoto && text.length > 0) penPaperScore += maxMarks;
+      else if (hasPhoto || text.length > 0) penPaperScore += Math.floor(maxMarks / 2);
+    });
+    const totalMCQ = currentChapter ? currentChapter.questions.length : 35;
+    const ppTotalMarks = ppQuestions.reduce((s, q) => s + (q.marks || 2), 0);
+    const totalScore = mcqScore + penPaperScore;
+    const totalPossible = totalMCQ + ppTotalMarks;
+    showResults(totalScore, totalPossible);
   };
 
   const showResults = async (finalScore, totalQuestions) => {
@@ -6648,7 +12688,7 @@ export default function App() {
     
     const maxScore = totalQuestions;
     const percentage = Math.round((finalScore / maxScore) * 100);
-    const passed = finalScore >= 35; // Pass if 35+ out of 40 questions correct
+    const passed = percentage >= 80; // Pass if 80%+ correct (consistent with final exam)
 
     if (passed) {
       const newProgress = { ...chapterProgress, [currentChapter.id]: 'completed' };
@@ -6685,17 +12725,22 @@ export default function App() {
       <ScrollView style={styles.container} contentContainerStyle={{paddingBottom: 100}}>
         {/* Header - Command Bridge Style */}
         <View style={styles.homeHeader}>
-          <View style={styles.headerLeft}>
-            <View style={styles.userAvatarCircle}>
-              <Text style={styles.userAvatarText}>
-                {studentName ? studentName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'GP'}
-              </Text>
-            </View>
+          <TouchableOpacity style={styles.headerLeft} onPress={() => { setProfileNameInput(studentName || ''); setShowProfileModal(true); }}>
+            {profilePicture ? (
+              <Image source={{ uri: profilePicture }} style={styles.userAvatarCircle} resizeMode="cover" />
+            ) : (
+              <View style={styles.userAvatarCircle}>
+                <Text style={styles.userAvatarText}>
+                  {studentName ? studentName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'GP'}
+                </Text>
+              </View>
+            )}
             <View>
               <Text style={styles.welcomeText}>WELCOME</Text>
               <Text style={styles.userName}>{studentName || 'Student'}</Text>
+              <Text style={styles.userClass}>NCERT Class {selectedClass}</Text>
             </View>
-          </View>
+          </TouchableOpacity>
           <View style={styles.headerIcons}>
             <TouchableOpacity style={styles.headerIconBtn} onPress={() => setScreen('progress')}>
               <Text style={styles.headerIconText}>◉</Text>
@@ -6770,12 +12815,19 @@ export default function App() {
           <Text style={styles.quickActionTitle}>Neural AI</Text>
           <Text style={styles.quickActionSubtitle}>Query system</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.quickActionCard} onPress={() => Alert.alert('Transmissions', 'Visual transmissions loading...')}>
+        <TouchableOpacity style={styles.quickActionCard} onPress={() => openInAppWeb('fundamentals', 'Fundamentals')}>
           <View style={styles.quickActionIconBox}>
-            <Text style={styles.quickActionIconText}>◉</Text>
+            <Text style={styles.quickActionIconText}>📐</Text>
           </View>
-          <Text style={styles.quickActionTitle}>Transmissions</Text>
-          <Text style={styles.quickActionSubtitle}>Visual data</Text>
+          <Text style={styles.quickActionTitle}>Fundamentals</Text>
+          <Text style={styles.quickActionSubtitle}>Basics — unlocked</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.quickActionCard} onPress={() => openInAppWeb('whiteboard', 'Whiteboard')}>
+          <View style={styles.quickActionIconBox}>
+            <Text style={styles.quickActionIconText}>✏️</Text>
+          </View>
+          <Text style={styles.quickActionTitle}>Whiteboard</Text>
+          <Text style={styles.quickActionSubtitle}>Draw & solve</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.quickActionCard} onPress={() => setShowResources(true)}>
           <View style={styles.quickActionIconBox}>
@@ -6790,6 +12842,13 @@ export default function App() {
           </View>
           <Text style={styles.quickActionTitle}>Command Link</Text>
           <Text style={styles.quickActionSubtitle}>Contact base</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.quickActionCard} onPress={() => openInAppWeb('formula-videos', 'Formula Videos')}>
+          <View style={styles.quickActionIconBox}>
+            <Text style={styles.quickActionIconText}>◉</Text>
+          </View>
+          <Text style={styles.quickActionTitle}>Transmissions</Text>
+          <Text style={styles.quickActionSubtitle}>Formula videos</Text>
         </TouchableOpacity>
       </View>
 
@@ -6862,7 +12921,7 @@ export default function App() {
   const [expandedTopic, setExpandedTopic] = React.useState(null);
 
   const renderChapter = () => (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={{paddingBottom: 48}}>
       {/* Header with back button */}
       <View style={styles.chapterHeader}>
         <TouchableOpacity style={styles.backBtn} onPress={() => setScreen('home')}>
@@ -6925,7 +12984,7 @@ export default function App() {
                     <TouchableOpacity 
                       style={[styles.resourceCard, {backgroundColor: '#EC4899'}]}
                       onPress={() => {
-                        const media = chapterMedia[currentChapter.id];
+                        const media = getCurrentMedia(currentChapter.id);
                         if (media && media.tbUrl) {
                           setPdfTitle(media.tbTitle || 'Maths T.B.');
                           setPdfUrl(media.tbUrl);
@@ -6945,7 +13004,7 @@ export default function App() {
                     <TouchableOpacity 
                       style={[styles.resourceCard, {backgroundColor: '#F97316'}]}
                       onPress={() => {
-                        const media = chapterMedia[currentChapter.id];
+                        const media = getCurrentMedia(currentChapter.id);
                         if (media && media.pptUrl) {
                           openPDF(currentChapter.id, media.pptTitle, setShowPdfViewer, setPdfBase64, setPdfTitle, setPdfUrl);
                         } else {
@@ -6963,7 +13022,7 @@ export default function App() {
           <TouchableOpacity 
             style={[styles.resourceCard, {backgroundColor: '#14B8A6'}]}
             onPress={() => {
-              const media = chapterMedia[currentChapter.id];
+              const media = getCurrentMedia(currentChapter.id);
               if (media && media.videoUrl) {
                 openVideo(currentChapter.id, media.title + ' Video', setShowVideoPlayer, setVideoBase64, setVideoTitle, setVideoUrl);
               } else {
@@ -7023,7 +13082,7 @@ export default function App() {
               </TouchableOpacity>
             </View>
             <ScrollView>
-              {(chapter3DModels[currentChapter.id] || []).map((model) => (
+              {((selectedClass === '7' ? chapter3DModels7 : chapter3DModels)[currentChapter.id] || []).map((model) => (
                 <TouchableOpacity
                   key={model.id}
                   style={styles.modelCard}
@@ -7118,78 +13177,207 @@ export default function App() {
         </View>
       </Modal>
 
-      {/* Video Player Modal - INBUILT with HTML5 Video or Google Drive */}
-      <Modal visible={showVideoPlayer} transparent animationType="slide" onShow={() => ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE)}>
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modelViewerModal, { width: '100%', height: '100%', borderRadius: 0 }]}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{videoTitle}</Text>
-              <TouchableOpacity onPress={() => { ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP); setShowVideoPlayer(false); setVideoBase64(''); setVideoUrl(''); }}>
-                <Text style={styles.closeBtn}>X</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={{ flex: 1 }}>
+      {/* YouTube-style Video Player Modal with minimize & fullscreen */}
+      <Modal
+        visible={showVideoPlayer}
+        transparent
+        animationType={videoMinimized ? 'none' : 'slide'}
+        onShow={() => {
+          if (!videoMinimized) ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+          setVideoControlsVisible(true);
+          if (videoControlsTimerRef.current) clearTimeout(videoControlsTimerRef.current);
+          videoControlsTimerRef.current = setTimeout(() => setVideoControlsVisible(false), 4000);
+        }}
+        onRequestClose={() => { ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP); setShowVideoPlayer(false); setVideoBase64(''); setVideoUrl(''); setVideoMinimized(false); }}
+      >
+        {videoMinimized ? (
+          /* Minimized PIP-style floating player */
+          <View style={{ position: 'absolute', bottom: 80, right: 12, width: 200, height: 130, borderRadius: 12, overflow: 'hidden', elevation: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.5, shadowRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' }}>
+            <View style={{ flex: 1, backgroundColor: '#000' }}>
               {videoUrl ? (
                 <WebView
                   source={{ uri: videoUrl }}
-                  style={{ flex: 1, backgroundColor: '#1A1A2E' }}
+                  style={{ flex: 1 }}
                   javaScriptEnabled={true}
                   domStorageEnabled={true}
                   allowsInlineMediaPlayback={true}
                   mediaPlaybackRequiresUserAction={false}
+                  thirdPartyCookiesEnabled={true}
                   originWhitelist={['*']}
                   mixedContentMode="always"
-                />
-              ) : videoBase64 ? (
-                <WebView
-                  source={{ html: generateVideoPlayerHTML(videoBase64, videoTitle) }}
-                  style={{ flex: 1, backgroundColor: '#1A1A2E' }}
-                  javaScriptEnabled={true}
-                  domStorageEnabled={true}
-                  allowsInlineMediaPlayback={true}
-                  mediaPlaybackRequiresUserAction={false}
-                  originWhitelist={['*']}
-                  mixedContentMode="always"
+                  userAgent="Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
                 />
               ) : (
-                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                  <ActivityIndicator size="large" color="#8B5CF6" />
-                  <Text style={{ color: '#fff', marginTop: 10 }}>Loading Video...</Text>
+                <WebView
+                  source={{ html: generateVideoPlayerHTML(videoBase64, videoTitle) }}
+                  style={{ flex: 1 }}
+                  javaScriptEnabled={true}
+                  domStorageEnabled={true}
+                  allowsInlineMediaPlayback={true}
+                  mediaPlaybackRequiresUserAction={false}
+                  originWhitelist={['*']}
+                  mixedContentMode="always"
+                />
+              )}
+            </View>
+            {/* Tap minimized player to maximize */}
+            <TouchableOpacity style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} activeOpacity={0.8} onPress={() => { setVideoMinimized(false); ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE); }}>
+              <View style={{ position: 'absolute', top: 4, right: 4 }}>
+                <TouchableOpacity onPress={() => { ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP); setShowVideoPlayer(false); setVideoBase64(''); setVideoUrl(''); setVideoMinimized(false); }}>
+                  <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' }}>
+                    <Text style={{ color: '#fff', fontSize: 12, fontWeight: 'bold' }}>X</Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          /* Fullscreen YouTube-style player — Drive URL loaded directly, controls are React Native overlays */
+          <View style={{ flex: 1, backgroundColor: '#000' }}>
+            {videoUrl ? (
+              <WebView
+                source={{ uri: videoUrl }}
+                style={{ flex: 1, backgroundColor: '#000' }}
+                javaScriptEnabled={true}
+                domStorageEnabled={true}
+                allowsInlineMediaPlayback={true}
+                mediaPlaybackRequiresUserAction={false}
+                thirdPartyCookiesEnabled={true}
+                originWhitelist={['*']}
+                mixedContentMode="always"
+                allowsFullscreenVideo={true}
+                userAgent="Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
+              />
+            ) : videoBase64 ? (
+              <WebView
+                source={{ html: generateVideoPlayerHTML(videoBase64, videoTitle) }}
+                style={{ flex: 1, backgroundColor: '#000' }}
+                javaScriptEnabled={true}
+                domStorageEnabled={true}
+                allowsInlineMediaPlayback={true}
+                mediaPlaybackRequiresUserAction={false}
+                originWhitelist={['*']}
+                mixedContentMode="always"
+              />
+            ) : (
+              <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                <ActivityIndicator size="large" color="#8B5CF6" />
+                <Text style={{ color: '#fff', marginTop: 10 }}>Loading Video...</Text>
+              </View>
+            )}
+            {/* React Native overlay controls — only bars + small toggle, video area is fully interactive */}
+            <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} pointerEvents="box-none">
+              {/* Top control bar */}
+              {videoControlsVisible && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingTop: 8, paddingBottom: 6, backgroundColor: 'rgba(0,0,0,0.6)' }}>
+                  <TouchableOpacity onPress={() => { setVideoMinimized(true); ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP); }} style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' }}>
+                    <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold', marginTop: -2 }}>—</Text>
+                  </TouchableOpacity>
+                  <Text style={{ flex: 1, color: '#fff', fontSize: 15, fontWeight: '600', marginHorizontal: 12 }} numberOfLines={1}>{videoTitle || 'Video'}</Text>
+                  <TouchableOpacity onPress={() => { ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP); setShowVideoPlayer(false); setVideoBase64(''); setVideoUrl(''); setVideoMinimized(false); }} style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' }}>
+                    <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>✕</Text>
+                  </TouchableOpacity>
                 </View>
+              )}
+              {/* Middle area: pass all touches through to the WebView so Drive controls work */}
+              <View style={{ flex: 1 }} pointerEvents="none" />
+              {/* Bottom control bar */}
+              {videoControlsVisible && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16, paddingVertical: 10, backgroundColor: 'rgba(0,0,0,0.6)' }}>
+                  <TouchableOpacity onPress={() => { ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE); }} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.12)', justifyContent: 'center', alignItems: 'center' }}>
+                    <Text style={{ color: '#fff', fontSize: 18 }}>⛶</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+              {/* Small floating toggle button to show/hide controls (doesn't block video) */}
+              {!videoControlsVisible && (
+                <TouchableOpacity
+                  onPress={() => {
+                    setVideoControlsVisible(true);
+                    if (videoControlsTimerRef.current) clearTimeout(videoControlsTimerRef.current);
+                    videoControlsTimerRef.current = setTimeout(() => setVideoControlsVisible(false), 4000);
+                  }}
+                  style={{ position: 'absolute', top: 8, right: 8, width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}
+                >
+                  <Text style={{ color: '#fff', fontSize: 16 }}>⋮</Text>
+                </TouchableOpacity>
               )}
             </View>
           </View>
-        </View>
+        )}
       </Modal>
     </ScrollView>
   );
 
   const renderQuiz = () => {
-    if (isFinalExam && examPhase === 'penPaper') {
+    if (examPhase === 'penPaper') {
+      const ppQuestions = isFinalExam ? finalExamPenPaper : (currentChapter && currentChapter.penPaper ? currentChapter.penPaper : []);
+      const ppTitle = isFinalExam ? 'Final Exam' : ('Chapter ' + (currentChapter ? currentChapter.number : '') + ' Quiz');
+      const mcqTotal = isFinalExam ? 25 : (currentChapter ? currentChapter.questions.length : 35);
+      const ppTotal = ppQuestions.reduce((s, q) => s + (q.marks || 2), 0);
       return (
         <View ref={screenViewRef} collapsable={false} style={{flex: 1}}>
-        <ScrollView style={styles.container}>
-          <Text style={styles.sectionTitle}>Final Exam - Pen and Paper Section</Text>
-          <Text style={styles.examInfo}>MCQ Score: {mcqScore}/50 | Pen-Paper: 50 marks (5 questions x 10 marks)</Text>
-
-          {finalExamPenPaper.map((question, index) => (
-            <View key={index} style={styles.questionCard}>
-              <Text style={styles.questionNumber}>Question {index + 1} ({question.marks} marks)</Text>
-              <Text style={styles.questionText}>{question.q}</Text>
-              <TextInput
-                style={styles.textArea}
-                multiline
-                numberOfLines={4}
-                placeholder="Write your answer here..."
-                placeholderTextColor="#888"
-                value={penPaperAnswers[index] || ''}
-                onChangeText={(text) => submitPenPaperAnswer(index, text)}
-              />
+        <ScrollView style={styles.container} contentContainerStyle={{paddingBottom: 48}}>
+          {isScreenSharing ? (
+            <View style={{flexDirection: 'row', alignItems: 'center', backgroundColor: '#7a1f2b', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8, marginBottom: 10}}>
+              <View style={{width: 10, height: 10, borderRadius: 5, backgroundColor: '#fbbf24', marginRight: 8}} />
+              <Text style={{color: '#fff', fontSize: 12, fontWeight: '700', letterSpacing: 0.5}}>SCREEN SHARING — ADMIN IS MONITORING</Text>
             </View>
-          ))}
+          ) : null}
+          <Text style={styles.sectionTitle}>{ppTitle} — Sections C / D / E (Write on Paper + Photo)</Text>
+          <Text style={styles.examInfo}>
+            MCQ + Case-Based Score: {mcqScore}/{mcqTotal}  |  Paper Sections: {ppTotal} marks (C: 2x2, D: 2x3, E: 1x5)
+          </Text>
+          <Text style={{color: '#94a3b8', fontSize: 12, marginBottom: 10}}>
+            For each question: write the answer in your notebook, photograph it, and tap "Attach Photo of Written Answer".
+          </Text>
 
-          <TouchableOpacity style={styles.primaryBtn} onPress={submitFinalExam}>
-            <Text style={styles.primaryBtnText}>Submit Final Exam</Text>
+          {ppQuestions.map((question, index) => {
+            const section = question.section || (index <= 1 ? 'C' : index <= 3 ? 'D' : 'E');
+            const sectionTitleByLetter = {
+              C: 'Section C — Very Short Answer (write on paper + photo)',
+              D: 'Section D — Short Answer (write on paper + photo)',
+              E: 'Section E — Long Answer (write on paper + photo)'
+            };
+            const sectionLabel = sectionTitleByLetter[section] || ('Section ' + section);
+            const photoUri = penPaperPhotos[index];
+            return (
+              <View key={index} style={styles.questionCard}>
+                <Text style={{fontSize: 11, color: '#00d4ff', fontWeight: '600', letterSpacing: 1, marginBottom: 4}}>{sectionLabel.toUpperCase()}</Text>
+                <Text style={styles.questionNumber}>Question {index + 1} ({question.marks} marks)</Text>
+                <Text style={styles.questionText}>{question.q}</Text>
+                <TextInput
+                  style={styles.textArea}
+                  multiline
+                  numberOfLines={4}
+                  placeholder="Write your answer here..."
+                  placeholderTextColor="#888"
+                  value={penPaperAnswers[index] || ''}
+                  onChangeText={(text) => submitPenPaperAnswer(index, text)}
+                />
+                <View style={{flexDirection: 'row', alignItems: 'center', marginTop: 8, gap: 8}}>
+                  <TouchableOpacity
+                    onPress={() => capturePhotoForAnswer(index)}
+                    style={{flex: 1, backgroundColor: '#0a4d68', paddingVertical: 10, paddingHorizontal: 14, borderRadius: 8, alignItems: 'center', flexDirection: 'row', justifyContent: 'center'}}
+                  >
+                    <Text style={{color: '#00d4ff', fontSize: 18, marginRight: 6}}>📷</Text>
+                    <Text style={{color: '#fff', fontWeight: '600'}}>{photoUri ? 'Retake Photo' : 'Attach Photo of Written Answer'}</Text>
+                  </TouchableOpacity>
+                  {photoUri ? (
+                    <TouchableOpacity onPress={() => clearPhotoForAnswer(index)} style={{backgroundColor: '#7a1f2b', paddingVertical: 10, paddingHorizontal: 14, borderRadius: 8}}>
+                      <Text style={{color: '#fff', fontWeight: '600'}}>Remove</Text>
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
+                {photoUri ? (
+                  <Image source={{uri: photoUri}} style={{width: '100%', height: 180, marginTop: 10, borderRadius: 8, resizeMode: 'cover', borderWidth: 1, borderColor: '#00d4ff'}} />
+                ) : null}
+              </View>
+            );
+          })}
+
+          <TouchableOpacity style={styles.primaryBtn} onPress={isFinalExam ? submitFinalExam : submitChapterPenPaper}>
+            <Text style={styles.primaryBtnText}>{isFinalExam ? 'Submit Final Exam' : 'Submit Quiz'}</Text>
           </TouchableOpacity>
         </ScrollView>
         </View>
@@ -7199,12 +13387,38 @@ export default function App() {
     const questions = isFinalExam ? finalExamMCQ : currentChapter.questions;
     const question = questions[currentQuestion];
     const total = questions.length;
+    // Every quiz (chapter or final) uses the same 5-section schema. Chapter
+    // quizzes are pure MCQ → always Section A. The Final Exam mixes A/B/C/D/E.
+    const section = question.section || 'A';
+    const sectionTitleByLetter = {
+      A: 'Section A — MCQ (1 mark each)',
+      B: 'Section B — Case-Based MCQ (1 mark each)'
+    };
+    // Only show the case scenario above the FIRST question of a contiguous
+    // run of Section B questions sharing the same case text. Subsequent
+    // questions in the same case display a smaller reminder.
+    const prevQuestion = currentQuestion > 0 ? questions[currentQuestion - 1] : null;
+    const isFirstOfCase = section === 'B' && question.case && (!prevQuestion || prevQuestion.case !== question.case);
+    const isContinuationOfCase = section === 'B' && question.case && prevQuestion && prevQuestion.case === question.case;
 
     return (
       <View ref={screenViewRef} collapsable={false} style={{flex: 1}}>
-      <ScrollView style={styles.container}>
+      <ScrollView style={styles.container} contentContainerStyle={{paddingBottom: 48}}>
+        {isScreenSharing ? (
+          <View style={{flexDirection: 'row', alignItems: 'center', backgroundColor: '#7a1f2b', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8, marginBottom: 10}}>
+            <View style={{width: 10, height: 10, borderRadius: 5, backgroundColor: '#fbbf24', marginRight: 8}} />
+            <Text style={{color: '#fff', fontSize: 12, fontWeight: '700', letterSpacing: 0.5}}>SCREEN SHARING — ADMIN IS MONITORING</Text>
+          </View>
+        ) : null}
         <Text style={styles.sectionTitle}>
-          {isFinalExam ? 'Final Exam - MCQ Section (25 x 2 = 50 marks)' : 'Chapter ' + currentChapter.number + ' Quiz'}
+          {isFinalExam
+            ? 'Final Exam — ' + sectionTitleByLetter[section]
+            : 'Chapter ' + currentChapter.number + ' Quiz — ' + (sectionTitleByLetter[section] || 'Section A')}
+        </Text>
+        <Text style={{color: '#94a3b8', fontSize: 12, marginBottom: 10, textAlign: 'center'}}>
+          {isFinalExam
+            ? 'Sections: A (MCQ) · B (Case-Based) · C/D/E follow with paper + photo upload'
+            : 'Sections: A (MCQ) · B (Case-Based) · then C/D/E (write on paper + photo upload)'}
         </Text>
 
         <View style={styles.progressContainer}>
@@ -7212,9 +13426,22 @@ export default function App() {
         </View>
         <Text style={styles.progressText}>Question {currentQuestion + 1} of {total}</Text>
 
+        {isFirstOfCase ? (
+          <View style={{backgroundColor: '#0a2540', borderLeftWidth: 4, borderLeftColor: '#00d4ff', padding: 12, borderRadius: 8, marginBottom: 12}}>
+            <Text style={{color: '#00d4ff', fontSize: 11, fontWeight: '700', letterSpacing: 1, marginBottom: 6}}>CASE STUDY</Text>
+            <Text style={{color: '#e2e8f0', fontSize: 14, lineHeight: 20}}>{question.case}</Text>
+          </View>
+        ) : null}
+        {isContinuationOfCase ? (
+          <Text style={{color: '#64748b', fontSize: 11, fontStyle: 'italic', marginBottom: 8}}>(Continued — same case study as previous question)</Text>
+        ) : null}
+
         <View style={styles.questionCard}>
+          <Text style={{fontSize: 11, color: '#00d4ff', fontWeight: '700', letterSpacing: 1, marginBottom: 4}}>
+            SECTION {section} {section === 'A' ? '— MCQ' : section === 'B' ? '— CASE-BASED' : ''}
+          </Text>
           <Text style={styles.questionNumber}>
-            Question {currentQuestion + 1} {isFinalExam ? '(2 marks)' : ''}
+            Question {currentQuestion + 1} (1 mark)
           </Text>
           <Text style={styles.questionText}>{question.q}</Text>
 
@@ -7235,7 +13462,13 @@ export default function App() {
           disabled={selectedOption === null}
         >
           <Text style={styles.primaryBtnText}>
-            {currentQuestion === total - 1 ? (isFinalExam ? 'Next: Pen-Paper Section' : 'Finish') : 'Next Question'}
+            {currentQuestion === total - 1
+              ? (isFinalExam || (currentChapter && currentChapter.penPaper && currentChapter.penPaper.length > 0)
+                  ? 'Continue to Sections C / D / E (Paper)'
+                  : 'Finish')
+              : (section === 'A' && questions[currentQuestion + 1] && questions[currentQuestion + 1].section === 'B'
+                  ? 'Continue to Section B'
+                  : 'Next Question')}
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -7248,7 +13481,7 @@ export default function App() {
     const overallProgress = Math.round((completedCount / chapters.length) * 100);
 
     return (
-      <ScrollView style={styles.container}>
+      <ScrollView style={styles.container} contentContainerStyle={{paddingBottom: 48}}>
         <TouchableOpacity style={styles.backBtn} onPress={() => setScreen('home')}>
           <Text style={styles.backBtnText}>Back</Text>
         </TouchableOpacity>
@@ -7258,7 +13491,7 @@ export default function App() {
         <View style={styles.progressContainer}>
           <View style={[styles.progressBar, { width: overallProgress + '%' }]} />
         </View>
-        <Text style={styles.progressText}>{completedCount}/10 Chapters Completed ({overallProgress}%)</Text>
+        <Text style={styles.progressText}>{completedCount}/{chapters.length} Chapters Completed ({overallProgress}%)</Text>
 
         {chapters.map(chapter => (
           <View key={chapter.id} style={styles.progressCard}>
@@ -7276,7 +13509,7 @@ export default function App() {
   };
 
   const renderCertificates = () => (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={{paddingBottom: 48}}>
       <TouchableOpacity style={styles.backBtn} onPress={() => setScreen('home')}>
         <Text style={styles.backBtnText}>Back</Text>
       </TouchableOpacity>
@@ -7403,6 +13636,7 @@ export default function App() {
               await AsyncStorage.setItem('userData', JSON.stringify(userData));
               await AsyncStorage.setItem('studentName', loginData.user.name);
               setAuthToken(loginData.access_token);
+              setMyUserId(loginData.user.id);
               setStudentName(loginData.user.name);
               setIsAdmin(loginData.user.is_admin);
               setIsLoggedIn(true);
@@ -7517,6 +13751,7 @@ export default function App() {
         await AsyncStorage.setItem('userData', JSON.stringify(userData));
         await AsyncStorage.setItem('studentName', fullName);
         setAuthToken(finalToken);
+        setMyUserId(backendUserId);
         setStudentName(fullName);
         setIsAdmin(isAdminUser);
         setIsLoggedIn(true);
@@ -7582,6 +13817,7 @@ export default function App() {
         await AsyncStorage.setItem('userData', JSON.stringify(userData));
         await AsyncStorage.setItem('studentName', displayName);
         setAuthToken(finalToken);
+        setMyUserId(backendUserId);
         setStudentName(displayName);
         setIsAdmin(isAdminUser);
         setIsLoggedIn(true);
@@ -7693,6 +13929,7 @@ export default function App() {
         await AsyncStorage.setItem('authToken', finalToken);
         await AsyncStorage.setItem('userData', JSON.stringify(userData));
         setAuthToken(finalToken);
+        setMyUserId(backendUserId);
         setStudentName(finalName);
         setIsAdmin(isAdminUser);
         setIsLoggedIn(true);
@@ -7717,7 +13954,7 @@ export default function App() {
         <Image source={require('./assets/icon.png')} style={styles.loginLogo} />
       </View>
       <Text style={styles.loginTitle}>GANITA PRAKASH</Text>
-      <Text style={styles.loginSubtitle}>NCERT Mathematics Class 6</Text>
+      <Text style={styles.loginSubtitle}>NCERT Mathematics — Class 6 and Class 7</Text>
 
       <View style={styles.loginCard}>
         <Text style={styles.welcomeTitle}>{isRegistering ? 'Create Account' : 'Welcome Back!'}</Text>
@@ -7817,7 +14054,10 @@ export default function App() {
   }, [screen, isLoggedIn, authToken]);
 
   const renderChat = () => (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
       {/* Header */}
       <View style={styles.chatHeader}>
         <TouchableOpacity style={styles.backBtn} onPress={() => setScreen('home')}>
@@ -7840,14 +14080,18 @@ export default function App() {
 
       {/* Messages */}
       <FlatList
+        ref={chatListRef}
         data={chatMessages}
-        keyExtractor={(item, index) => index.toString()}
+        keyExtractor={(item, index) => String(item.id || index)}
         style={styles.chatList}
+        onContentSizeChange={() => { try { chatListRef.current && chatListRef.current.scrollToEnd({ animated: false }); } catch (_) {} }}
         renderItem={({ item, index }) => {
-          const isAdminMsg = item.sender_name === 'Master Admin' || item.is_admin;
+          const isAdminMsg = !!(item.is_admin_reply || item.is_admin ||
+            (item.sender_username && item.sender_username.toLowerCase().indexOf('admin') !== -1) ||
+            item.sender_name === 'Master' || item.sender_name === 'Master Admin');
           const isPDF = item.message_type === 'pdf' || (item.content && item.content.toLowerCase().endsWith('.pdf'));
           const isImage = item.message_type === 'image' || (item.content && (item.content.toLowerCase().endsWith('.jpg') || item.content.toLowerCase().endsWith('.png')));
-          const isVoice = item.message_type === 'voice' || (item.content && item.content.startsWith('[Voice Message'));
+          const isVoice = item.message_type === 'voice' || item.message_type === 'audio' || (item.content && item.content.startsWith('[Voice Message'));
           
           return (
             <View style={[styles.chatBubble, isAdminMsg ? styles.adminBubble : styles.userBubble]}>
@@ -7876,13 +14120,24 @@ export default function App() {
                   </View>
                 </TouchableOpacity>
               ) : isImage ? (
-                <TouchableOpacity onPress={() => item.file_url && Linking.openURL(item.file_url)}>
-                  <Text style={{fontSize: 24}}>🖼️</Text>
-                  <Text style={[styles.chatBubbleText, isAdminMsg ? styles.adminBubbleText : styles.userBubbleText]}>Image - Tap to view</Text>
-                </TouchableOpacity>
+                (() => {
+                  const imgSrc = item.media_url || item.file_url || (item.content && (item.content.startsWith('data:image') || item.content.startsWith('http')) ? item.content : null);
+                  return imgSrc ? (
+                    <TouchableOpacity onPress={() => imgSrc.startsWith('http') ? Linking.openURL(imgSrc) : null} activeOpacity={0.8}>
+                      <Image source={{ uri: imgSrc }} style={{ width: 200, height: 200, borderRadius: 10, backgroundColor: '#222' }} resizeMode="cover" />
+                    </TouchableOpacity>
+                  ) : (
+                    <Text style={[styles.chatBubbleText, isAdminMsg ? styles.adminBubbleText : styles.userBubbleText]}>🖼️ Image</Text>
+                  );
+                })()
               ) : isVoice ? (
                 <TouchableOpacity 
-                  onPress={() => item.voice_data && playVoiceMessage(item.voice_data, index)}
+                  onPress={() => {
+                    // Prefer media_url (data URI) if present, otherwise fall back
+                    // to the legacy voice_data field.
+                    const audioSrc = item.media_url || (item.voice_data ? `data:audio/m4a;base64,${item.voice_data}` : null);
+                    if (audioSrc) playVoiceMessage(audioSrc, index);
+                  }}
                   style={{flexDirection: 'row', alignItems: 'center', padding: 8, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 20, minWidth: 150}}
                 >
                   <View style={{width: 36, height: 36, borderRadius: 18, backgroundColor: playingVoiceId === index ? '#FF5252' : '#00E5FF', justifyContent: 'center', alignItems: 'center', marginRight: 10}}>
@@ -7930,7 +14185,7 @@ export default function App() {
         </View>
       ) : (
         <View style={styles.chatInputBar}>
-          <TouchableOpacity style={styles.chatMediaBtn}>
+          <TouchableOpacity style={styles.chatMediaBtn} onPress={pickAndSendChatImage} disabled={chatLoading}>
             <Text style={styles.chatMediaIcon}>📷</Text>
           </TouchableOpacity>
           <TextInput
@@ -7959,7 +14214,7 @@ export default function App() {
           )}
         </View>
       )}
-    </View>
+    </KeyboardAvoidingView>
   );
 
   // AI Assistant Screen with Language Selection
@@ -8115,45 +14370,56 @@ export default function App() {
     setCallingUser(user);
     setCallType(type);
     setCallStatus('Initiating ' + type + ' call...');
+    // Pre-request OS-level mic / camera permissions so the in-WebView WebRTC
+    // `getUserMedia()` call can actually succeed. Without this, Android denies
+    // the WebView access to mic/camera and media never flows.
     try {
-      const response = await fetch(`${API_URL}/api/webrtc/offer`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-        body: JSON.stringify({ 
-          target_user_id: user.id, 
-          sdp: 'mobile_call_request',
-          call_type: type 
-        })
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setActiveCall(data.call_id);
-        setCallStatus('Calling ' + user.name + '...');
-        
-        // Open in-app WebView for WebRTC call instead of external browser
-        const callUrl = `https://cbse-ai-learning-app-o4rl0um1.devinapps.com?autoLogin=true&token=${authToken}&callId=${data.call_id}&callType=${type}&targetUserId=${user.id}&mode=call`;
-        setCallWebViewUrl(callUrl);
-        setCallWebViewTitle(type === 'video' ? 'Video Call with ' + user.name : 'Voice Call with ' + user.name);
-        setShowCallWebView(true);
-      } else {
-        setCallStatus('Call failed');
-        Alert.alert('Error', 'Failed to initiate call. Please try again.');
+      const micPerm = await Audio.requestPermissionsAsync();
+      if (!micPerm || micPerm.status !== 'granted') {
+        Alert.alert('Microphone permission required', 'Grant microphone access so the other person can hear you.');
+        return;
       }
+      if (type === 'video') {
+        const camPerm = await ImagePicker.requestCameraPermissionsAsync();
+        if (!camPerm || camPerm.status !== 'granted') {
+          Alert.alert('Camera permission required', 'Grant camera access so the other person can see you.');
+          return;
+        }
+      }
+    } catch (_) { /* permission APIs may fail on very old Android; ignore and let WebView ask */ }
+    try {
+      // Open the bundled, native-looking call HTML which itself runs the real
+      // getUserMedia + createOffer + POST /api/webrtc/offer pipeline. The
+      // backend still tracks the call_id; we don't need to pre-create it here.
+      setActiveCall('outgoing');
+      setCallStatus('Calling ' + user.name + '...');
+      const html = buildCallHtml({
+        apiUrl: API_URL,
+        token: authToken,
+        myUserId: myUserId,
+        mode: 'call',
+        peerUserId: user.id,
+        callType: type,
+        callerName: user.name || 'User',
+        callId: '',
+      });
+      setCallWebViewHtml(html);
+      setCallWebViewUrl('');
+      setCallWebViewTitle(type === 'video' ? 'Video Call with ' + user.name : 'Voice Call with ' + user.name);
+      setShowCallWebView(true);
     } catch (error) {
       setCallStatus('Call failed');
       Alert.alert('Error', 'Network error. Please check your connection.');
     }
-    setTimeout(() => { setCallingUser(null); setCallStatus(''); setActiveCall(null); setCallType(null); }, 5000);
   };
 
   // Function to end WebRTC call
   const endWebRTCCall = async () => {
-    if (activeCall) {
+    if (callingUser && callingUser.id) {
       try {
-        await fetch(`${API_URL}/api/webrtc/end-call`, {
+        await fetch(`${API_URL}/api/webrtc/end-call?target_user_id=${callingUser.id}`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify({ call_id: activeCall })
+          headers: { 'Authorization': `Bearer ${authToken}` },
         });
       } catch (error) {
         console.log('Error ending call:', error);
@@ -8172,7 +14438,7 @@ export default function App() {
     try {
       const response = await fetch(`${API_URL}/admin/gemini-call`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
         body: JSON.stringify({ user_id: user.id, action: 'initiate_call' })
       });
       if (response.ok) {
@@ -8191,7 +14457,7 @@ export default function App() {
 
   // Admin Dashboard Screen - matching old app with user cards and call buttons
   const renderAdmin = () => (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={{paddingBottom: 48}}>
       {/* Header */}
       <View style={styles.adminHeader}>
         <TouchableOpacity style={styles.backBtn} onPress={() => setScreen('home')}>
@@ -8538,6 +14804,173 @@ export default function App() {
         </View>
       </Modal>
 
+      <Modal visible={showProfileModal} transparent animationType="fade" onRequestClose={() => setShowProfileModal(false)}>
+        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <View style={[styles.modalContent, { maxWidth: 420, maxHeight: '88%' }]}>
+            <ScrollView style={{ width: '100%' }} contentContainerStyle={{ alignItems: 'center' }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+            <Text style={styles.modalTitle}>Profile</Text>
+
+            {/* Profile picture: avatar with Gallery/Camera buttons. Tapping
+                avatar opens gallery. */}
+            <View style={{ alignItems: 'center', marginTop: 8 }}>
+              <TouchableOpacity onPress={() => pickProfilePicture('gallery')} activeOpacity={0.8}>
+                {profilePicture ? (
+                  <Image
+                    source={{ uri: profilePicture }}
+                    style={{ width: 96, height: 96, borderRadius: 48, borderWidth: 2, borderColor: '#00E5FF', backgroundColor: '#222' }}
+                  />
+                ) : (
+                  <View style={{ width: 96, height: 96, borderRadius: 48, borderWidth: 2, borderColor: '#00E5FF', backgroundColor: 'rgba(0,229,255,0.12)', justifyContent: 'center', alignItems: 'center' }}>
+                    <Text style={{ fontSize: 36, color: '#00E5FF' }}>{(profileNameInput || studentName || '?').trim().charAt(0).toUpperCase() || '?'}</Text>
+                  </View>
+                )}
+                {profilePicUploading && (
+                  <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: 48 }}>
+                    <ActivityIndicator color="#00E5FF" />
+                  </View>
+                )}
+              </TouchableOpacity>
+              <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
+                <TouchableOpacity
+                  style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: 'rgba(0,229,255,0.12)', borderWidth: 1, borderColor: '#00E5FF' }}
+                  onPress={() => pickProfilePicture('gallery')}
+                  disabled={profilePicUploading}
+                >
+                  <Text style={{ color: '#00E5FF', fontWeight: '600' }}>Gallery</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: 'rgba(0,229,255,0.12)', borderWidth: 1, borderColor: '#00E5FF' }}
+                  onPress={() => pickProfilePicture('camera')}
+                  disabled={profilePicUploading}
+                >
+                  <Text style={{ color: '#00E5FF', fontWeight: '600' }}>Camera</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <Text style={[styles.modalText, { marginTop: 16 }]}>Display Name</Text>
+            <TextInput
+              style={styles.input}
+              value={profileNameInput}
+              onChangeText={setProfileNameInput}
+              placeholder="Your name"
+              placeholderTextColor="#888"
+            />
+
+            <Text style={[styles.modalText, { marginTop: 12 }]}>Class</Text>
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              {['6', '7'].map((cls) => (
+                <TouchableOpacity
+                  key={cls}
+                  style={[
+                    styles.primaryBtn,
+                    { flex: 1, backgroundColor: selectedClass === cls ? '#00E5FF' : 'rgba(0,229,255,0.12)', borderWidth: 1, borderColor: '#00E5FF' },
+                  ]}
+                  onPress={() => {
+                    setSelectedClass(cls);
+                  }}
+                >
+                  <Text style={[styles.primaryBtnText, { color: selectedClass === cls ? '#0a0a2e' : '#00E5FF' }]}>Class {cls}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <TouchableOpacity
+              style={[styles.primaryBtn, { marginTop: 16, opacity: profileSaving ? 0.6 : 1 }]}
+              disabled={profileSaving}
+              onPress={async () => {
+                const name = (profileNameInput || '').trim();
+                if (!name) { Alert.alert('Name required', 'Please enter a display name.'); return; }
+                try {
+                  setProfileSaving(true);
+                  const res = await fetch(API_URL + '/api/user/update-name', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
+                    body: JSON.stringify({ name }),
+                  });
+                  if (!res.ok) throw new Error('HTTP ' + res.status);
+                  setStudentName(name);
+                  try { await AsyncStorage.setItem('studentName', name); } catch (e) {}
+                  setShowProfileModal(false);
+                } catch (e) {
+                  Alert.alert('Error', 'Could not update name. Check your connection.');
+                } finally {
+                  setProfileSaving(false);
+                }
+              }}
+            >
+              <Text style={styles.primaryBtnText}>{profileSaving ? 'Saving...' : 'Save'}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.primaryBtn, { marginTop: 10, backgroundColor: 'rgba(41,121,255,0.15)', borderWidth: 1, borderColor: 'rgba(41,121,255,0.4)' }]}
+              onPress={() => setShowPasswordSection(!showPasswordSection)}
+            >
+              <Text style={[styles.primaryBtnText, { color: '#2979FF' }]}>{showPasswordSection ? 'Hide' : 'Change'} Password</Text>
+            </TouchableOpacity>
+
+            {showPasswordSection && (
+              <View style={{ marginTop: 10 }}>
+                <TextInput
+                  style={styles.input}
+                  value={currentPasswordInput}
+                  onChangeText={setCurrentPasswordInput}
+                  placeholder="Current password"
+                  placeholderTextColor="#888"
+                  secureTextEntry
+                />
+                <TextInput
+                  style={[styles.input, { marginTop: 8 }]}
+                  value={newPasswordInput}
+                  onChangeText={setNewPasswordInput}
+                  placeholder="New password (min 6 chars)"
+                  placeholderTextColor="#888"
+                  secureTextEntry
+                />
+                <TouchableOpacity
+                  style={[styles.primaryBtn, { marginTop: 8, opacity: passwordChanging ? 0.6 : 1 }]}
+                  disabled={passwordChanging}
+                  onPress={async () => {
+                    if (!currentPasswordInput || !newPasswordInput) { Alert.alert('Required', 'Enter both passwords.'); return; }
+                    if (newPasswordInput.length < 6) { Alert.alert('Too short', 'New password must be at least 6 characters.'); return; }
+                    try {
+                      setPasswordChanging(true);
+                      const res = await fetch(API_URL + '/api/user/change-password', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
+                        body: JSON.stringify({ current_password: currentPasswordInput, new_password: newPasswordInput }),
+                      });
+                      const data = await res.json().catch(() => ({}));
+                      if (!res.ok) { Alert.alert('Error', data.detail || 'Could not change password'); return; }
+                      Alert.alert('Success', 'Password changed successfully.');
+                      setCurrentPasswordInput(''); setNewPasswordInput(''); setShowPasswordSection(false);
+                    } catch (e) {
+                      Alert.alert('Error', 'Network error. Try again.');
+                    } finally {
+                      setPasswordChanging(false);
+                    }
+                  }}
+                >
+                  <Text style={styles.primaryBtnText}>{passwordChanging ? 'Changing...' : 'Update Password'}</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            <TouchableOpacity
+              style={[styles.primaryBtn, { marginTop: 8, backgroundColor: 'rgba(255,82,82,0.15)', borderWidth: 1, borderColor: 'rgba(255,82,82,0.4)' }]}
+              onPress={() => { setShowProfileModal(false); handleLogout(); }}
+            >
+              <Text style={[styles.primaryBtnText, { color: '#FF5252' }]}>Log Out</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={{ marginTop: 10, alignItems: 'center' }} onPress={() => setShowProfileModal(false)}>
+              <Text style={{ color: 'rgba(255,255,255,0.6)' }}>Cancel</Text>
+            </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
       <Modal visible={showResult} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -8656,25 +15089,38 @@ export default function App() {
           </Modal>
 
           {/* In-App WebRTC Call WebView Modal */}
-          <Modal visible={showCallWebView} transparent={false} animationType="slide" onRequestClose={() => setShowCallWebView(false)}>
-            <SafeAreaView style={{flex: 1, backgroundColor: '#1A1A2E'}}>
-              <View style={{flexDirection: 'row', alignItems: 'center', padding: 15, backgroundColor: '#16213E', borderBottomWidth: 1, borderBottomColor: '#0F3460'}}>
-                <TouchableOpacity onPress={() => { setShowCallWebView(false); setCallWebViewUrl(''); }} style={{padding: 10}}>
-                  <Text style={{color: '#fff', fontSize: 18}}>✕</Text>
-                </TouchableOpacity>
-                <Text style={{color: '#fff', fontSize: 16, fontWeight: 'bold', marginLeft: 15, flex: 1}}>{callWebViewTitle || 'Call'}</Text>
-                <TouchableOpacity onPress={() => { setShowCallWebView(false); setCallWebViewUrl(''); Alert.alert('Call Ended', 'The call has been ended.'); }} style={{backgroundColor: '#EF4444', paddingHorizontal: 15, paddingVertical: 8, borderRadius: 20}}>
-                  <Text style={{color: '#fff', fontWeight: 'bold'}}>End Call</Text>
-                </TouchableOpacity>
-              </View>
-              {callWebViewUrl ? (
+          <Modal visible={showCallWebView} transparent={false} animationType="slide" onRequestClose={() => { setShowCallWebView(false); setCallWebViewHtml(''); setCallWebViewUrl(''); }}>
+            <SafeAreaView style={{flex: 1, backgroundColor: '#000'}}>
+              {(callWebViewHtml || callWebViewUrl) ? (
                 <WebView
-                  source={{ uri: callWebViewUrl }}
+                  source={callWebViewHtml ? { html: callWebViewHtml, baseUrl: API_URL } : { uri: callWebViewUrl }}
+                  onMessage={(e) => {
+                    try {
+                      const msg = JSON.parse(e.nativeEvent.data || '{}');
+                      if (msg && msg.type === 'call_ended') {
+                        setShowCallWebView(false);
+                        setCallWebViewHtml('');
+                        setCallWebViewUrl('');
+                      }
+                    } catch (_) {}
+                  }}
                   style={{flex: 1}}
                   javaScriptEnabled={true}
                   domStorageEnabled={true}
                   mediaPlaybackRequiresUserAction={false}
                   allowsInlineMediaPlayback={true}
+                  allowsProtectedMedia={true}
+                  mediaCapturePermissionGrantType={'grant'}
+                  originWhitelist={['*']}
+                  mixedContentMode={'always'}
+                  javaScriptCanOpenWindowsAutomatically={true}
+                  thirdPartyCookiesEnabled={true}
+                  allowFileAccess={true}
+                  allowUniversalAccessFromFileURLs={true}
+                  setSupportMultipleWindows={false}
+                  onPermissionRequest={(event) => {
+                    try { event && event.nativeEvent && event.nativeEvent.grant && event.nativeEvent.grant(event.nativeEvent.resources); } catch(_) {}
+                  }}
                   startInLoadingState={true}
                   renderLoading={() => (
                     <View style={{flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#1A1A2E'}}>
@@ -8688,6 +15134,53 @@ export default function App() {
                   }}
                 />
               ) : null}
+            </SafeAreaView>
+          </Modal>
+
+          {/* In-App Local Content WebView Modal (Whiteboard / Fundamentals) */}
+          <Modal visible={showLocalWebView} transparent={false} animationType="slide" onRequestClose={() => setShowLocalWebView(false)}>
+            <SafeAreaView style={{flex: 1, backgroundColor: '#0a0e27'}}>
+              <View style={{flexDirection: 'row', alignItems: 'center', padding: 12, backgroundColor: '#1A1A2E', borderBottomWidth: 1, borderBottomColor: '#16213E'}}>
+                <TouchableOpacity onPress={() => { setShowLocalWebView(false); setLocalWebViewHtml(''); }} style={{padding: 8}}>
+                  <Text style={{color: '#00d4ff', fontSize: 22}}>‹</Text>
+                </TouchableOpacity>
+                <Text style={{color: '#fff', fontSize: 16, fontWeight: 'bold', marginLeft: 10, flex: 1}}>{localWebViewTitle || 'In-App'}</Text>
+                <TouchableOpacity onPress={() => { setShowLocalWebView(false); setLocalWebViewHtml(''); }} style={{padding: 8}}>
+                  <Text style={{color: '#fff', fontSize: 18}}>✕</Text>
+                </TouchableOpacity>
+              </View>
+              {localWebViewHtml ? (
+                <WebView
+                  originWhitelist={['*']}
+                  source={{ html: localWebViewHtml, baseUrl: 'about:blank' }}
+                  style={{flex: 1, backgroundColor: '#0a0e27'}}
+                  javaScriptEnabled={true}
+                  domStorageEnabled={true}
+                  allowFileAccess={true}
+                  allowsInlineMediaPlayback={true}
+                  setSupportMultipleWindows={false}
+                  onMessage={(event) => {
+                    try {
+                      var data = JSON.parse(event.nativeEvent.data || '{}');
+                      if (data && data.type === 'save_png' && data.data) {
+                        // Save base64 PNG to device gallery via expo-file-system + share.
+                        (async () => {
+                          try {
+                            var b64 = String(data.data).split(',')[1] || '';
+                            var fileUri = (FileSystem.cacheDirectory || FileSystem.documentDirectory) + 'whiteboard-' + Date.now() + '.png';
+                            await FileSystem.writeAsStringAsync(fileUri, b64, { encoding: FileSystem.EncodingType.Base64 });
+                            try { await Sharing.shareAsync(fileUri); } catch (_) { Alert.alert('Saved', 'Whiteboard saved to: ' + fileUri); }
+                          } catch (e) { Alert.alert('Save failed', String(e && e.message || e)); }
+                        })();
+                      }
+                    } catch (_) {}
+                  }}
+                />
+              ) : (
+                <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+                  <ActivityIndicator size="large" color="#00d4ff" />
+                </View>
+              )}
             </SafeAreaView>
           </Modal>
 
@@ -8870,6 +15363,7 @@ const styles = StyleSheet.create({
   userAvatarText: { fontSize: 20, fontWeight: 'bold', color: '#00E5FF', textShadowColor: '#00E5FF', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 8 },
   welcomeText: { fontSize: 11, color: '#00E5FF', fontWeight: '600', letterSpacing: 2, textTransform: 'uppercase' },
   userName: { fontSize: 18, fontWeight: 'bold', color: '#fff', letterSpacing: 1 },
+  userClass: { fontSize: 10, color: 'rgba(0,229,255,0.7)', letterSpacing: 1, marginTop: 2 },
   headerIcons: { flexDirection: 'row', gap: 14 },
   headerIconBtn: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(41,121,255,0.15)', borderWidth: 1, borderColor: 'rgba(41,121,255,0.5)', justifyContent: 'center', alignItems: 'center', shadowColor: '#2979FF', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.4, shadowRadius: 8, elevation: 6 },
   headerIcon: { fontSize: 20 },
@@ -9023,11 +15517,11 @@ const styles = StyleSheet.create({
   examInfo: { fontSize: 13, color: 'rgba(255,82,82,0.8)', marginBottom: 16, textAlign: 'center' },
   textArea: { backgroundColor: 'rgba(0,229,255,0.08)', borderRadius: 14, padding: 14, color: '#fff', fontSize: 14, minHeight: 110, textAlignVertical: 'top', marginTop: 12, borderWidth: 1, borderColor: 'rgba(0,229,255,0.2)' },
   // Login styles - Deep Space Authentication Portal
-  loginContainer: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 50, paddingHorizontal: 24 },
-  loginLogoContainer: { width: 110, height: 110, borderRadius: 55, overflow: 'hidden', marginBottom: 20, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,229,255,0.1)', borderWidth: 2, borderColor: '#00E5FF', shadowColor: '#00E5FF', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.6, shadowRadius: 16 },
-  loginLogo: { width: 100, height: 100, borderRadius: 50 },
-  loginTitle: { fontSize: 26, fontWeight: 'bold', color: '#fff', marginBottom: 6, letterSpacing: 3, textShadowColor: '#00E5FF', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 8 },
-  loginSubtitle: { fontSize: 12, color: '#00E5FF', marginBottom: 36, letterSpacing: 2, textTransform: 'uppercase' },
+  loginContainer: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 30, paddingHorizontal: 24 },
+  loginLogoContainer: { width: 96, height: 96, borderRadius: 48, overflow: 'hidden', marginBottom: 16, justifyContent: 'center', alignItems: 'center', backgroundColor: '#1A1A2E', borderWidth: 2, borderColor: '#00E5FF', shadowColor: '#00E5FF', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.6, shadowRadius: 16 },
+  loginLogo: { width: 96, height: 96, borderRadius: 48, resizeMode: 'cover' },
+  loginTitle: { fontSize: 22, fontWeight: 'bold', color: '#fff', marginBottom: 4, letterSpacing: 2.5, textShadowColor: '#00E5FF', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 8 },
+  loginSubtitle: { fontSize: 11, color: '#00E5FF', marginBottom: 22, letterSpacing: 1.8, textTransform: 'uppercase' },
   loginCard: { width: '100%', maxWidth: 400, backgroundColor: 'rgba(41,121,255,0.08)', borderRadius: 24, padding: 32, borderWidth: 1, borderColor: 'rgba(41,121,255,0.25)', shadowColor: '#2979FF', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.2, shadowRadius: 20 },
   welcomeTitle: { fontSize: 22, fontWeight: 'bold', color: '#fff', marginBottom: 10, letterSpacing: 1 },
   welcomeSubtitle: { fontSize: 13, color: 'rgba(0,229,255,0.7)', marginBottom: 28, letterSpacing: 0.5 },

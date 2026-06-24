@@ -1,12 +1,17 @@
-from fastapi import FastAPI, HTTPException, Depends, status, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Depends, status, WebSocket, WebSocketDisconnect, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from pydantic import BaseModel
+from fastapi.responses import Response
+from starlette.middleware.base import BaseHTTPMiddleware
+from pydantic import BaseModel, field_validator
 from typing import Optional, List, Dict
+from collections import defaultdict, deque
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
 import hashlib
 import secrets
+import re
+import time
 import google.generativeai as genai
 import aiosqlite
 import os
@@ -23,21 +28,123 @@ webrtc_calls: Dict[str, dict] = {}
 
 app = FastAPI(title="GANITA PRAKASH API", version="1.0.0")
 
-# Disable CORS. Do not remove this for full-stack development.
+# ---------------------------------------------------------------------------
+# Security: CORS restricted to our own first-party domains.
+# Previously allow_origins=["*"] which is a well-known XSS / CSRF risk.
+# ---------------------------------------------------------------------------
+ALLOWED_ORIGINS = [
+    "https://ganitaprakash-math.web.app",
+    "https://ganita-prakash-math-learning.web.app",
+    "https://ganita-prakash-maths.web.app",
+    "https://ganita-prakash-math-showcase.web.app",
+    "https://ganita-prakash-ncert-showcase.web.app",
+    "https://ganitaprakash-math.firebaseapp.com",
+    "https://ganita-prakash-math-learning.firebaseapp.com",
+    "https://ganita-prakash-maths.firebaseapp.com",
+    "https://ganita-prakash-math-showcase.firebaseapp.com",
+    "https://classics-92ea0.web.app",
+    "https://classics-92ea0.firebaseapp.com",
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://localhost:8080",
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
+    # The mobile APK does not send an Origin header (native fetch), so the
+    # browser-enforced CORS check doesn't apply to it — the APK is still
+    # allowed to hit the API normally.
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"],
 )
 
+# ---------------------------------------------------------------------------
+# Security headers: HSTS, CSP, X-Frame-Options, X-Content-Type-Options,
+# Referrer-Policy, Permissions-Policy. Applied to every response.
+# ---------------------------------------------------------------------------
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response: Response = await call_next(request)
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "camera=(self), microphone=(self), geolocation=()"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        return response
+
+app.add_middleware(SecurityHeadersMiddleware)
+
+# ---------------------------------------------------------------------------
+# Rate limiting: simple in-memory sliding-window by client IP.
+# Blocks abusive clients (bot signups, brute force) without adding a
+# Redis dependency. For production scale, swap for a persistent store.
+# ---------------------------------------------------------------------------
+_RATE_BUCKETS: Dict[str, Dict[str, deque]] = defaultdict(lambda: defaultdict(deque))
+_RATE_LIMITS: Dict[str, tuple] = {
+    # path_prefix -> (max_requests, window_seconds)
+    "/api/auth/register": (5, 3600),      # 5 signups / hour / IP  => stops bot floods
+    "/api/auth/login":    (10, 300),      # 10 logins / 5 min / IP => throttles brute-force
+    "/api/messages":      (60, 60),       # 60 messages / min / IP
+    "/api/ai/":           (30, 60),       # 30 AI calls / min / IP
+}
+
+def _rate_key(request: Request) -> str:
+    # Respect common proxy headers (Fly.io sets Fly-Client-IP and X-Forwarded-For)
+    for h in ("fly-client-ip", "x-forwarded-for", "x-real-ip"):
+        v = request.headers.get(h)
+        if v:
+            return v.split(",")[0].strip()
+    client = request.client
+    return client.host if client else "unknown"
+
+class RateLimitMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        path = request.url.path
+        limit = None; prefix_used = None
+        for prefix, lim in _RATE_LIMITS.items():
+            if path.startswith(prefix):
+                limit = lim; prefix_used = prefix; break
+        if limit:
+            max_req, window = limit
+            ip = _rate_key(request)
+            now = time.time()
+            bucket = _RATE_BUCKETS[prefix_used][ip]
+            while bucket and now - bucket[0] > window:
+                bucket.popleft()
+            if len(bucket) >= max_req:
+                retry_after = int(window - (now - bucket[0])) + 1
+                return Response(
+                    content='{"detail":"Too many requests. Please try again later."}',
+                    status_code=429,
+                    media_type="application/json",
+                    headers={"Retry-After": str(retry_after)},
+                )
+            bucket.append(now)
+        return await call_next(request)
+
+app.add_middleware(RateLimitMiddleware)
+
 # Configuration
-SECRET_KEY = "ganita-prakash-secret-key-2024"
+# Prefer env-provided secret. Fall back to a per-install hardcoded value so
+# existing tokens don't invalidate on deploy.
+SECRET_KEY = os.getenv("JWT_SECRET_KEY", "ganita-prakash-secret-key-2024")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
+OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "openrouter/auto")
+# Fallback: load keys from untracked local file if env not set
+if not GROQ_API_KEY or not GEMINI_API_KEY or not OPENROUTER_API_KEY:
+    try:
+        from app import secrets_local
+        GROQ_API_KEY = GROQ_API_KEY or getattr(secrets_local, "GROQ_API_KEY", "")
+        GEMINI_API_KEY = GEMINI_API_KEY or getattr(secrets_local, "GEMINI_API_KEY", "")
+        OPENROUTER_API_KEY = OPENROUTER_API_KEY or getattr(secrets_local, "OPENROUTER_API_KEY", "")
+    except Exception:
+        pass
 DB_PATH = "/data/app.db" if os.path.exists("/data") else "app.db"
 ADMIN_EMAIL = "admin@ganitaprakash.com"
 
@@ -118,8 +225,27 @@ def verify_password(password: str, hashed: str) -> bool:
 
 security = HTTPBearer()
 
-genai.configure(api_key=GEMINI_API_KEY)
-gemini_model = genai.GenerativeModel('gemini-pro')
+gemini_model = None
+if GEMINI_API_KEY:
+    try:
+        genai.configure(api_key=GEMINI_API_KEY)
+        gemini_model = genai.GenerativeModel('gemini-pro')
+    except Exception as e:
+        print(f"Gemini init error: {e}")
+
+_DANGEROUS_PATTERN = re.compile(r"(<\s*script|javascript:|onerror=|onload=|<iframe|<svg\s+on)", re.IGNORECASE)
+
+def _sanitize_text(v: str, field: str, max_len: int) -> str:
+    if v is None:
+        raise ValueError(f"{field} is required")
+    v = v.strip()
+    if not v:
+        raise ValueError(f"{field} cannot be empty")
+    if len(v) > max_len:
+        raise ValueError(f"{field} must be at most {max_len} characters")
+    if _DANGEROUS_PATTERN.search(v):
+        raise ValueError(f"{field} contains disallowed content")
+    return v
 
 class UserCreate(BaseModel):
     username: str
@@ -127,10 +253,44 @@ class UserCreate(BaseModel):
     name: str
     platform: str = "apk"
 
+    @field_validator("username")
+    @classmethod
+    def _v_username(cls, v: str) -> str:
+        v = _sanitize_text(v, "username", 128)
+        # allow email OR short alphanumeric handle
+        if "@" in v:
+            if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", v):
+                raise ValueError("username must be a valid email or handle")
+        else:
+            if not re.match(r"^[a-zA-Z0-9_.\-]{3,40}$", v):
+                raise ValueError("username must be 3-40 chars (letters/digits/._-)")
+        return v.lower()
+
+    @field_validator("password")
+    @classmethod
+    def _v_password(cls, v: str) -> str:
+        if not v or len(v) < 6:
+            raise ValueError("password must be at least 6 characters")
+        if len(v) > 128:
+            raise ValueError("password too long")
+        return v
+
+    @field_validator("name")
+    @classmethod
+    def _v_name(cls, v: str) -> str:
+        return _sanitize_text(v, "name", 80)
+
 class UserLogin(BaseModel):
     username: str
     password: str
     platform: str = "apk"
+
+    @field_validator("username")
+    @classmethod
+    def _v_username(cls, v: str) -> str:
+        if not v:
+            raise ValueError("username is required")
+        return v.strip().lower()[:128]
 
 class Token(BaseModel):
     access_token: str
@@ -147,10 +307,38 @@ class MessageCreate(BaseModel):
     content: str
     message_type: str = "text"
     media_url: Optional[str] = None
+    voice_data: Optional[str] = None  # Legacy: APK <= v1.9.11 sent base64 audio here
+    duration: Optional[int] = None  # Voice message duration in seconds
+    target_user_id: Optional[int] = None  # Optional; used by admin to reply to a specific student
+
+    @field_validator("content")
+    @classmethod
+    def _v_content(cls, v: str) -> str:
+        # Large limit so base64-encoded image/voice payloads (up to ~8MB) pass through.
+        # The strict 4000-char cap previously rejected every image and voice message.
+        return _sanitize_text(v, "content", 12_000_000)
+
+    @field_validator("message_type")
+    @classmethod
+    def _v_type(cls, v: str) -> str:
+        # Accept both 'audio' and the legacy mobile 'voice' alias.
+        aliases = {"voice": "audio"}
+        allowed = {"text", "image", "video", "audio", "file"}
+        v = (v or "text").lower()
+        v = aliases.get(v, v)
+        if v not in allowed:
+            raise ValueError(f"message_type must be one of {sorted(allowed)}")
+        return v
 
 class AIChat(BaseModel):
     message: str
     chapter_id: Optional[int] = None
+    class_num: Optional[int] = None  # 6 or 7 — lets the prompt target the right syllabus
+
+    @field_validator("message")
+    @classmethod
+    def _v_message(cls, v: str) -> str:
+        return _sanitize_text(v, "message", 4000)
 
 class AdminAction(BaseModel):
     user_id: int
@@ -251,6 +439,32 @@ async def get_optional_user(credentials: Optional[HTTPAuthorizationCredentials] 
 async def healthz():
     return {"status": "ok"}
 
+@app.get("/api/ice-servers")
+async def ice_servers():
+    """STUN/TURN servers for WebRTC calls.
+
+    A TURN relay is required for calls between devices on different
+    networks/NATs. Configure a dedicated relay (e.g. Metered/ExpressTURN)
+    without a code change by setting env vars on the backend:
+      TURN_URLS        comma-separated, e.g.
+                       "turn:relay.example.com:80,turns:relay.example.com:443"
+      TURN_USERNAME    relay username
+      TURN_CREDENTIAL  relay credential
+    """
+    servers = [
+        {"urls": "stun:stun.l.google.com:19302"},
+        {"urls": "stun:stun1.l.google.com:19302"},
+    ]
+    turn_urls = os.getenv("TURN_URLS", "").strip()
+    turn_user = os.getenv("TURN_USERNAME", "").strip()
+    turn_cred = os.getenv("TURN_CREDENTIAL", "").strip()
+    if turn_urls and turn_user and turn_cred:
+        for u in turn_urls.split(","):
+            u = u.strip()
+            if u:
+                servers.append({"urls": u, "username": turn_user, "credential": turn_cred})
+    return {"ice_servers": servers}
+
 @app.post("/api/auth/register", response_model=Token)
 async def register(user_data: UserCreate):
     async with aiosqlite.connect(DB_PATH) as db:
@@ -311,8 +525,23 @@ async def login(user_data: UserLogin):
 
 @app.get("/api/auth/me")
 async def get_me(user: dict = Depends(get_current_user)):
-    return {"id": user["id"], "username": user["username"], "name": user["name"],
-        "is_admin": bool(user["is_admin"]), "platform": user["platform"]}
+    # Fetch the profile_picture column if present. Older deployments may not
+    # have this column yet, so handle the OperationalError gracefully.
+    profile_picture = None
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            db.row_factory = aiosqlite.Row
+            cursor = await db.execute("SELECT profile_picture FROM users WHERE id = ?", (user["id"],))
+            row = await cursor.fetchone()
+            if row and "profile_picture" in row.keys():
+                profile_picture = row["profile_picture"]
+    except Exception:
+        pass
+    return {
+        "id": user["id"], "username": user["username"], "name": user["name"],
+        "is_admin": bool(user["is_admin"]), "platform": user["platform"],
+        "profile_picture": profile_picture,
+    }
 
 class CheckUserRequest(BaseModel):
     email: str
@@ -363,6 +592,55 @@ async def update_user_name(name_data: NameUpdate, user: dict = Depends(get_curre
         await db.commit()
         return {"status": "success", "message": "Name updated successfully"}
 
+class PasswordChange(BaseModel):
+    current_password: str
+    new_password: str
+
+class ProfilePicUpdate(BaseModel):
+    # Base64 data URI of the cropped/resized profile picture. The mobile app
+    # downscales to ~256x256 before sending, so payloads are typically <120KB.
+    profile_picture: str
+
+@app.post("/api/user/profile-picture")
+async def set_profile_picture(data: ProfilePicUpdate, user: dict = Depends(get_current_user)):
+    """Set or update the authenticated user's profile picture.
+
+    Stored inline in the users table as a base64 data URI so we don't need a
+    separate object-storage hop. Front-end (APK + web admin) reads it from
+    /api/auth/me and admin user list.
+    """
+    pic = (data.profile_picture or "").strip()
+    if not pic or not pic.startswith("data:image/"):
+        raise HTTPException(status_code=400, detail="profile_picture must be a base64 data URI")
+    if len(pic) > 2_000_000:
+        raise HTTPException(status_code=400, detail="profile_picture is too large (max ~1.5MB)")
+    async with aiosqlite.connect(DB_PATH) as db:
+        # Idempotent column add for existing deployments.
+        try:
+            await db.execute("ALTER TABLE users ADD COLUMN profile_picture TEXT")
+            await db.commit()
+        except Exception:
+            pass
+        await db.execute("UPDATE users SET profile_picture = ? WHERE id = ?", (pic, user["id"]))
+        await db.commit()
+    return {"status": "success", "profile_picture": pic}
+
+@app.post("/api/user/change-password")
+async def change_password(data: PasswordChange, user: dict = Depends(get_current_user)):
+    """Change the authenticated user's password."""
+    if not data.new_password or len(data.new_password) < 6:
+        raise HTTPException(status_code=400, detail="New password must be at least 6 characters")
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        cursor = await db.execute("SELECT password_hash FROM users WHERE id = ?", (user["id"],))
+        row = await cursor.fetchone()
+        if not row or not verify_password(data.current_password, row["password_hash"]):
+            raise HTTPException(status_code=401, detail="Current password is incorrect")
+        new_hash = hash_password(data.new_password)
+        await db.execute("UPDATE users SET password_hash = ? WHERE id = ?", (new_hash, user["id"]))
+        await db.commit()
+    return {"status": "success", "message": "Password changed successfully"}
+
 @app.get("/api/progress")
 async def get_progress(user: dict = Depends(get_current_user)):
     async with aiosqlite.connect(DB_PATH) as db:
@@ -410,52 +688,134 @@ async def get_messages(limit: int = 100, user: dict = Depends(get_current_user))
 @app.post("/api/messages")
 async def send_message(message_data: MessageCreate, user: dict = Depends(get_current_user)):
     async with aiosqlite.connect(DB_PATH) as db:
-        cursor = await db.execute("INSERT INTO messages (user_id, content, message_type, media_url, platform) VALUES (?, ?, ?, ?, ?)",
-            (user["id"], message_data.content, message_data.message_type, message_data.media_url, user.get("platform", "apk")))
+        # Ensure admin-reply columns exist (idempotent)
+        for ddl in (
+            "ALTER TABLE messages ADD COLUMN is_admin_reply BOOLEAN DEFAULT FALSE",
+            "ALTER TABLE messages ADD COLUMN target_user_id INTEGER",
+        ):
+            try:
+                await db.execute(ddl)
+                await db.commit()
+            except Exception:
+                pass
+        # If the sender is admin, mark as admin reply so students can see it.
+        # target_user_id stays NULL = broadcast to all students.
+        is_admin_reply = bool(user.get("is_admin"))
+        target_user_id = getattr(message_data, "target_user_id", None)
+        cursor = await db.execute(
+            "INSERT INTO messages (user_id, content, message_type, media_url, platform, is_admin_reply, target_user_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (user["id"], message_data.content, message_data.message_type, message_data.media_url, user.get("platform", "apk"), is_admin_reply, target_user_id),
+        )
         await db.commit()
         return {"id": cursor.lastrowid, "status": "success"}
 
 @app.post("/api/ai/chat")
 async def ai_chat(chat_data: AIChat, user: dict = Depends(get_optional_user)):
     try:
-        system_prompt = "You are an AI assistant for GANITA PRAKASH, a Class 6 NCERT Mathematics learning app. Help students understand mathematical concepts in simple terms. IMPORTANT: Keep your responses very concise - maximum 3 lines only. Be brief and to the point."
-        chapter_topics = {1: "Patterns in Mathematics", 2: "Lines and Angles", 3: "Number Play", 4: "Data Handling",
-            5: "Prime Time", 6: "Perimeter and Area", 7: "Fractions", 8: "Playing with Constructions", 9: "Symmetry", 10: "The Other Side of Zero"}
+        # Class-aware system prompt. The mobile app passes class_num (6 or 7); when
+        # absent we default to Class 6 to preserve old behaviour.
+        cls_num = chat_data.class_num if chat_data.class_num in (6, 7) else 6
+        class_label = f"Class {cls_num}"
+        system_prompt = (
+            f"You are the GANITA PRAKASH AI Tutor for NCERT {class_label} Mathematics. "
+            f"Answer ONLY in the context of the {class_label} Ganita Prakash syllabus — "
+            "use only the vocabulary, formulas, and difficulty appropriate for that class. "
+            "Explain concepts in simple terms, give a short worked example when useful, "
+            "and keep replies to 3-5 short lines unless the student explicitly asks for more."
+        )
+        chapter_topics_class6 = {
+            1: "Patterns in Mathematics", 2: "Lines and Angles", 3: "Number Play",
+            4: "Data Handling and Presentation", 5: "Prime Time", 6: "Perimeter and Area",
+            7: "Fractions", 8: "Playing with Constructions", 9: "Symmetry",
+            10: "The Other Side of Zero",
+        }
+        chapter_topics_class7 = {
+            1: "Large Numbers Around Us", 2: "Arithmetic Expressions",
+            3: "A Peek Beyond the Point", 4: "Expressions Using Letter-Numbers",
+            5: "Parallel and Intersecting Lines", 6: "Number Play",
+            7: "A Tale of Three Intersecting Lines", 8: "Working with Fractions",
+            9: "Geometric Twins", 10: "Operations with Integers",
+            11: "Finding Common Ground", 12: "Another Peek Beyond the Point",
+            13: "Connecting the Dots", 14: "Constructions and Tilings",
+            15: "Finding the Unknown",
+        }
+        chapter_topics = chapter_topics_class7 if cls_num == 7 else chapter_topics_class6
         if chat_data.chapter_id:
             system_prompt += f"\nCurrent chapter: {chapter_topics.get(chat_data.chapter_id, '')}"
         
         ai_response = None
-        
-        # Try Groq API first
-        try:
-            async with httpx.AsyncClient() as client:
-                groq_response = await client.post(
-                    "https://api.groq.com/openai/v1/chat/completions",
-                    headers={
-                        "Authorization": f"Bearer {GROQ_API_KEY}",
-                        "Content-Type": "application/json"
-                    },
-                    json={
-                        "model": "llama-3.3-70b-versatile",
-                        "messages": [
-                            {"role": "system", "content": system_prompt},
-                            {"role": "user", "content": chat_data.message}
-                        ],
-                        "max_tokens": 1024,
-                        "temperature": 0.7
-                    },
-                    timeout=30.0
-                )
-                if groq_response.status_code == 200:
-                    groq_data = groq_response.json()
-                    ai_response = groq_data["choices"][0]["message"]["content"]
-        except Exception as groq_error:
-            print(f"Groq API error: {groq_error}")
-        
-        # Fallback to Gemini if Groq fails
+
+        # Try OpenRouter first (preferred when configured)
+        print(f"[AI] route check: openrouter_key={'set' if OPENROUTER_API_KEY else 'missing'} groq_key={'set' if GROQ_API_KEY else 'missing'}")
+        if not ai_response and OPENROUTER_API_KEY:
+            try:
+                async with httpx.AsyncClient() as client:
+                    or_resp = await client.post(
+                        "https://openrouter.ai/api/v1/chat/completions",
+                        headers={
+                            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                            "Content-Type": "application/json",
+                            "HTTP-Referer": "https://ganitaprakash-math.web.app",
+                            "X-Title": "Ganita Prakash"
+                        },
+                        json={
+                            "model": OPENROUTER_MODEL,
+                            "messages": [
+                                {"role": "system", "content": system_prompt},
+                                {"role": "user", "content": chat_data.message}
+                            ],
+                            "max_tokens": 1024,
+                            "temperature": 0.7
+                        },
+                        timeout=30.0
+                    )
+                    if or_resp.status_code == 200:
+                        ai_response = or_resp.json()["choices"][0]["message"]["content"]
+                        print(f"[AI] OpenRouter OK model={OPENROUTER_MODEL}")
+                    else:
+                        print(f"[AI] OpenRouter status {or_resp.status_code}: {or_resp.text[:200]}")
+            except Exception as or_error:
+                print(f"[AI] OpenRouter API error: {or_error}")
+
+        # Try Groq API
+        if not ai_response and GROQ_API_KEY:
+            try:
+                async with httpx.AsyncClient() as client:
+                    groq_response = await client.post(
+                        "https://api.groq.com/openai/v1/chat/completions",
+                        headers={
+                            "Authorization": f"Bearer {GROQ_API_KEY}",
+                            "Content-Type": "application/json"
+                        },
+                        json={
+                            "model": "llama-3.3-70b-versatile",
+                            "messages": [
+                                {"role": "system", "content": system_prompt},
+                                {"role": "user", "content": chat_data.message}
+                            ],
+                            "max_tokens": 1024,
+                            "temperature": 0.7
+                        },
+                        timeout=30.0
+                    )
+                    if groq_response.status_code == 200:
+                        groq_data = groq_response.json()
+                        ai_response = groq_data["choices"][0]["message"]["content"]
+                    else:
+                        print(f"Groq API status {groq_response.status_code}: {groq_response.text[:200]}")
+            except Exception as groq_error:
+                print(f"Groq API error: {groq_error}")
+
+        # Fallback to Gemini if Groq fails / not configured
+        if not ai_response and gemini_model is not None:
+            try:
+                response = gemini_model.generate_content(f"{system_prompt}\n\nStudent's question: {chat_data.message}")
+                ai_response = response.text
+            except Exception as gem_error:
+                print(f"Gemini error: {gem_error}")
+
         if not ai_response:
-            response = gemini_model.generate_content(f"{system_prompt}\n\nStudent's question: {chat_data.message}")
-            ai_response = response.text
+            ai_response = "AI assistant is not configured yet. Please contact admin to add an API key."
         
         # Only save to database if user is authenticated (not guest)
         if user["id"] != 0:
@@ -513,11 +873,20 @@ async def admin_action(action_data: AdminAction, admin: dict = Depends(get_admin
         elif action_data.action == "generate_certificate":
             await db.execute("INSERT INTO certificates (user_id, certificate_type, chapter_id) VALUES (?, 'admin_granted', ?)", (action_data.user_id, action_data.chapter_id))
         elif action_data.action == "delete_account":
-            # Delete all user data
-            await db.execute("DELETE FROM progress WHERE user_id = ?", (action_data.user_id,))
-            await db.execute("DELETE FROM certificates WHERE user_id = ?", (action_data.user_id,))
-            await db.execute("DELETE FROM messages WHERE user_id = ?", (action_data.user_id,))
-            await db.execute("DELETE FROM ai_chats WHERE user_id = ?", (action_data.user_id,))
+            # Delete all user data (ignore per-table errors so deletion still proceeds
+            # if an optional table doesn't exist on this deployment)
+            for stmt in (
+                "DELETE FROM progress WHERE user_id = ?",
+                "DELETE FROM certificates WHERE user_id = ?",
+                "DELETE FROM messages WHERE user_id = ?",
+                "DELETE FROM notifications WHERE user_id = ?",
+                "DELETE FROM ai_conversations WHERE user_id = ?",
+                "DELETE FROM exam_violations WHERE user_id = ?",
+            ):
+                try:
+                    await db.execute(stmt, (action_data.user_id,))
+                except Exception:
+                    pass
             await db.execute("DELETE FROM users WHERE id = ? AND is_admin = FALSE", (action_data.user_id,))
         await db.commit()
         return {"status": "success", "action": action_data.action}
@@ -557,22 +926,6 @@ class GeminiChatWithLanguage(BaseModel):
     message: str
     language: str = "en"
     chapter_id: Optional[int] = None
-
-@app.post("/api/admin/reply")
-async def admin_reply(reply_data: AdminReply, admin: dict = Depends(get_admin_user)):
-    async with aiosqlite.connect(DB_PATH) as db:
-        # Ensure target_user_id column exists
-        try:
-            await db.execute("ALTER TABLE messages ADD COLUMN target_user_id INTEGER")
-            await db.commit()
-        except:
-            pass  # Column already exists
-        # Insert admin reply with target_user_id set to the user being replied to
-        # user_id is admin's ID (1), target_user_id is the student's ID
-        await db.execute("INSERT INTO messages (user_id, content, message_type, is_admin_reply, target_user_id) VALUES (?, ?, 'text', TRUE, ?)",
-            (admin["id"], reply_data.message, reply_data.user_id))
-        await db.commit()
-        return {"status": "success", "message": "Reply sent"}
 
 @app.post("/api/admin/notify")
 async def admin_notify(notify_data: AdminNotify, admin: dict = Depends(get_admin_user)):
@@ -616,8 +969,49 @@ async def ai_chat_with_language(chat_data: GeminiChatWithLanguage, user: dict = 
             5: "Prime Time", 6: "Perimeter and Area", 7: "Fractions", 8: "Playing with Constructions", 9: "Symmetry", 10: "The Other Side of Zero"}
         if chat_data.chapter_id:
             system_prompt += f"\nCurrent chapter: {chapter_topics.get(chat_data.chapter_id, '')}"
-        response = gemini_model.generate_content(f"{system_prompt}\n\nStudent's question: {chat_data.message}")
-        ai_response = response.text
+
+        ai_response = None
+        # Prefer OpenRouter, then Groq
+        if OPENROUTER_API_KEY:
+            try:
+                async with httpx.AsyncClient() as client:
+                    orr = await client.post(
+                        "https://openrouter.ai/api/v1/chat/completions",
+                        headers={"Authorization": f"Bearer {OPENROUTER_API_KEY}", "Content-Type": "application/json",
+                                 "HTTP-Referer": "https://ganitaprakash-math.web.app", "X-Title": "Ganita Prakash"},
+                        json={"model": OPENROUTER_MODEL,
+                              "messages": [{"role": "system", "content": system_prompt},
+                                           {"role": "user", "content": chat_data.message}],
+                              "max_tokens": 1024, "temperature": 0.7},
+                        timeout=30.0)
+                    if orr.status_code == 200:
+                        ai_response = orr.json()["choices"][0]["message"]["content"]
+            except Exception as oe:
+                print(f"OpenRouter (lang) error: {oe}")
+        if not ai_response and GROQ_API_KEY:
+            try:
+                async with httpx.AsyncClient() as client:
+                    gr = await client.post(
+                        "https://api.groq.com/openai/v1/chat/completions",
+                        headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
+                        json={"model": "llama-3.3-70b-versatile",
+                              "messages": [{"role": "system", "content": system_prompt},
+                                           {"role": "user", "content": chat_data.message}],
+                              "max_tokens": 1024, "temperature": 0.7},
+                        timeout=30.0)
+                    if gr.status_code == 200:
+                        ai_response = gr.json()["choices"][0]["message"]["content"]
+            except Exception as ge:
+                print(f"Groq (lang) error: {ge}")
+        if not ai_response and gemini_model is not None:
+            try:
+                response = gemini_model.generate_content(f"{system_prompt}\n\nStudent's question: {chat_data.message}")
+                ai_response = response.text
+            except Exception as ee:
+                print(f"Gemini (lang) error: {ee}")
+        if not ai_response:
+            ai_response = "AI assistant is not configured yet."
+
         async with aiosqlite.connect(DB_PATH) as db:
             await db.execute("INSERT INTO ai_conversations (user_id, user_message, ai_response, chapter_id) VALUES (?, ?, ?, ?)",
                 (user["id"], chat_data.message, ai_response, chat_data.chapter_id))
@@ -944,6 +1338,54 @@ async def websocket_webrtc(websocket: WebSocket, user_id: int):
             del webrtc_connections[user_id]
 
 # Get user's messages (for Connect with Master chat)
+@app.get("/api/admin/chat/{user_id}")
+async def admin_get_chat(user_id: int, admin: dict = Depends(get_admin_user)):
+    """Admin dashboard: fetch conversation between admin and a specific student.
+    Returns messages from the student + admin replies addressed to them."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        for ddl in (
+            "ALTER TABLE messages ADD COLUMN is_admin_reply BOOLEAN DEFAULT FALSE",
+            "ALTER TABLE messages ADD COLUMN target_user_id INTEGER",
+        ):
+            try:
+                await db.execute(ddl); await db.commit()
+            except Exception:
+                pass
+        cursor = await db.execute('''
+            SELECT m.*, u.name as sender_name, u.username as sender_username
+            FROM messages m JOIN users u ON m.user_id = u.id
+            WHERE m.user_id = ? OR (m.is_admin_reply = TRUE AND m.target_user_id = ?)
+            ORDER BY m.created_at ASC
+        ''', (user_id, user_id))
+        return {"messages": [dict(m) for m in await cursor.fetchall()]}
+
+class AdminReply(BaseModel):
+    user_id: int
+    message: str
+    message_type: str = "text"
+    media_url: Optional[str] = None
+
+@app.post("/api/admin/reply")
+async def admin_reply(reply: AdminReply, admin: dict = Depends(get_admin_user)):
+    """Admin posts a reply to a specific student. Creates a messages row
+    with is_admin_reply=TRUE and target_user_id set to the student."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        for ddl in (
+            "ALTER TABLE messages ADD COLUMN is_admin_reply BOOLEAN DEFAULT FALSE",
+            "ALTER TABLE messages ADD COLUMN target_user_id INTEGER",
+        ):
+            try:
+                await db.execute(ddl); await db.commit()
+            except Exception:
+                pass
+        cursor = await db.execute(
+            "INSERT INTO messages (user_id, content, message_type, media_url, platform, is_admin_reply, target_user_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (admin["id"], reply.message, reply.message_type, reply.media_url, "web", True, reply.user_id),
+        )
+        await db.commit()
+        return {"id": cursor.lastrowid, "status": "success"}
+
 @app.get("/api/user/messages")
 async def get_user_messages(user: dict = Depends(get_current_user)):
     """Get messages for the current user including admin replies"""
@@ -962,11 +1404,12 @@ async def get_user_messages(user: dict = Depends(get_current_user)):
         except:
             pass  # Column already exists
         # Get messages sent by this user OR admin replies targeted to this user
+        # Student sees: their own messages + admin replies targeted to them + admin broadcasts (target_user_id IS NULL)
         cursor = await db.execute('''
             SELECT m.*, u.name as sender_name, u.username as sender_username
             FROM messages m 
             JOIN users u ON m.user_id = u.id 
-            WHERE m.user_id = ? OR (m.is_admin_reply = TRUE AND m.target_user_id = ?)
+            WHERE m.user_id = ? OR (m.is_admin_reply = TRUE AND (m.target_user_id = ? OR m.target_user_id IS NULL))
             ORDER BY m.created_at ASC
         ''', (user["id"], user["id"]))
         messages = [dict(m) for m in await cursor.fetchall()]

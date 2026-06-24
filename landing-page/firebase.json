@@ -1,0 +1,12 @@
+{
+  "hosting": [
+    {
+      "site": "ganita-prakash-math-showcase",
+      "public": ".",
+      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+      "headers": [
+        {"source": "**/*.@(js|css|html)", "headers": [{"key": "Cache-Control", "value": "public, max-age=3600"}]}
+      ]
+    }
+  ]
+}
