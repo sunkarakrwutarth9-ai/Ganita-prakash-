@@ -11072,6 +11072,7 @@ export default function App() {
   const [recording, setRecording] = useState(null);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const recordingTimer = useRef(null);
+  const recordingStartRef = useRef(0);
   const [playingVoiceId, setPlayingVoiceId] = useState(null);
   const soundRef = useRef(null);
 
@@ -11991,6 +11992,33 @@ export default function App() {
     setChatLoading(false);
   };
 
+  // Map a file URI's extension -> a MIME type the player/server understand.
+  const mimeFromUri = (u) => {
+    const lower = (u || '').toLowerCase();
+    if (lower.endsWith('.webm')) return 'audio/webm';
+    if (lower.endsWith('.mp3') || lower.endsWith('.mpeg')) return 'audio/mpeg';
+    if (lower.endsWith('.ogg') || lower.endsWith('.oga')) return 'audio/ogg';
+    if (lower.endsWith('.wav')) return 'audio/wav';
+    if (lower.endsWith('.aac')) return 'audio/aac';
+    if (lower.endsWith('.3gp')) return 'audio/3gpp';
+    if (lower.endsWith('.caf')) return 'audio/x-caf';
+    if (lower.endsWith('.mp4')) return 'audio/mp4';
+    return 'audio/m4a';
+  };
+
+  // Map a MIME type -> the file extension the native player needs to decode it.
+  const extFromMime = (mime) => {
+    const m = (mime || '').toLowerCase();
+    if (m.indexOf('webm') !== -1) return 'webm';
+    if (m.indexOf('mpeg') !== -1 || m.indexOf('mp3') !== -1) return 'mp3';
+    if (m.indexOf('ogg') !== -1) return 'ogg';
+    if (m.indexOf('wav') !== -1) return 'wav';
+    if (m.indexOf('aac') !== -1) return 'aac';
+    if (m.indexOf('3gp') !== -1) return '3gp';
+    if (m.indexOf('caf') !== -1) return 'caf';
+    return 'm4a';
+  };
+
   // Voice message recording functions
   const startVoiceRecording = async () => {
     try {
@@ -12015,6 +12043,7 @@ export default function App() {
       setRecording(newRecording);
       setIsRecording(true);
       setRecordingDuration(0);
+      recordingStartRef.current = Date.now();
       
       // Start timer
       recordingTimer.current = setInterval(() => {
@@ -12041,9 +12070,15 @@ export default function App() {
       
       Vibration.vibrate(50);
       
-      if (uri && recordingDuration >= 1) {
+      // Compute the real elapsed time from the start timestamp; the
+      // recordingDuration state can be stale inside this closure.
+      const elapsed = recordingStartRef.current
+        ? Math.round((Date.now() - recordingStartRef.current) / 1000)
+        : recordingDuration;
+      
+      if (uri && elapsed >= 1) {
         // Send voice message
-        await sendVoiceMessage(uri);
+        await sendVoiceMessage(uri, elapsed);
       } else {
         Alert.alert('Too Short', 'Voice message must be at least 1 second');
       }
@@ -12122,7 +12157,7 @@ export default function App() {
     }
   };
 
-  const sendVoiceMessage = async (uri) => {
+  const sendVoiceMessage = async (uri, durationSecs) => {
     setChatLoading(true);
     try {
       const base64Audio = await FileSystem.readAsStringAsync(uri, {
@@ -12135,29 +12170,43 @@ export default function App() {
         return;
       }
 
-      const audioDataUri = `data:audio/m4a;base64,${base64Audio}`;
+      // Use the real container type from the recorded file's extension so the
+      // receiver can decode it (expo-av on Android records .m4a/AAC).
+      const mime = mimeFromUri(uri);
+      const audioDataUri = `data:${mime};base64,${base64Audio}`;
+      const dur = typeof durationSecs === 'number' ? durationSecs : recordingDuration;
 
       // Guard against oversized payloads that would fail on the server.
-      if (audioDataUri.length > 8_000_000) {
+      if (audioDataUri.length > 9_000_000) {
         Alert.alert('Recording too long', 'Please record a shorter voice message (under 60 seconds).');
         setChatLoading(false);
         return;
       }
 
-      const response = await fetch(`${API_URL}/api/messages`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authToken}`
-        },
-        body: JSON.stringify({
-          content: `[Voice Message - ${recordingDuration}s]`,
-          message_type: 'audio',
-          media_url: audioDataUri,
-          voice_data: base64Audio,
-          duration: recordingDuration,
-        }),
-      });
+      // Upload the audio ONCE (in media_url). Sending it again in voice_data
+      // doubled the request body and caused timeouts on slow mobile networks.
+      // Abort after 90s so a stalled upload gives a clear error instead of hanging.
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 90000);
+      let response;
+      try {
+        response = await fetch(`${API_URL}/api/messages`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+          },
+          body: JSON.stringify({
+            content: `[Voice Message - ${dur}s]`,
+            message_type: 'audio',
+            media_url: audioDataUri,
+            duration: dur,
+          }),
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(timeoutId);
+      }
 
       if (response.ok) {
         loadChatMessages();
@@ -12168,7 +12217,10 @@ export default function App() {
       }
     } catch (error) {
       console.log('Send voice error:', error);
-      Alert.alert('Error', 'Failed to send voice message. Check your connection and try again.');
+      const msg = (error && error.name === 'AbortError')
+        ? 'The voice message took too long to upload. Try a shorter recording or a better connection.'
+        : 'Failed to send voice message. Check your connection and try again.';
+      Alert.alert('Error', msg);
     }
     setChatLoading(false);
   };
@@ -12200,32 +12252,49 @@ export default function App() {
 
       // expo-av on Android cannot reliably stream a base64 `data:` URI, so the
       // play button silently did nothing. Write the audio to a cache file and
-      // play from that file URI instead.
+      // play from that file URI instead. The file extension MUST match the real
+      // container (m4a/webm/mp3/ogg/wav) or Android's player refuses to decode it.
       if (uri.startsWith('data:')) {
+        const header = uri.substring(5, uri.indexOf(';'));
+        const ext = extFromMime(header);
         const base64 = uri.substring(uri.indexOf(',') + 1);
-        const fileUri = `${FileSystem.cacheDirectory}voice-${messageId}-${Date.now()}.m4a`;
+        const fileUri = `${FileSystem.cacheDirectory}voice-${messageId}-${Date.now()}.${ext}`;
         await FileSystem.writeAsStringAsync(fileUri, base64, {
           encoding: FileSystem.EncodingType.Base64,
         });
         uri = fileUri;
       }
 
-      const { sound } = await Audio.Sound.createAsync(
-        { uri },
-        { shouldPlay: true }
-      );
-      
-      soundRef.current = sound;
-      setPlayingVoiceId(messageId);
-      
-      // Handle playback completion
-      sound.setOnPlaybackStatusUpdate((status) => {
-        if (status.didJustFinish) {
-          setPlayingVoiceId(null);
-          sound.unloadAsync();
-          soundRef.current = null;
+      const startSound = async (sourceUri) => {
+        const { sound } = await Audio.Sound.createAsync(
+          { uri: sourceUri },
+          { shouldPlay: true }
+        );
+        soundRef.current = sound;
+        setPlayingVoiceId(messageId);
+        sound.setOnPlaybackStatusUpdate((status) => {
+          if (status.didJustFinish) {
+            setPlayingVoiceId(null);
+            sound.unloadAsync();
+            soundRef.current = null;
+          }
+        });
+      };
+
+      try {
+        await startSound(uri);
+      } catch (decodeErr) {
+        // Fallback: some older messages were saved with the wrong extension.
+        // Retry once after rewriting the same bytes as a generic .mp4 file.
+        if (uri.startsWith(FileSystem.cacheDirectory)) {
+          const altUri = `${FileSystem.cacheDirectory}voice-${messageId}-${Date.now()}-alt.mp4`;
+          const data = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
+          await FileSystem.writeAsStringAsync(altUri, data, { encoding: FileSystem.EncodingType.Base64 });
+          await startSound(altUri);
+        } else {
+          throw decodeErr;
         }
-      });
+      }
     } catch (error) {
       console.log('Play voice error:', error);
       Alert.alert('Error', 'Failed to play voice message');
