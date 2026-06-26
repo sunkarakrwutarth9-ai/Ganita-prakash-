@@ -11147,6 +11147,7 @@ export default function App() {
   const [geminiSpeaking, setGeminiSpeaking] = useState(false);   // TTS playing
   const [geminiTurns, setGeminiTurns] = useState([]);            // [{role, text}]
   const geminiRecordingRef = useRef(null);
+  const geminiSoundRef = useRef(null);
   
   // Video Player state (inbuilt)
   const [showVideoPlayer, setShowVideoPlayer] = useState(false);
@@ -11527,6 +11528,37 @@ export default function App() {
     });
   };
 
+  // Play Gemini's OWN voice (native-audio reply returned by /api/gemini-live-voice
+  // as base64 MP3). Falls back to on-device TTS via geminiSpeak() when no audio.
+  const geminiPlayAudio = async (base64Audio, fallbackText, langCode) => {
+    if (!base64Audio) { if (fallbackText) geminiSpeak(fallbackText, langCode); return; }
+    try { Speech.stop(); } catch (_) {}
+    try {
+      const old = geminiSoundRef.current;
+      geminiSoundRef.current = null;
+      if (old) { try { await old.unloadAsync(); } catch (_) {} }
+    } catch (_) {}
+    try {
+      const path = `${FileSystem.cacheDirectory}gemini_reply_${Date.now()}.mp3`;
+      await FileSystem.writeAsStringAsync(path, base64Audio, { encoding: FileSystem.EncodingType.Base64 });
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
+      const { sound } = await Audio.Sound.createAsync({ uri: path }, { shouldPlay: true });
+      geminiSoundRef.current = sound;
+      setGeminiSpeaking(true);
+      sound.setOnPlaybackStatusUpdate((status) => {
+        if (status && status.didJustFinish) {
+          setGeminiSpeaking(false);
+          try { sound.unloadAsync(); } catch (_) {}
+          if (geminiSoundRef.current === sound) geminiSoundRef.current = null;
+        }
+      });
+    } catch (e) {
+      console.log('gemini play audio error:', e);
+      setGeminiSpeaking(false);
+      if (fallbackText) geminiSpeak(fallbackText, langCode);
+    }
+  };
+
   const answerGeminiCall = async () => {
     Vibration.cancel();
     try {
@@ -11586,6 +11618,11 @@ export default function App() {
   const geminiStartListening = async () => {
     if (geminiListening || geminiThinking) return;
     try { Speech.stop(); } catch (_) {}
+    try {
+      const s = geminiSoundRef.current;
+      geminiSoundRef.current = null;
+      if (s) { await s.stopAsync(); await s.unloadAsync(); }
+    } catch (_) {}
     setGeminiSpeaking(false);
     try {
       await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
@@ -11618,7 +11655,7 @@ export default function App() {
     try {
       const base64Audio = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
       if (!base64Audio) { setGeminiThinking(false); Alert.alert('No audio', 'Recording was empty.'); return; }
-      const resp = await fetch(`${API_URL}/api/gemini-voice`, {
+      const resp = await fetch(`${API_URL}/api/gemini-live-voice`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
         body: JSON.stringify({
@@ -11638,6 +11675,7 @@ export default function App() {
       const data = await resp.json();
       const transcript = (data.transcript || '').trim();
       const reply = (data.reply || '').trim();
+      const replyAudio = data.audio_base64 || '';
       setGeminiTurns(prev => {
         const next = [...prev];
         if (transcript) next.push({ role: 'you', text: transcript });
@@ -11645,9 +11683,10 @@ export default function App() {
         return next;
       });
       setGeminiThinking(false);
-      if (reply) geminiSpeak(reply, geminiCallLang || 'en');
+      // Prefer Gemini's own natural voice; fall back to device TTS if absent.
+      geminiPlayAudio(replyAudio, reply, geminiCallLang || 'en');
     } catch (e) {
-      console.log('gemini-voice error:', e);
+      console.log('gemini-live-voice error:', e);
       setGeminiThinking(false);
       Alert.alert('Customer Care', 'Network error. Please try again.');
     }
@@ -11656,6 +11695,12 @@ export default function App() {
   const endGeminiCall = async () => {
     try { Speech.stop(); } catch (_) {}
     setGeminiSpeaking(false);
+    const sound = geminiSoundRef.current;
+    if (sound) {
+      try { await sound.stopAsync(); } catch (_) {}
+      try { await sound.unloadAsync(); } catch (_) {}
+      geminiSoundRef.current = null;
+    }
     const recording = geminiRecordingRef.current;
     if (recording) {
       try { await recording.stopAndUnloadAsync(); } catch (_) {}

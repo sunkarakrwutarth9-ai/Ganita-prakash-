@@ -14,6 +14,7 @@ import re
 import time
 import google.generativeai as genai
 import aiosqlite
+import subprocess
 import os
 import json
 import base64
@@ -234,6 +235,51 @@ if GEMINI_API_KEY:
         gemini_model = genai.GenerativeModel('gemini-2.5-flash')
     except Exception as e:
         print(f"Gemini init error: {e}")
+
+# ---------------------------------------------------------------------------
+# Gemini Live API (real-time native-voice call). Uses the newer google-genai
+# SDK, which is separate from google.generativeai above. The Live native-audio
+# model understands the student's speech and replies in its own natural voice
+# (far better than on-device TTS, especially for Indian languages).
+# ---------------------------------------------------------------------------
+GEMINI_LIVE_MODEL = "gemini-2.5-flash-native-audio-preview-09-2025"
+genai_live_client = None
+if GEMINI_API_KEY:
+    try:
+        from google import genai as genai_live
+        from google.genai import types as genai_live_types
+        genai_live_client = genai_live.Client(
+            api_key=GEMINI_API_KEY, http_options={"api_version": "v1beta"})
+    except Exception as e:
+        print(f"Gemini Live init error: {e}")
+
+def _ffmpeg_exe():
+    import imageio_ffmpeg
+    return imageio_ffmpeg.get_ffmpeg_exe()
+
+def _to_pcm16k(audio_bytes: bytes) -> bytes:
+    """Decode any recorded container (m4a/mp4/webm/ogg/wav) to 16kHz mono
+    signed-16 PCM, the format Gemini Live realtime input expects."""
+    p = subprocess.run(
+        [_ffmpeg_exe(), "-hide_banner", "-loglevel", "error", "-i", "pipe:0",
+         "-f", "s16le", "-ac", "1", "-ar", "16000", "pipe:1"],
+        input=audio_bytes, capture_output=True)
+    if p.returncode != 0:
+        raise RuntimeError((p.stderr or b"").decode("utf-8", "ignore")[:200])
+    return p.stdout
+
+def _pcm24k_to_mp3(pcm_bytes: bytes) -> bytes:
+    """Encode Gemini's 24kHz mono PCM reply into a small MP3 the app can play
+    directly with expo-av. MP3 streams cleanly to a pipe (unlike m4a, whose
+    muxer needs seekable output) and is universally decodable on Android."""
+    p = subprocess.run(
+        [_ffmpeg_exe(), "-hide_banner", "-loglevel", "error",
+         "-f", "s16le", "-ac", "1", "-ar", "24000", "-i", "pipe:0",
+         "-c:a", "libmp3lame", "-b:a", "64k", "-f", "mp3", "pipe:1"],
+        input=pcm_bytes, capture_output=True)
+    if p.returncode != 0:
+        raise RuntimeError((p.stderr or b"").decode("utf-8", "ignore")[:200])
+    return p.stdout
 
 _DANGEROUS_PATTERN = re.compile(r"(<\s*script|javascript:|onerror=|onload=|<iframe|<svg\s+on)", re.IGNORECASE)
 
@@ -1013,6 +1059,132 @@ async def gemini_voice(data: GeminiVoice, user: dict = Depends(get_current_user)
     except Exception:
         pass
     return {"transcript": transcript, "reply": reply, "language": data.language, "status": "success"}
+
+@app.post("/api/gemini-live-voice")
+async def gemini_live_voice(data: GeminiVoice, user: dict = Depends(get_current_user)):
+    """Real-time voice 'customer care' powered by the Gemini Live API.
+
+    Unlike /api/gemini-voice (text reply + on-device TTS), this opens a Gemini
+    Live native-audio session: it hears the student's recorded speech and
+    returns Gemini's OWN spoken voice in the chosen language (much more natural,
+    especially for Indian languages where device TTS voices are often missing).
+    The reply audio is returned as a small AAC/m4a clip the app plays directly.
+    The Gemini API key never leaves the server."""
+    if genai_live_client is None:
+        raise HTTPException(status_code=503, detail="Gemini Live is not configured. Add GEMINI_API_KEY on the server.")
+    try:
+        audio_bytes = base64.b64decode(data.audio_base64)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid audio data")
+    if not audio_bytes:
+        raise HTTPException(status_code=400, detail="Empty audio")
+
+    # Recorded container -> 16kHz mono PCM for Gemini Live realtime input.
+    try:
+        pcm_in = await asyncio.to_thread(_to_pcm16k, audio_bytes)
+    except Exception as e:
+        print(f"gemini-live transcode-in error: {e}")
+        raise HTTPException(status_code=400, detail="Could not read the recorded audio. Please try again.")
+    if not pcm_in:
+        raise HTTPException(status_code=400, detail="Empty audio after decoding")
+
+    lang_name = LANGUAGE_NAMES.get(data.language, "English")
+    chapter_topics = {1: "Patterns in Mathematics", 2: "Lines and Angles", 3: "Number Play", 4: "Data Handling",
+        5: "Prime Time", 6: "Perimeter and Area", 7: "Fractions", 8: "Playing with Constructions", 9: "Symmetry", 10: "The Other Side of Zero"}
+    topic = chapter_topics.get(data.chapter_id, "")
+
+    # Light conversation memory: feed the last few exchanges so the call feels
+    # continuous even though each turn opens a fresh Live session (stateless,
+    # which is robust on flaky mobile networks).
+    history_lines = []
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            db.row_factory = aiosqlite.Row
+            cur = await db.execute(
+                "SELECT user_message, ai_response FROM ai_conversations WHERE user_id = ? ORDER BY id DESC LIMIT 3",
+                (user["id"],))
+            rows = list(await cur.fetchall())
+        for r in reversed(rows):
+            um = (r["user_message"] or "").strip()
+            ar = (r["ai_response"] or "").strip()
+            if um:
+                history_lines.append(f"Student: {um}")
+            if ar:
+                history_lines.append(f"You: {ar}")
+    except Exception:
+        pass
+
+    system_instruction = (
+        "You are 'Customer Care', a warm, friendly support agent and Class 6 NCERT maths tutor "
+        "for the GANITA PRAKASH app. The student is talking to you on a voice call. Listen, understand "
+        f"what they asked, then answer helpfully and briefly (1-4 sentences), naturally as if speaking aloud. "
+        f"You MUST speak ONLY in {lang_name}. "
+        + (f"The student is studying the chapter '{topic}'. " if topic else "")
+        + ("Recent conversation so far:\n" + "\n".join(history_lines[-6:]) if history_lines else "")
+    )
+
+    cfg = {
+        "response_modalities": ["AUDIO"],
+        "system_instruction": system_instruction,
+        "input_audio_transcription": {},
+        "output_audio_transcription": {},
+    }
+
+    async def _live_turn():
+        out_pcm = bytearray()
+        in_tx, out_tx = "", ""
+        async with genai_live_client.aio.live.connect(model=GEMINI_LIVE_MODEL, config=cfg) as session:
+            await session.send_realtime_input(
+                audio=genai_live_types.Blob(data=pcm_in, mime_type="audio/pcm;rate=16000"))
+            await session.send_realtime_input(audio_stream_end=True)
+            async for resp in session.receive():
+                if resp.data:
+                    out_pcm += resp.data
+                sc = resp.server_content
+                if sc is not None:
+                    if sc.input_transcription is not None and sc.input_transcription.text:
+                        in_tx += sc.input_transcription.text
+                    if sc.output_transcription is not None and sc.output_transcription.text:
+                        out_tx += sc.output_transcription.text
+                    if sc.turn_complete:
+                        break
+        return bytes(out_pcm), in_tx.strip(), out_tx.strip()
+
+    try:
+        out_pcm, transcript, reply = await asyncio.wait_for(_live_turn(), timeout=60)
+    except asyncio.TimeoutError:
+        raise HTTPException(status_code=504, detail="Customer Care took too long to respond. Please try again.")
+    except Exception as e:
+        print(f"gemini-live-voice error: {e}")
+        raise HTTPException(status_code=502, detail="Gemini Live could not process the audio. Please try again.")
+
+    audio_b64 = ""
+    if out_pcm:
+        try:
+            mp3 = await asyncio.to_thread(_pcm24k_to_mp3, out_pcm)
+            audio_b64 = base64.b64encode(mp3).decode("ascii")
+        except Exception as e:
+            print(f"gemini-live transcode-out error: {e}")
+
+    if not reply:
+        reply = "Sorry, I couldn't catch that. Could you say it again?"
+
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute("INSERT INTO ai_conversations (user_id, user_message, ai_response, chapter_id) VALUES (?, ?, ?, ?)",
+                (user["id"], transcript or "[voice]", reply, data.chapter_id))
+            await db.commit()
+    except Exception:
+        pass
+
+    return {
+        "transcript": transcript,
+        "reply": reply,
+        "audio_base64": audio_b64,
+        "audio_mime": "audio/mpeg",
+        "language": data.language,
+        "status": "success",
+    }
 
 @app.get("/api/notifications")
 async def get_notifications(user: dict = Depends(get_current_user)):
