@@ -259,14 +259,29 @@ def _ffmpeg_exe():
 
 def _to_pcm16k(audio_bytes: bytes) -> bytes:
     """Decode any recorded container (m4a/mp4/webm/ogg/wav) to 16kHz mono
-    signed-16 PCM, the format Gemini Live realtime input expects."""
-    p = subprocess.run(
-        [_ffmpeg_exe(), "-hide_banner", "-loglevel", "error", "-i", "pipe:0",
-         "-f", "s16le", "-ac", "1", "-ar", "16000", "pipe:1"],
-        input=audio_bytes, capture_output=True)
-    if p.returncode != 0:
-        raise RuntimeError((p.stderr or b"").decode("utf-8", "ignore")[:200])
-    return p.stdout
+    signed-16 PCM, the format Gemini Live realtime input expects.
+
+    The input is written to a real temp file rather than piped in: phone
+    recorders (expo-av / Android MediaRecorder) produce m4a/mp4 whose moov
+    atom sits at the END of the file, so ffmpeg must seek to demux it. A pipe
+    is not seekable, which yields an empty decode; a temp file fixes that."""
+    import tempfile, os as _os
+    fd, src = tempfile.mkstemp(suffix=".bin")
+    try:
+        with _os.fdopen(fd, "wb") as f:
+            f.write(audio_bytes)
+        p = subprocess.run(
+            [_ffmpeg_exe(), "-hide_banner", "-loglevel", "error", "-i", src,
+             "-f", "s16le", "-ac", "1", "-ar", "16000", "pipe:1"],
+            capture_output=True)
+        if p.returncode != 0:
+            raise RuntimeError((p.stderr or b"").decode("utf-8", "ignore")[:200])
+        return p.stdout
+    finally:
+        try:
+            _os.unlink(src)
+        except Exception:
+            pass
 
 def _pcm24k_to_mp3(pcm_bytes: bytes) -> bytes:
     """Encode Gemini's 24kHz mono PCM reply into a small MP3 the app can play
