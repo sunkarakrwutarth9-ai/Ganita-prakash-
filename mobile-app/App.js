@@ -11655,16 +11655,27 @@ export default function App() {
     try {
       const base64Audio = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
       if (!base64Audio) { setGeminiThinking(false); Alert.alert('No audio', 'Recording was empty.'); return; }
-      const resp = await fetch(`${API_URL}/api/gemini-live-voice`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-        body: JSON.stringify({
-          audio_base64: base64Audio,
-          mime_type: 'audio/mp4',
-          language: geminiCallLang || 'en',
-          chapter_id: currentChapter?.id || null,
-        }),
-      });
+      // Gemini Live generates a full spoken reply, which can take ~15s. Use an
+      // explicit AbortController so the request is not cut short by any default
+      // socket timeout on slow mobile networks (matches the voice-message flow).
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 120000);
+      let resp;
+      try {
+        resp = await fetch(`${API_URL}/api/gemini-live-voice`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+          body: JSON.stringify({
+            audio_base64: base64Audio,
+            mime_type: 'audio/mp4',
+            language: geminiCallLang || 'en',
+            chapter_id: currentChapter?.id || null,
+          }),
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(timeoutId);
+      }
       if (!resp.ok) {
         let detail = '';
         try { detail = (await resp.json()).detail || ''; } catch (_) {}
@@ -11688,7 +11699,10 @@ export default function App() {
     } catch (e) {
       console.log('gemini-live-voice error:', e);
       setGeminiThinking(false);
-      Alert.alert('Customer Care', 'Network error. Please try again.');
+      const msg = (e && e.name === 'AbortError')
+        ? 'That took too long on this network. Please try again with a shorter question.'
+        : 'Network error. Please check your connection and try again.';
+      Alert.alert('Customer Care', msg);
     }
   };
 
