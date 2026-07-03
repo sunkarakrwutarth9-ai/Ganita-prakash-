@@ -1,0 +1,275 @@
+/* =====================================================================
+   GANITA PRAKASH — iOS 26 "Liquid Glass" theme (replica site only)
+   This is an override layer loaded AFTER the base styles + inline styles.
+   It uses !important deliberately to win over the app's many inline styles.
+   All look-and-feel is driven by CSS custom properties (design tokens)
+   on :root so the admin "Customise" panel can retune everything live.
+   ===================================================================== */
+
+:root {
+  /* ---- Design tokens (edited live by the Customise panel) ---- */
+  --ig-accent:        #0A84FF;   /* primary iOS accent            */
+  --ig-accent-2:      #5E5CE6;   /* secondary accent / gradient    */
+  --ig-radius:        22px;      /* concentric corner radius       */
+  --ig-blur:          22px;      /* backdrop blur strength         */
+  --ig-saturate:      180%;      /* glass colour vibrancy          */
+  --ig-glass-tint:    255,255,255; /* glass tint RGB               */
+  --ig-glass-alpha:   0.12;      /* glass fill opacity             */
+  --ig-stroke-alpha:  0.22;      /* glass border opacity           */
+  --ig-text:          #f5f7ff;   /* primary text colour            */
+  --ig-text-dim:      rgba(245,247,255,0.66);
+  --ig-font:          -apple-system, BlinkMacSystemFont, 'SF Pro Display',
+                      'SF Pro Text', 'Segoe UI', 'Inter', 'Helvetica Neue',
+                      Arial, sans-serif;
+  /* Dynamic wallpaper (a soft multi-blob gradient mesh) */
+  --ig-wall-1: #2b1d63;
+  --ig-wall-2: #0b2a67;
+  --ig-wall-3: #12124a;
+  --ig-wall-4: #3a1560;
+
+  /* Derived helpers */
+  --ig-glass:  rgba(var(--ig-glass-tint), var(--ig-glass-alpha));
+  --ig-glass-strong: rgba(var(--ig-glass-tint), calc(var(--ig-glass-alpha) + 0.10));
+  --ig-stroke: rgba(255,255,255,var(--ig-stroke-alpha));
+  --ig-shadow: 0 18px 50px rgba(0,0,0,0.45);
+  --ig-inner:  inset 0 1px 0 rgba(255,255,255,0.35),
+               inset 0 -1px 0 rgba(255,255,255,0.06);
+}
+
+/* ---------- Base / wallpaper ---------- */
+html, body {
+  background: transparent !important;
+  color: var(--ig-text) !important;
+  font-family: var(--ig-font) !important;
+  -webkit-font-smoothing: antialiased;
+}
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -3;
+  background:
+    radial-gradient(45% 55% at 18% 20%, var(--ig-wall-1) 0%, transparent 60%),
+    radial-gradient(45% 55% at 82% 12%, var(--ig-wall-4) 0%, transparent 60%),
+    radial-gradient(60% 60% at 75% 85%, var(--ig-wall-2) 0%, transparent 62%),
+    radial-gradient(55% 55% at 20% 88%, var(--ig-wall-3) 0%, transparent 60%),
+    linear-gradient(160deg, #0a0a1f 0%, #0e0b23 55%, #090a1c 100%);
+  background-attachment: fixed;
+  animation: ig-wall-drift 28s ease-in-out infinite alternate;
+}
+@keyframes ig-wall-drift {
+  0%   { filter: hue-rotate(0deg)   saturate(1);   transform: scale(1); }
+  100% { filter: hue-rotate(18deg)  saturate(1.15);transform: scale(1.06); }
+}
+/* Kill the old space/cyberpunk background */
+.space-bg, .stars, .particles { display: none !important; }
+
+/* Fonts: neutralise the Orbitron/Rajdhani look everywhere */
+body, body * {
+  font-family: var(--ig-font) !important;
+  letter-spacing: normal !important;
+}
+
+/* ---------- Reusable glass surface ---------- */
+.ig-glass, .login-box, .modal-content, .chapter-card, .question-card,
+.content-section, .header, #main-app .card, .ig-panel {
+  background: var(--ig-glass) !important;
+  -webkit-backdrop-filter: blur(var(--ig-blur)) saturate(var(--ig-saturate));
+  backdrop-filter: blur(var(--ig-blur)) saturate(var(--ig-saturate));
+  border: 1px solid var(--ig-stroke) !important;
+  border-radius: var(--ig-radius) !important;
+  box-shadow: var(--ig-shadow), var(--ig-inner) !important;
+}
+
+/* ---------- Login screen ---------- */
+.login-screen { background: transparent !important; }
+.login-box {
+  padding: 34px 30px !important;
+  max-width: 420px;
+}
+.login-title, .login-subtitle { color: var(--ig-text) !important;
+  -webkit-text-fill-color: var(--ig-text) !important; }
+.login-subtitle { color: var(--ig-text-dim) !important; }
+.form-group label { color: var(--ig-text-dim) !important; }
+.login-box input, #main-app input, textarea, select,
+.form-group input {
+  background: rgba(255,255,255,0.08) !important;
+  border: 1px solid rgba(255,255,255,0.18) !important;
+  border-radius: 14px !important;
+  color: var(--ig-text) !important;
+  padding: 13px 15px !important;
+}
+input::placeholder, textarea::placeholder { color: rgba(255,255,255,0.45) !important; }
+input:focus, textarea:focus, select:focus {
+  outline: none !important;
+  border-color: var(--ig-accent) !important;
+  box-shadow: 0 0 0 4px rgba(10,132,255,0.22) !important;
+}
+
+/* ---------- Buttons ---------- */
+.login-btn, .logout-btn, .btn-group button, button.nav-tab,
+#main-app button:not(.nav-tab):not(.ig-plain), .google-btn,
+.ig-btn {
+  border-radius: 999px !important;
+  border: 1px solid var(--ig-stroke) !important;
+  -webkit-backdrop-filter: blur(calc(var(--ig-blur) * 0.7)) saturate(var(--ig-saturate));
+  backdrop-filter: blur(calc(var(--ig-blur) * 0.7)) saturate(var(--ig-saturate));
+  transition: transform .18s cubic-bezier(.2,.8,.2,1), box-shadow .18s ease, background .2s ease !important;
+}
+.login-btn, .ig-btn-primary {
+  background: linear-gradient(135deg, var(--ig-accent), var(--ig-accent-2)) !important;
+  color: #fff !important;
+  box-shadow: 0 10px 30px rgba(10,132,255,0.35), var(--ig-inner) !important;
+  font-weight: 600 !important;
+}
+.google-btn {
+  background: rgba(255,255,255,0.92) !important;
+  color: #1b1b1f !important;
+}
+.logout-btn { background: rgba(255,59,48,0.18) !important; color:#ff8a80 !important; }
+.login-btn:hover, .btn-group button:hover, .google-btn:hover,
+#main-app button:not(.nav-tab):hover, .ig-btn:hover {
+  transform: translateY(-2px) !important;
+}
+.login-btn:active, .btn-group button:active { transform: translateY(0) scale(.98) !important; }
+
+/* ---------- Header ---------- */
+#main-app.container { background: transparent !important; }
+.header {
+  margin: 14px auto 0 !important;
+  padding: 14px 18px !important;
+  position: sticky; top: 10px; z-index: 50;
+}
+.title-section h1 {
+  color: var(--ig-text) !important;
+  -webkit-text-fill-color: var(--ig-text) !important;
+  background: none !important;
+  font-weight: 700 !important;
+}
+.title-section p { color: var(--ig-text-dim) !important; }
+#user-avatar {
+  background: linear-gradient(135deg, var(--ig-accent), var(--ig-accent-2)) !important;
+  box-shadow: var(--ig-inner) !important;
+}
+.user-name { color: var(--ig-text) !important; }
+.user-role { color: var(--ig-text-dim) !important; }
+
+/* ---------- Floating tab bar (nav) ---------- */
+.nav-tabs {
+  background: var(--ig-glass-strong) !important;
+  -webkit-backdrop-filter: blur(calc(var(--ig-blur) + 8px)) saturate(var(--ig-saturate));
+  backdrop-filter: blur(calc(var(--ig-blur) + 8px)) saturate(var(--ig-saturate));
+  border: 1px solid var(--ig-stroke) !important;
+  border-radius: 999px !important;
+  box-shadow: var(--ig-shadow), var(--ig-inner) !important;
+  padding: 8px !important;
+  gap: 6px !important;
+  position: sticky; top: 92px; z-index: 49;
+  margin: 14px auto !important;
+}
+.nav-tab {
+  background: transparent !important;
+  color: var(--ig-text-dim) !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  padding: 9px 16px !important;
+  font-weight: 600 !important;
+  font-size: 0.8rem !important;
+  box-shadow: none !important;
+}
+.nav-tab:hover { color: var(--ig-text) !important; background: rgba(255,255,255,0.08) !important; }
+.nav-tab.active {
+  background: linear-gradient(135deg, var(--ig-accent), var(--ig-accent-2)) !important;
+  color: #fff !important;
+  box-shadow: 0 8px 22px rgba(10,132,255,0.4), var(--ig-inner) !important;
+}
+
+/* ---------- Content sections / cards ---------- */
+.content-section {
+  padding: 22px !important;
+  margin: 16px auto !important;
+}
+.section-title {
+  color: var(--ig-text) !important;
+  -webkit-text-fill-color: var(--ig-text) !important;
+  background: none !important;
+  font-weight: 700 !important;
+}
+.chapters-grid { gap: 18px !important; }
+.chapter-card, .question-card {
+  padding: 20px !important;
+  transition: transform .2s cubic-bezier(.2,.8,.2,1), box-shadow .2s ease !important;
+}
+.chapter-card:hover {
+  transform: translateY(-6px) !important;
+  box-shadow: 0 26px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.15), var(--ig-inner) !important;
+}
+.chapter-card.locked { opacity: .55 !important; }
+.status-badge {
+  border-radius: 999px !important;
+  border: 1px solid rgba(255,255,255,0.18) !important;
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+}
+.status-badge.completed { background: rgba(48,209,88,0.22) !important; color:#7ff0a0 !important; }
+.status-badge.in-progress { background: linear-gradient(135deg,var(--ig-accent),var(--ig-accent-2)) !important; color:#fff !important; }
+.status-badge.locked { background: rgba(255,255,255,0.10) !important; color: var(--ig-text-dim) !important; }
+
+/* ---------- Modals ---------- */
+.modal { background: rgba(6,7,20,0.55) !important; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.modal-content { padding: 26px !important; }
+
+/* ---------- Scrollbars ---------- */
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 999px; }
+*::-webkit-scrollbar-track { background: transparent; }
+
+/* =====================================================================
+   Customise panel (admin only)
+   ===================================================================== */
+#customise-section .ig-cust-wrap { display: grid; grid-template-columns: repeat(auto-fit,minmax(260px,1fr)); gap: 16px; }
+.ig-cust-card { padding: 18px 18px 20px !important; }
+.ig-cust-card h3 { color: var(--ig-text) !important; font-size: 1rem !important; margin-bottom: 12px !important; font-weight: 700 !important; }
+.ig-row { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:10px 0; }
+.ig-row label { color: var(--ig-text-dim) !important; font-size:.85rem; }
+.ig-row input[type="range"] { flex:1; accent-color: var(--ig-accent); }
+.ig-row input[type="color"] { width:44px; height:30px; padding:0; border-radius:8px; border:1px solid var(--ig-stroke); background:transparent; cursor:pointer; }
+.ig-row .ig-val { min-width:44px; text-align:right; color: var(--ig-text); font-variant-numeric: tabular-nums; font-size:.82rem; }
+.ig-presets { display:flex; flex-wrap:wrap; gap:10px; }
+.ig-swatch { width:40px; height:40px; border-radius:12px; cursor:pointer; border:2px solid rgba(255,255,255,0.25); box-shadow: var(--ig-inner); }
+.ig-wall-opts { display:flex; flex-wrap:wrap; gap:10px; }
+.ig-wall-opt { width:64px; height:44px; border-radius:12px; cursor:pointer; border:2px solid rgba(255,255,255,0.25); }
+.ig-cust-actions { display:flex; gap:12px; margin-top:8px; flex-wrap:wrap; }
+
+/* =====================================================================
+   Class selection page (post-login) — Liquid Glass
+   ===================================================================== */
+#class-selection-page h1 {
+  font-family: var(--ig-font) !important;
+  background: linear-gradient(90deg, var(--ig-accent), var(--ig-accent-2)) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  letter-spacing: .5px !important;
+}
+#class-selection-page p { font-family: var(--ig-font) !important; color: var(--ig-text-dim) !important; }
+#class-selection-page button[onclick^="selectClass"] {
+  background: var(--ig-glass) !important;
+  -webkit-backdrop-filter: blur(var(--ig-blur)) saturate(var(--ig-saturate));
+  backdrop-filter: blur(var(--ig-blur)) saturate(var(--ig-saturate));
+  border: 1px solid var(--ig-stroke) !important;
+  border-radius: calc(var(--ig-radius) + 6px) !important;
+  box-shadow: var(--ig-shadow), var(--ig-inner) !important;
+  color: var(--ig-text) !important;
+}
+#class-selection-page button[onclick^="selectClass"] h2 {
+  font-family: var(--ig-font) !important;
+  color: var(--ig-text) !important;
+}
+#class-selection-page button[onclick^="selectClass"] p { color: var(--ig-text-dim) !important; }
+#class-selection-page button[onclick^="selectClass"] > div:last-child {
+  background: linear-gradient(90deg, var(--ig-accent), var(--ig-accent-2)) !important;
+  color: #fff !important;
+  font-family: var(--ig-font) !important;
+  border-radius: 999px !important;
+  box-shadow: var(--ig-inner) !important;
+}

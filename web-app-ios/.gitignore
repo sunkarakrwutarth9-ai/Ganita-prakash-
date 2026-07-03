@@ -1,0 +1,6 @@
+.firebase/
+node_modules/
+*.log
+# PDF chapter assets are byte-identical to ../web-app/assets/pdfs (already tracked);
+# they are deployed with the site but not re-committed here to avoid duplication.
+assets/pdfs/
